@@ -92,3 +92,13 @@ def test_non_relative_images_are_rejected(src):
 def test_relative_and_data_images_are_allowed():
     doc = parse("![a](img/fig.png) ![b](data:image/png;base64,AAAA)\n")
     assert 'src="img/fig.png"' in doc.body_html
+
+
+@pytest.mark.parametrize("value", ["two", 0, -1, 1.5, True])
+def test_pages_must_be_positive_int(value):
+    with pytest.raises(InputError, match="pages"):
+        parse(f"---\npages: {value}\n---\n\n# A\n")
+
+
+def test_pages_is_allowed():
+    assert parse("---\npages: 2\n---\n\n# A\n").meta["pages"] == 2

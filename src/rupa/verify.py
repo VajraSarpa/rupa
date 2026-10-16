@@ -3,8 +3,9 @@
 Two tiers:
   1. Deterministic checks, run here in code: color, size, page count, empty
      pages, stranded headings, overflow. Free and repeatable.
-  2. Evidence for a vision review: one side-by-side sheet per page type
-     (reference page | rendered page) plus every flagged page. Rupa never calls
+  2. Evidence for a vision review: a side-by-side sheet (reference page |
+     rendered page) for every flagged page, and with sample: per-type one
+     per page type too. Rupa never calls
      a model; Claude reads the sheets and judges them against the rubric.
 """
 
@@ -53,7 +54,7 @@ DEFAULT_WANTS = {
     "near_empty_fill": 0.2,
     "checks": list(ALL_CHECKS),
     "vision": {
-        "sample": "per-type",
+        "sample": "flagged",
         "max_sheets": 8,
         "resolution": 90,
         "rubric": DEFAULT_RUBRIC,

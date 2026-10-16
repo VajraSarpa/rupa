@@ -2,8 +2,8 @@
 # Compare Claude Code cost on the same task across four arms:
 #   baseline       no plugin: Claude writes the HTML/CSS and finds its own PDF tool
 #   rupa           plugin, render only (the skill's Verify section is removed)
-#   rupa-flagged   plugin, verify with sheets only for pages a code check flags
-#   rupa-verify    plugin as shipped: render, then verify with a visual review
+#   rupa-pertype   plugin, verify with a sheet per page type as well as flagged pages
+#   rupa-verify    plugin as shipped: render, then verify; sheets only for flagged pages
 #
 # Usage: bench/bench.sh [runs]        default 1 run per arm (a pilot)
 #        MODEL=claude-sonnet-5-5 bench/bench.sh 3
@@ -35,13 +35,13 @@ plugin_copy "$NOVERIFY"
 awk '/^## Verify/ {skip=1} /^Do not add styling/ {skip=0} !skip' \
   "$SKILL" > "$NOVERIFY/skills/render/SKILL.md"
 
-# Flagged only: verify makes sheets just for pages a code check flags.
-FLAGGED="$RESULTS/plugin-flagged"
-plugin_copy "$FLAGGED"
-sed 's/`rupa verify out\/report.pdf`/`rupa verify --sample flagged out\/report.pdf`/' \
-  "$SKILL" > "$FLAGGED/skills/render/SKILL.md"
-grep -q -- '--sample flagged' "$FLAGGED/skills/render/SKILL.md" \
-  || { echo "bench: could not make the flagged skill; SKILL.md changed?" >&2; exit 2; }
+# Per-type: verify also makes one sheet per page type, even on a clean PDF.
+PERTYPE="$RESULTS/plugin-pertype"
+plugin_copy "$PERTYPE"
+sed 's/`rupa verify out\/report.pdf`/`rupa verify --sample per-type out\/report.pdf`/' \
+  "$SKILL" > "$PERTYPE/skills/render/SKILL.md"
+grep -q -- '--sample per-type' "$PERTYPE/skills/render/SKILL.md" \
+  || { echo "bench: could not make the per-type skill; SKILL.md changed?" >&2; exit 2; }
 
 run_arm() {  # $1 = arm name, remaining args = extra claude flags
   local arm="$1"; shift
@@ -59,7 +59,7 @@ run_arm() {  # $1 = arm name, remaining args = extra claude flags
 
 run_arm baseline
 run_arm rupa --plugin-dir "$NOVERIFY"
-run_arm rupa-flagged --plugin-dir "$FLAGGED"
+run_arm rupa-pertype --plugin-dir "$PERTYPE"
 run_arm rupa-verify --plugin-dir "$ROOT/plugin"
 
 python3 "$ROOT/bench/summarize.py" "$RESULTS"

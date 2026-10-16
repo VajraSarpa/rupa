@@ -10,7 +10,7 @@ skill makes Claude use it instead of hand-writing markup.
 
 ```bash
 uv sync                                   # needs Pango for WeasyPrint (see README)
-uv run pytest -q                          # 70 tests
+uv run pytest -q                          # 80 tests
 uv run pytest tests/test_verify.py::test_stranded_heading_fails   # one test
 uvx ruff check src tests                  # CI runs this too
 echo "# Hello" | uv run rupa -o out/hello.pdf && uv run rupa verify out/hello.pdf
@@ -61,7 +61,7 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
 - stdout is exactly one status line (or one JSON object with `--json`),
   never the document.
 - Exit codes: `0` ok, `2` usage, `3` bad input, `4` render failure,
-  `5` verify checks failed.
+  `5` verify checks failed, or a PDF still over its `pages` budget.
 - Status-line wording is matched by evals (e.g. `verify: N/N checks pass`).
 
 ### Plugin (`plugin/`)
@@ -72,7 +72,7 @@ hand-write HTML/CSS/PDF code, fix verify failures in the Markdown only (at most
 two rounds), and report theme problems instead of editing CSS. The skill's
 `description` drives triggering; the `trigger` eval cases test it.
 `bench/bench.sh` builds its render-only arm by cutting SKILL.md from
-`## Verify` to `Do not add styling`, and its flagged arm by rewriting the
+`## Verify` to `Do not add styling`, and its per-type arm by rewriting the
 `` `rupa verify out/report.pdf` `` example, so keep those intact.
 
 ## Conventions

@@ -9,7 +9,8 @@ import statistics
 import sys
 from pathlib import Path
 
-ARMS = ("baseline", "rupa", "rupa-flagged", "rupa-verify")
+# rupa-flagged is the old name of the flagged arm, kept so older results read.
+ARMS = ("baseline", "rupa", "rupa-flagged", "rupa-pertype", "rupa-verify")
 COLS = ("turns", "cache_read", "cache_write", "input", "output", "cost_usd", "secs")
 
 
@@ -45,17 +46,18 @@ def main(results: Path) -> None:
         arm = f.stem.rsplit("-", 1)[0]
         if arm in runs and (r := row(f)):
             runs[arm].append(r)
+    arms = [a for a in ARMS if runs[a]]
 
     header = ("arm", "run", *COLS, "pdf")
     print("\t".join(header))
-    for arm in ARMS:
+    for arm in arms:
         for i, r in enumerate(runs[arm], 1):
             print("\t".join([arm, str(i), *(fmt(r[c]) for c in COLS), fmt(r["pdf"])]))
 
     print("\nmedians (runs without a PDF excluded)")
     print("\t".join(("arm", "n", *COLS)))
     base = None
-    for arm in ARMS:
+    for arm in arms:
         ok = [r for r in runs[arm] if r["pdf"]]
         if not ok:
             print(f"{arm}\t0\t(no successful runs)")
@@ -66,7 +68,7 @@ def main(results: Path) -> None:
         print("\t".join([arm, str(len(ok)), *(fmt(med[c]) for c in COLS)]))
     if base:
         print("\nvs baseline (median turns, median cost)")
-        for arm in ARMS[1:]:
+        for arm in arms[1:]:
             ok = [r for r in runs[arm] if r["pdf"]]
             if ok and base["turns"] and base["cost_usd"]:
                 t = statistics.median(r["turns"] for r in ok) / base["turns"] - 1

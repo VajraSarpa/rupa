@@ -18,7 +18,7 @@ from pygments.formatters import HtmlFormatter
 from pygments.lexers import TextLexer, get_lexer_by_name
 from pygments.util import ClassNotFound
 
-ALLOWED_META = {"title", "subtitle", "author", "date", "theme", "toc"}
+ALLOWED_META = {"title", "subtitle", "author", "date", "theme", "toc", "pages"}
 
 
 class InputError(ValueError):
@@ -111,6 +111,11 @@ def parse(text: str) -> Document:
                 raise InputError(
                     f"unknown frontmatter keys: {sorted(map(str, unknown))}"
                 )
+            pages = loaded.get("pages")
+            if pages is not None and (
+                not isinstance(pages, int) or isinstance(pages, bool) or pages < 1
+            ):
+                raise InputError("frontmatter 'pages' must be a whole number >= 1")
             meta = loaded
         elif tok.type == "heading_open":
             headings.append(

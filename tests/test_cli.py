@@ -131,3 +131,45 @@ def test_verify_sample_flag_overrides_wants(tmp_path, monkeypatch, capsys):
     code = main(["verify", str(pdf), "--sample", "flagged", "--json"])
     report = json.loads(capsys.readouterr().out)
     assert code == EXIT_OK and report["ok"] and report["sheets"] == []
+
+
+LONG = "---\ntitle: T\npages: {budget}\n---\n\n" + "\n\n".join(
+    f"## S{i}\n\n" + "Owning identity, detection and response in the cloud. " * 30
+    for i in range(6)
+)
+
+
+def test_page_budget_fits_by_tightening(tmp_path, monkeypatch, capsys):
+    target = tmp_path / "o.pdf"
+    code, out, _ = run(
+        monkeypatch, capsys, ["-o", str(target), "--json"], stdin=LONG.format(budget=3)
+    )
+    status = json.loads(out)
+    assert code == EXIT_OK and status["ok"]
+    assert status["pages"] <= 3 and status["fit"] and status["cut_words"] == 0
+
+
+def test_page_budget_over_says_how_much_to_cut(tmp_path, monkeypatch, capsys):
+    target = tmp_path / "o.pdf"
+    code, out, _ = run(
+        monkeypatch, capsys, ["-o", str(target)], stdin=LONG.format(budget=1)
+    )
+    assert code == 5 and target.exists()  # the file is still written
+    assert "over the 1-page budget" in out and "cut about" in out
+
+
+def test_pages_flag_overrides_frontmatter(tmp_path, monkeypatch, capsys):
+    target = tmp_path / "o.pdf"
+    code, out, _ = run(
+        monkeypatch,
+        capsys,
+        ["-o", str(target), "--pages", "1", "--json"],
+        stdin=LONG.format(budget=9),
+    )
+    assert code == 5 and json.loads(out)["budget"] == 1
+
+
+def test_no_budget_leaves_render_alone(tmp_path, monkeypatch, capsys):
+    target = tmp_path / "o.pdf"
+    code, out, _ = run(monkeypatch, capsys, ["-o", str(target), "--json"])
+    assert code == EXIT_OK and "fit" not in json.loads(out)

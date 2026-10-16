@@ -8,7 +8,10 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
 ## Render
 
 1. Write the content as Markdown. Optional frontmatter keys: `title`,
-   `subtitle`, `author`, `date`, `theme`, `toc` (true/false). No other keys.
+   `subtitle`, `author`, `date`, `theme`, `toc` (true/false), `pages`.
+   No other keys. If the user asks for a page count, set `pages: N`: Rupa
+   then fits the PDF to N pages itself (drops the contents list, tightens
+   type). Write to about 450 words per page.
 2. Use `#` for parts, `##` for sections, `###` for subsections.
    Fenced code blocks take a language tag. Images are relative paths to
    files next to the Markdown file (or `data:image` URIs), never URLs.
@@ -19,14 +22,18 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
    ```
 
 4. Read only the one-line status. Do not open or print the output file.
-5. On a non-zero exit, read the stderr line and fix the Markdown:
-   `3` bad input, `4` render failure.
+5. On a non-zero exit, fix the Markdown: `3` bad input and `4` render
+   failure explain themselves on stderr; `5` means the PDF is still over
+   `pages` and the status line says about how many words to cut. Cut that
+   many in one edit and render again. Do not measure pages yourself.
 
 ## Verify (PDF)
 
 1. Run `rupa verify out/report.pdf` (add `--wants wants.yaml` if the project
    has one). It prints one line and writes `verify.json` plus sheet images.
-2. Read `verify.json`. Then open each sheet image listed under `sheets`.
+2. If the status line reports no sheets, the PDF passed: skip to step 6.
+   Do not render or open page images yourself.
+   Otherwise read `verify.json`, then open each sheet image listed under `sheets`.
    Each sheet shows the theme's reference page on the left and the rendered
    page on the right.
 3. Judge every sheet against each item in `rubric`. Record one line per

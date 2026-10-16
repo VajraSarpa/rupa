@@ -9,7 +9,7 @@ turns=20
 if [[ -n "$plugin" ]]; then
   turns=12
   grep -q "## Verify" "$plugin/skills/render/SKILL.md" && turns=15
-  grep -q -- "--sample flagged" "$plugin/skills/render/SKILL.md" && turns=13
+  grep -q -- "--sample per-type" "$plugin/skills/render/SKILL.md" && turns=17
 fi
 printf '%%PDF-1.4 fake\n' > report.pdf
 cat <<JSON

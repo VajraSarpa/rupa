@@ -16,7 +16,7 @@ checks:                   # remove any you don't want
   - heading-at-bottom
   - overflow
 vision:
-  sample: per-type        # per-type | flagged | all | none (flagged: only pages a check flags)
+  sample: flagged         # flagged | per-type | all | none (per-type: flagged pages plus one of each kind)
   max_sheets: 8           # cap on sheet images per run
   resolution: 90          # DPI for page images; ~1,500 x 1,000 px per sheet
   rubric:                 # what Claude judges on each sheet

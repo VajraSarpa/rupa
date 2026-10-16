@@ -10,7 +10,7 @@ uv tool install .
 echo "# Hello" | rupa -o hello.pdf
 # rupa: wrote hello.pdf (pdf, 1 page, 9,812 bytes)
 rupa verify hello.pdf
-# verify: 8/8 checks pass; 2 sheets for visual review in hello.verify/
+# verify: 8/8 checks pass
 ```
 
 ## Why
@@ -29,7 +29,7 @@ Claude writes content, Rupa applies a tested theme and prints one status line.
 | `src/rupa/references/` | Reference pages each theme is visually compared against |
 | `plugin/` | Claude Code plugin: one skill that renders, verifies and reviews |
 | `plugin/evals/` | `claude plugin eval` suite: does the skill trigger, render with rupa, and pass verify |
-| `bench/` | Four-arm benchmark (baseline, Rupa, Rupa + flagged-only review, Rupa + verify) and a fake `claude` for testing it |
+| `bench/` | Four-arm benchmark (baseline, Rupa render-only, Rupa + per-type review, Rupa as shipped) and a fake `claude` for testing it |
 | `docs/` | Plan, guide and tutorial: Markdown source, build script, rendered PDF and HTML |
 | `wants.example.yaml` | Every verification rule, with its default |
 
@@ -37,15 +37,18 @@ Claude writes content, Rupa applies a tested theme and prints one status line.
 
 - **stdin or a file:** Markdown with optional YAML frontmatter
 - **`-o PATH`:** the rendered file, format from the extension
+- **`pages: N` or `--pages N`:** a PDF page budget. Rupa fits it by dropping
+  the contents list and tightening type; if it still can't, it says how many
+  words to cut
 - **stdout:** one status line, never the document
-- **exit codes:** `0` ok, `2` usage, `3` bad input, `4` render failure, `5` verify checks failed
+- **exit codes:** `0` ok, `2` usage, `3` bad input, `4` render failure, `5` verify checks failed or a PDF still over its page budget
 
 ## Verification
 
 `rupa verify` runs code checks on the PDF (color, page size, page count, empty
 or sparse pages, stranded headings, overflow). It also writes side-by-side
-sheets, reference page | rendered page, for every flagged page plus one page of
-each type. The plugin's skill has Claude review those sheets against a rubric
+sheets, reference page | rendered page, for every page a check flags, so a
+clean PDF gets none (`--sample per-type` adds one page of each type). The plugin's skill has Claude review those sheets against a rubric
 and fix the Markdown. Rupa never calls a model itself.
 
 ## Use it from Claude Code
@@ -65,7 +68,7 @@ Needs Python 3.11+, [uv](https://docs.astral.sh/uv/), and Pango for WeasyPrint
 
 ```bash
 uv sync
-uv run pytest -q                   # 70 tests
+uv run pytest -q                   # 80 tests
 uvx ruff check src tests
 uv run rupa refs                   # after any theme change; commit the PNGs
 uv run python docs/build.py        # re-render the guide with Rupa
@@ -73,9 +76,12 @@ uv run python docs/build.py        # re-render the guide with Rupa
 
 ## Status
 
-Working prototype. The token benchmark hasn't been run yet. Start with the
-pilot, `bench/bench.sh` (one run per arm, roughly $1–2); see the guide's
-"Measuring the savings" section.
+Working prototype. The first benchmark (2026-10-15, three runs per arm on
+Opus 5.5, a two-page report) found no saving: render-only was 7% cheaper than
+baseline, and verify with per-type sheets was 27% more expensive. The extra
+turns came from fitting two pages, which led to page budgets and flagged-only
+sampling. Those haven't been benchmarked yet; see the guide's "Measuring the
+savings" section.
 
 ## License
 

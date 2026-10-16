@@ -154,7 +154,7 @@ Rupa has one contract, and the plugin, tests and benchmark all depend on it.
 | `-o PATH` | The rendered file. Format comes from the extension, or `--to html` / `--to pdf` |
 | stdout | One status line, or one JSON object with `--json`. Never the document |
 | stderr | One error line on failure |
-| exit code | `0` ok, `2` usage, `3` bad input, `4` render failure, `5` verify checks failed |
+| exit code | `0` ok, `2` usage, `3` bad input, `4` render failure, `5` verify checks failed or a PDF still over its page budget |
 
 Two subcommands follow the same rules:
 
@@ -171,6 +171,20 @@ rupa: wrote out/notes.pdf (pdf, 3 pages, 48,211 bytes)
 
 $ rupa notes.md -o out/notes.pdf --json
 {"ok": true, "path": "out/notes.pdf", "format": "pdf", "pages": 3, "bytes": 48211}
+```
+
+### Page budgets
+
+`pages: N` in the frontmatter (or `--pages N`) gives a PDF a page budget. If the first render is over, Rupa tightens the form, never the content, one step at a time: it drops the contents list, then sets compact type, then tight type. Margins and heading sizes stay fixed, because `verify` measures against them. The status line names the steps used:
+
+```bash
+rupa: wrote out/report.pdf (pdf, 2 pages, fit to 2 with no contents + compact type, 41,322 bytes)
+```
+
+If even tight type is over, Rupa still writes the file. It exits `5` and says how many words sit past the budget, so Claude cuts that much in one edit instead of measuring pages itself:
+
+```bash
+rupa: wrote out/report.pdf (pdf, 3 pages, 44,870 bytes); over the 2-page budget at the tightest type: cut about 140 words and render again
 ```
 
 ## Input format
@@ -231,7 +245,7 @@ Rendering proves the file exists. Verification checks that it's right, in two ti
 | `heading-at-bottom` | A heading is the last line on a page |
 | `overflow` | Text runs past the side margins |
 
-**Tier 2: visual review.** Code can't tell whether a page looks right. For that, `rupa verify` classifies each page as cover, prose, table or code. It then writes a sheet image for every flagged page plus one page of each type, with the theme's reference page on the left and the rendered page on the right. Claude opens those sheets and judges each one against a fixed rubric: hierarchy, spacing, overflow, page balance and style.
+**Tier 2: visual review.** Code can't tell whether a page looks right. For that, `rupa verify` classifies each page as cover, prose, table or code. It then writes a sheet image for every page a code check flagged (with `sample: per-type`, one page of each type too), with the theme's reference page on the left and the rendered page on the right. Claude opens those sheets and judges each one against a fixed rubric: hierarchy, spacing, overflow, page balance and style.
 
 ### The wants file
 
@@ -322,7 +336,7 @@ One run from the build, not a benchmark: asked for a one-page PDF summary of the
 
 Output was about half a percent of the tokens processed. Every turn re-reads the conversation, so cost tracks turns. That changes what Rupa should be judged on: not mainly smaller output, but fewer turns. No hunting for a PDF tool, no render debugging, and one-line errors that are fixed in one edit.
 
-### Four arms
+### Arms
 
 `bench/bench.sh` runs the same task in four arms through Claude Code's print mode (`claude -p ... --output-format json`):
 
@@ -330,23 +344,31 @@ Output was about half a percent of the tokens processed. Every turn re-reads the
 |---|---|---|
 | `baseline` | No plugin | What it costs today |
 | `rupa` | Plugin with the skill's Verify section removed | What rendering through Rupa saves |
-| `rupa-flagged` | Plugin whose skill runs `rupa verify --sample flagged` | What verify costs when sheets are made only for pages a code check flags |
-| `rupa-verify` | Plugin as shipped | What the visual review adds back |
+| `rupa-pertype` | Plugin whose skill runs `rupa verify --sample per-type` | What verify costs when every page type gets a sheet, even on a clean PDF |
+| `rupa-verify` | Plugin as shipped (sheets only for flagged pages) | What the visual review adds back |
 
-The render-only and flagged arms use copies of the plugin made at run time, so all four arms get exactly the same prompt. Each run starts in a fresh empty directory, so no arm can read the Rupa repo. `bench/summarize.py` prints one row per run and the medians per arm, with turns and cache reads first, then a line comparing each Rupa arm to the baseline.
+The first benchmark called the flagged arm `rupa-flagged`, when per-type was still the default; `summarize.py` still reads that name. The render-only and per-type arms use copies of the plugin made at run time, so all four arms get exactly the same prompt. Each run starts in a fresh empty directory, so no arm can read the Rupa repo. `bench/summarize.py` prints one row per run and the medians per arm, with turns and cache reads first, then a line comparing each Rupa arm to the baseline.
 
-### What it will cost
+### First result (2026-10-15)
 
-Estimates on the default model, from the run above:
+Three runs per arm, Claude Opus 5.5, task: "Write a 2-page PDF report on the AWS Well-Architected security pillar, saved as report.pdf." Every run produced a PDF. Medians:
 
-| Arm | Per run, approx. |
-|---|---|
-| `baseline` | $0.40–1.00; wide, because it depends on whether Claude detours to find and install a PDF tool |
-| `rupa` | $0.25–0.40 |
-| `rupa-flagged` | not measured yet |
-| `rupa-verify` | $0.30–0.50 |
+| Arm | Turns | Cache reads | Cost | vs baseline |
+|---|---|---|---|---|
+| `baseline` | 9 | 299,095 | $0.43 | — |
+| `rupa` | 10 | 296,826 | $0.40 | turns +11%, cost −7% |
+| `rupa-flagged` | 13 | 438,591 | $0.43 | turns +44%, cost 0% |
+| `rupa-verify` (per-type sheets) | 15 | 523,338 | $0.55 | turns +67%, cost +27% |
 
-A pilot of one run per arm is about $1–2. Three runs per arm is about $3–6. A pricier model scales these proportionally.
+Rupa didn't save turns. The transcripts show why, and it isn't rendering:
+
+- **Every Rupa run went over two pages on its first render** (three or four pages). The default contents list takes a page break, and Claude wrote a first draft longer than two pages. Baseline overshot too, but fixed it in one turn by editing its own CSS (`font-size`, margins). Rupa's form is fixed, so Claude cut content instead, probing each round with `pdftotext | wc -w`. One run took seven cut-and-render rounds.
+- **The flagged arm threw its saving away.** On a clean PDF verify made no sheets, so Claude rendered the pages with `pdftoppm` and looked anyway.
+- Baseline never detoured to find or install a PDF tool on this machine: Chrome and reportlab were already there. The estimate above assumed it would.
+
+What changed in response: page budgets (above), so Rupa does the density fitting baseline did by hand and gives a word count when cutting is unavoidable; the skill sets `pages` when the user asks for a length, writes about 450 words per page, and doesn't look at pages when verify made no sheets; `sample: flagged` is now the default. These changes haven't been benchmarked yet. Re-run `bench/bench.sh 3` to measure them.
+
+A run of three per arm costs about $6 on Opus.
 
 ### How to read the results
 
@@ -578,13 +600,13 @@ The tests, `tests/test_verify.py`. Most build synthetic pages, so each check is 
 
 @@include tests/test_verify.py python@@
 
-**Checkpoint:** `uv run pytest -q` shows 40 passed, and `rupa verify hello.pdf` prints a line starting with `verify:` and writes a `hello.verify/` folder with sheets and `verify.json`.
+**Checkpoint:** `uv run pytest -q` shows 40 passed, and `rupa verify hello.pdf` prints a line starting with `verify:` and writes a `hello.verify/` folder with `verify.json` (plus a sheet for any flagged page).
 
 **Checkpoint in Claude Code:** with the plugin loaded, ask for a one-page PDF and to verify it. Claude should render, run `rupa verify`, open the sheet, give a verdict per sheet, and fix the Markdown if something fails.
 
 ## Step 9: Measure
 
-`bench/bench.sh` sets up the four arms and runs them. The `awk` line builds the render-only plugin by dropping everything from `## Verify` up to the skill's closing line, and the `sed` line builds the flagged-only plugin by adding `--sample flagged` to the verify command:
+`bench/bench.sh` sets up the four arms and runs them. The `awk` line builds the render-only plugin by dropping everything from `## Verify` up to the skill's closing line, and the `sed` line builds the per-type plugin by adding `--sample per-type` to the verify command:
 
 @@include bench/bench.sh bash@@
 
@@ -600,7 +622,7 @@ Before spending anything, test the plumbing with a stand-in for `claude` that wr
 PATH="$PWD/bench/fake:$PATH" bench/bench.sh 2
 # ...
 # rupa          turns -40%   cost -40%
-# rupa-flagged  turns -35%   cost -35%
+# rupa-pertype  turns -15%   cost -15%
 # rupa-verify   turns -25%   cost -25%
 ```
 
@@ -625,7 +647,7 @@ Record the medians in your README with the date, model and task. If a Rupa arm i
 
 In rough order of value:
 
-1. **Run the pilot, then the benchmark,** and write the result down. Everything else depends on whether Rupa really cuts turns and cost.
+1. **Re-run the benchmark** with page budgets and flagged sampling, and record it next to the first result. Then add a harder task (tables, code, a wide table that must be split), where hand-written HTML should struggle more than it did on a two-page prose report.
 2. **A second theme**, such as your dark slate and cyan look for screen HTML, with its own reference pages and a test that renders and verifies every theme.
 3. **A golden-render test in CI** that verifies the sample document against its own references, so a CSS change that breaks the look fails the build.
 4. **Callouts** (note, warning) through a small markdown-it plugin, so Claude never needs raw HTML for them.

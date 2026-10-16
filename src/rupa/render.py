@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -57,9 +58,56 @@ def _theme_css(theme: str, target: str) -> str:
     return css
 
 
-def to_html(doc: Document, theme: str = "default", target: str = "html") -> str:
+# Steps for fitting a page budget, tried in order after the theme as written.
+# Each changes only type size and spacing: page margins stay put (verify
+# measures the body box from print.css) and headings stay at or above 11.5pt
+# (verify detects headings by size).
+FIT_STEPS = (
+    ("no contents", None),
+    (
+        "compact type",
+        """
+body { font-size: 9.75pt; line-height: 1.42; }
+.cover { margin-bottom: 1.1rem; padding-bottom: .8rem; }
+h1 { margin: 1.8rem 0 .7rem; }
+h2 { margin: 1.5rem 0 .55rem; }
+h3 { margin: 1.1rem 0 .4rem; }
+p, ul, ol { margin: 0 0 .65rem; }
+li { margin: .1rem 0; }
+table { margin: 0 0 .8rem; font-size: 8.75pt; }
+th, td { padding: .3rem .5rem; }
+pre { padding: .6rem .8rem; }
+""",
+    ),
+    (
+        "tight type",
+        """
+body { font-size: 9pt; line-height: 1.32; }
+.cover { margin-bottom: .8rem; padding-bottom: .6rem; }
+h1 { margin: 1.2rem 0 .5rem; }
+h2 { margin: 1rem 0 .4rem; padding-bottom: .2rem; }
+h3 { margin: .8rem 0 .3rem; }
+p, ul, ol { margin: 0 0 .45rem; }
+li { margin: 0; }
+table { margin: 0 0 .6rem; font-size: 8.25pt; }
+th, td { padding: .2rem .4rem; }
+pre { padding: .45rem .6rem; }
+pre code { font-size: 7.8pt; }
+""",
+    ),
+)
+
+
+def to_html(
+    doc: Document,
+    theme: str = "default",
+    target: str = "html",
+    extra_css: str = "",
+    toc_on: bool | None = None,
+) -> str:
     env = Environment(autoescape=select_autoescape(default=True))
-    toc_on = doc.meta.get("toc", True)
+    if toc_on is None:
+        toc_on = doc.meta.get("toc", True)
     # H1s act as parts, H2s as sections. An H1 that repeats the title is skipped.
     toc = (
         [h for h in doc.headings if h.level <= 2 and h.text != doc.title]
@@ -71,13 +119,17 @@ def to_html(doc: Document, theme: str = "default", target: str = "html") -> str:
         meta=doc.meta,
         toc=toc,
         body=doc.body_html,
-        css=_theme_css(theme, target),
+        css=_theme_css(theme, target) + extra_css,
         target=target,
     )
 
 
 def to_pdf(
-    doc: Document, theme: str = "default", base_dir: str | Path | None = None
+    doc: Document,
+    theme: str = "default",
+    base_dir: str | Path | None = None,
+    extra_css: str = "",
+    toc_on: bool | None = None,
 ) -> tuple[bytes, int]:
     """Return (pdf_bytes, page_count).
 
@@ -103,7 +155,7 @@ def to_pdf(
     # Files under base and data: URIs only. Anything else, or a missing file,
     # fails the render instead of fetching from the network or vanishing.
     fetcher = ContainedFetcher(allowed_protocols={"file", "data"}, fail_on_errors=True)
-    html = to_html(doc, theme, target="pdf")
+    html = to_html(doc, theme, target="pdf", extra_css=extra_css, toc_on=toc_on)
     try:
         rendered = HTML(
             string=html, base_url=f"{base.as_uri()}/", url_fetcher=fetcher
@@ -113,3 +165,54 @@ def to_pdf(
         raise RenderError(f"blocked or missing resource: {exc}") from exc
     except Exception as exc:  # keep the exit-4 contract for any WeasyPrint failure
         raise RenderError(f"PDF render failed: {exc}") from exc
+
+
+@dataclass
+class Fit:
+    data: bytes
+    pages: int
+    steps: list[str]  # fit steps applied, in order; empty if none were needed
+    cut_words: int  # words past the budget at the last step; 0 when it fits
+
+
+def _words_after(data: bytes, budget: int) -> int:
+    import io
+
+    import pdfplumber
+
+    with pdfplumber.open(io.BytesIO(data)) as pdf:
+        return sum(
+            len((page.extract_text() or "").split()) for page in pdf.pages[budget:]
+        )
+
+
+def fit_pdf(
+    doc: Document,
+    theme: str = "default",
+    base_dir: str | Path | None = None,
+    budget: int | None = None,
+) -> Fit:
+    """Render a PDF, tightening it step by step until it fits `budget` pages.
+
+    Content is never cut. If the tightest step is still over, the result
+    says roughly how many words to cut (the words on the pages past the
+    budget).
+    """
+    data, pages = to_pdf(doc, theme, base_dir)
+    if not budget or pages <= budget:
+        return Fit(data, pages, [], 0)
+    applied: list[str] = []
+    css = ""
+    toc_on = doc.meta.get("toc", True)
+    for name, step_css in FIT_STEPS:
+        if step_css is None:
+            if not toc_on:
+                continue
+            toc_on = False
+        else:
+            css = step_css
+        applied.append(name)
+        data, pages = to_pdf(doc, theme, base_dir, extra_css=css, toc_on=toc_on)
+        if pages <= budget:
+            return Fit(data, pages, applied, 0)
+    return Fit(data, pages, applied, _words_after(data, budget))

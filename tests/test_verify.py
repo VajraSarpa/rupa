@@ -48,7 +48,7 @@ def test_wants_file_overrides_and_merges_vision(tmp_path):
     wants = load_wants(str(f))
     assert wants["max_pages"] == 3
     assert wants["vision"]["max_sheets"] == 2
-    assert wants["vision"]["sample"] == "per-type"  # untouched default survives
+    assert wants["vision"]["sample"] == "flagged"  # untouched default survives
 
 
 @pytest.mark.parametrize(
@@ -149,6 +149,10 @@ def test_title_only_render_passes_verify(tmp_path):
     pdf = tmp_path / "hello.pdf"
     pdf.write_bytes(data)
     report = verify(pdf, load_wants(None), tmp_path / "v")
+    assert report.summary() == "verify: 8/8 checks pass"  # clean: no sheets
+    wants = load_wants(None)
+    wants["vision"]["sample"] = "per-type"
+    report = verify(pdf, wants, tmp_path / "v")
     assert report.ok, report.summary()
     assert "1 sheet for visual review" in report.summary()
 
@@ -180,6 +184,7 @@ def test_sampling_takes_flagged_pages_then_one_per_kind():
     pages = [page(1, kind="cover")] + [page(n, kind="prose") for n in range(2, 9)]
     pages.append(page(9, kind="code"))
     wants = load_wants(None)
+    wants["vision"]["sample"] = "per-type"
     pages[3].off_colors = 1  # page 4 flagged
     picked = [p.number for p in sample_pages(pages, run_checks(pages, wants), wants)]
     assert picked[0] == 4  # flagged first
@@ -189,8 +194,7 @@ def test_sampling_takes_flagged_pages_then_one_per_kind():
 
 def test_sampling_flagged_takes_only_flagged_pages():
     pages = [page(1, kind="cover")] + [page(n, kind="prose") for n in range(2, 6)]
-    wants = load_wants(None)
-    wants["vision"]["sample"] = "flagged"
+    wants = load_wants(None)  # default: flagged
     assert sample_pages(pages, run_checks(pages, wants), wants) == []
     pages[2].off_colors = 1  # page 3 flagged
     picked = [p.number for p in sample_pages(pages, run_checks(pages, wants), wants)]
@@ -228,7 +232,9 @@ def real_pdf(tmp_path):
 
 
 def test_real_render_passes_and_writes_sheets(real_pdf, tmp_path):
-    report = verify(real_pdf, load_wants(None), tmp_path / "v")
+    wants = load_wants(None)
+    wants["vision"]["sample"] = "per-type"
+    report = verify(real_pdf, wants, tmp_path / "v")
     assert report.ok, report.summary()
     assert report.sheets and all(
         (tmp_path / "v" / s["path"].split("/")[-1]).exists() for s in report.sheets

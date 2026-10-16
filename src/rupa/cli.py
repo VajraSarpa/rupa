@@ -8,7 +8,8 @@ Contract:
   stdin  -> Markdown with optional YAML frontmatter
   file   -> the rendered output (format from -o extension or --to)
   stdout -> ONE status line (or one JSON object with --json). Never the document.
-  exit   -> 0 ok, 2 usage, 3 bad input, 4 render failure, 5 verify checks failed
+  exit   -> 0 ok, 2 usage, 3 bad input, 4 render failure,
+            5 verify checks failed, or a PDF still over its page budget
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ from pathlib import Path
 
 from . import __version__
 from .document import InputError, parse
-from .render import THEMES, RenderError, to_html, to_pdf
+from .render import THEMES, RenderError, fit_pdf, to_html, to_pdf
 
 EXIT_OK, EXIT_USAGE, EXIT_INPUT, EXIT_RENDER, EXIT_CHECKS = 0, 2, 3, 4, 5
 FORMATS = ("html", "pdf")
@@ -41,6 +42,11 @@ def _render_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--theme", default=None, help="theme name (default: frontmatter or 'default')"
+    )
+    p.add_argument(
+        "--pages",
+        type=int,
+        help="PDF page budget; tighten type to fit (default: frontmatter 'pages')",
     )
     p.add_argument("--json", action="store_true", help="print a JSON status object")
     p.add_argument("--version", action="version", version=f"rupa {__version__}")
@@ -73,36 +79,49 @@ def render_main(argv: list[str]) -> int:
         _err(args, str(exc))
         return EXIT_INPUT
 
+    if args.pages is not None and args.pages < 1:
+        _err(args, "--pages must be 1 or more")
+        return EXIT_USAGE
     theme = args.theme or doc.meta.get("theme", "default")
+    budget = args.pages or doc.meta.get("pages")
     try:
-        pages = None
+        pages, fit = None, None
         if fmt == "html":
             data = to_html(doc, theme).encode("utf-8")
         else:
             base = Path(args.input).parent if args.input != "-" else Path.cwd()
-            data, pages = to_pdf(doc, theme, base_dir=base)
+            fit = fit_pdf(doc, theme, base_dir=base, budget=budget)
+            data, pages = fit.data, fit.pages
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_bytes(data)
     except (RenderError, OSError) as exc:
         _err(args, str(exc))
         return EXIT_RENDER
 
+    over = bool(fit and fit.cut_words)
     if args.json:
-        print(
-            json.dumps(
-                {
-                    "ok": True,
-                    "path": str(out),
-                    "format": fmt,
-                    "pages": pages,
-                    "bytes": len(data),
-                }
-            )
-        )
+        status = {
+            "ok": not over,
+            "path": str(out),
+            "format": fmt,
+            "pages": pages,
+            "bytes": len(data),
+        }
+        if fit and budget:
+            status.update(budget=budget, fit=fit.steps, cut_words=fit.cut_words)
+        print(json.dumps(status))
     else:
         extra = f", {pages} page{'s' if pages != 1 else ''}" if pages else ""
-        print(f"rupa: wrote {out} ({fmt}{extra}, {len(data):,} bytes)")
-    return EXIT_OK
+        if fit and fit.steps and not over:
+            extra += f", fit to {budget} with {' + '.join(fit.steps)}"
+        line = f"rupa: wrote {out} ({fmt}{extra}, {len(data):,} bytes)"
+        if over:
+            line += (
+                f"; over the {budget}-page budget at the tightest type:"
+                f" cut about {fit.cut_words} words and render again"
+            )
+        print(line)
+    return EXIT_CHECKS if over else EXIT_OK
 
 
 def verify_main(argv: list[str]) -> int:
