@@ -103,6 +103,10 @@ plugin took 6 turns and $0.33 against baseline's 11 turns and $0.54.
 The first benchmark, before page budgets and flagged-only sampling, found no
 saving. See the guide's "Measuring the savings" section for every run.
 
+For cost per document against Claude Code alone and Claude in the chat app,
+with projections at volume, see [What Rupa Costs](docs/dist/Rupa-Cost-Analysis.pdf)
+(source: [docs/cost-analysis.md](docs/cost-analysis.md)).
+
 ## License
 
 MIT

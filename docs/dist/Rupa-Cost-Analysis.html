@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Rupa Costs</title>
+<style>/* Rupa default theme: slate ink, one cyan accent. Screen first. */
+:root {
+  --ink: #0f172a;
+  --muted: #334155;
+  --rule: #cbd5e1;
+  --accent: #0e7490;
+  --code-bg: #f1f5f9;
+  --bg: #ffffff;
+  --measure: 46rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #e2e8f0; --muted: #94a3b8; --rule: #334155;
+    --accent: #22d3ee; --code-bg: #1e293b; --bg: #0f172a;
+  }
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0 auto;
+  padding: 3rem 1rem 5rem;
+  max-width: var(--measure);
+  font: 400 16px/1.65 Inter, "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+/* Cover and table of contents */
+.cover {
+  border-bottom: 3px solid var(--accent);
+  padding-bottom: 1.25rem;
+  margin-bottom: 2rem;
+}
+.doc-title {
+  font-size: 2.3rem;
+  line-height: 1.15;
+  margin: 0 0 .4rem;
+  letter-spacing: -0.02em;
+}
+.subtitle { font-size: 1.15rem; color: var(--muted); margin: 0 0 .6rem; }
+.byline { font-size: .9rem; color: var(--muted); margin: 0; }
+.toc {
+  margin: 0 0 2.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+.toc h2 {
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin: 0 0 .5rem;
+  border: 0;
+  padding: 0;
+}
+.toc ol { margin: 0; padding-left: 1.25rem; }
+.toc a { color: var(--ink); text-decoration: none; }
+.toc li.l1 {
+  font-weight: 600;
+  margin-top: .5rem;
+  list-style: none;
+  margin-left: -1.25rem;
+}
+.toc li.l2 { list-style: none; }
+.toc a:hover { color: var(--accent); }
+
+/* Headings and body */
+h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
+h1 { font-size: 1.9rem; margin: 3rem 0 1rem; }
+h2 {
+  font-size: 1.45rem;
+  margin: 2.75rem 0 .9rem;
+  padding-bottom: .35rem;
+  border-bottom: 1px solid var(--rule);
+}
+h3 { font-size: 1.12rem; margin: 2rem 0 .6rem; }
+p, ul, ol { margin: 0 0 1rem; }
+li { margin: .2rem 0; }
+a { color: var(--accent); }
+strong { font-weight: 600; }
+blockquote {
+  margin: 1.25rem 0;
+  padding: .6rem 1rem;
+  border-left: 4px solid var(--accent);
+  background: var(--code-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+
+/* Code */
+code {
+  font: 0.88em/1.5 "JetBrains Mono", "DejaVu Sans Mono", Menlo, monospace;
+  background: var(--code-bg);
+  padding: .1em .35em;
+  border-radius: 4px;
+}
+pre {
+  background: var(--code-bg);
+  padding: .9rem 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+}
+pre code { background: none; padding: 0; font-size: .82rem; }
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.25rem;
+  font-size: .92rem;
+  display: block;
+  overflow-x: auto;
+}
+th, td {
+  border: 1px solid var(--rule);
+  padding: .45rem .6rem;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: var(--code-bg); font-weight: 600; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
+
+/* Task lists and footnotes */
+.contains-task-list { list-style: none; padding-left: 0; }
+.task-list-item-checkbox { display: inline-block; margin: 0 .5em 0 0; vertical-align: -.1em; }
+hr.footnotes-sep { margin: 2rem 0 1rem; }
+.footnotes { font-size: .88em; }
+.footnote-ref a { text-decoration: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .hl * { color: inherit !important; }
+}
+
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.hl .hll { background-color: #ffffcc }
+.hl { background: #f8f8f8; }
+.hl .c { color: #3D7B7B; font-style: italic } /* Comment */
+.hl .err { border: 1px solid #F00 } /* Error */
+.hl .k { color: #008000; font-weight: bold } /* Keyword */
+.hl .o { color: #666 } /* Operator */
+.hl .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.hl .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.hl .cp { color: #9C6500 } /* Comment.Preproc */
+.hl .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.hl .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.hl .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.hl .gd { color: #A00000 } /* Generic.Deleted */
+.hl .ge { font-style: italic } /* Generic.Emph */
+.hl .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.hl .gr { color: #E40000 } /* Generic.Error */
+.hl .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.hl .gi { color: #008400 } /* Generic.Inserted */
+.hl .go { color: #717171 } /* Generic.Output */
+.hl .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.hl .gs { font-weight: bold } /* Generic.Strong */
+.hl .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.hl .gt { color: #04D } /* Generic.Traceback */
+.hl .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.hl .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.hl .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.hl .kp { color: #008000 } /* Keyword.Pseudo */
+.hl .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.hl .kt { color: #B00040 } /* Keyword.Type */
+.hl .m { color: #666 } /* Literal.Number */
+.hl .s { color: #BA2121 } /* Literal.String */
+.hl .na { color: #687822 } /* Name.Attribute */
+.hl .nb { color: #008000 } /* Name.Builtin */
+.hl .nc { color: #00F; font-weight: bold } /* Name.Class */
+.hl .no { color: #800 } /* Name.Constant */
+.hl .nd { color: #A2F } /* Name.Decorator */
+.hl .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.hl .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.hl .nf { color: #00F } /* Name.Function */
+.hl .nl { color: #767600 } /* Name.Label */
+.hl .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.hl .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.hl .nv { color: #19177C } /* Name.Variable */
+.hl .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.hl .w { color: #BBB } /* Text.Whitespace */
+.hl .mb { color: #666 } /* Literal.Number.Bin */
+.hl .mf { color: #666 } /* Literal.Number.Float */
+.hl .mh { color: #666 } /* Literal.Number.Hex */
+.hl .mi { color: #666 } /* Literal.Number.Integer */
+.hl .mo { color: #666 } /* Literal.Number.Oct */
+.hl .sa { color: #BA2121 } /* Literal.String.Affix */
+.hl .sb { color: #BA2121 } /* Literal.String.Backtick */
+.hl .sc { color: #BA2121 } /* Literal.String.Char */
+.hl .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.hl .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.hl .s2 { color: #BA2121 } /* Literal.String.Double */
+.hl .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.hl .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.hl .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.hl .sx { color: #008000 } /* Literal.String.Other */
+.hl .sr { color: #A45A77 } /* Literal.String.Regex */
+.hl .s1 { color: #BA2121 } /* Literal.String.Single */
+.hl .ss { color: #19177C } /* Literal.String.Symbol */
+.hl .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.hl .fm { color: #00F } /* Name.Function.Magic */
+.hl .vc { color: #19177C } /* Name.Variable.Class */
+.hl .vg { color: #19177C } /* Name.Variable.Global */
+.hl .vi { color: #19177C } /* Name.Variable.Instance */
+.hl .vm { color: #19177C } /* Name.Variable.Magic */
+.hl .il { color: #666 } /* Literal.Number.Integer.Long */</style>
+</head>
+<body class="html">
+<header class="cover">
+  <h1 class="doc-title">What Rupa Costs</h1>
+  <p class="subtitle">Cost per document with the plugin, with Claude Code alone, and with Claude</p>
+  
+  <p class="byline">Vajra Sarpa &middot; 16 October 2026</p>
+  
+</header>
+
+<main>
+
+<h2 id="summary">Summary</h2>
+<p>On three real document tasks, Claude Code with the Rupa plugin produced each PDF for <strong>$0.29 to $0.33</strong>, against <strong>$0.52 to $1.19</strong> for Claude Code on its own: 40% to 74% cheaper, and 2.4 to 5.6 times faster. Every Rupa PDF passed <code>rupa verify</code>; no baseline PDF did. The harder the layout, the bigger the saving.</p>
+<p>Claude in the chat app was not measured. It builds a PDF the way Claude Code does without the plugin, by writing layout code, so expect baseline-like usage. It is billed by plan rather than per token, and Rupa doesn't run there today.</p>
+<h2 id="how-it-was-measured">How it was measured</h2>
+<p>Each run gave <code>claude -p</code> the same prompt in a fresh, empty folder, three times per arm, on Claude Opus 5.5, 15 to 16 October 2026. Costs are what Claude Code reported, at API list prices.</p>
+<ul>
+<li><strong>Claude Code</strong> (baseline): no plugin. Claude writes the HTML, CSS or PDF code and picks its own tools.</li>
+<li><strong>Rupa</strong>: the plugin as shipped. Claude writes Markdown, renders it with <code>rupa</code>, then runs <code>rupa verify</code>.</li>
+</ul>
+<p>Prices used to split the cost, per million tokens: input $4, output $20, cache write $8 (Claude Code caches for an hour), cache read $0.20. They reproduce the reported cost of a run to the cent.</p>
+<h2 id="cost-per-document">Cost per document</h2>
+<p>Medians of three runs each.</p>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Claude Code</th>
+<th>Rupa</th>
+<th>Saving</th>
+<th>Time, Claude Code</th>
+<th>Time, Rupa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Two-page report</td>
+<td>13 turns, $0.52</td>
+<td>7 turns, $0.29</td>
+<td>45%</td>
+<td>112 s</td>
+<td>36 s</td>
+</tr>
+<tr>
+<td>Three-page guide</td>
+<td>23 turns, $1.19</td>
+<td>6 turns, $0.31</td>
+<td>74%</td>
+<td>252 s</td>
+<td>45 s</td>
+</tr>
+<tr>
+<td>Wide table (11 columns)</td>
+<td>11 turns, $0.54</td>
+<td>6 turns, $0.33</td>
+<td>40%</td>
+<td>124 s</td>
+<td>52 s</td>
+</tr>
+<tr>
+<td>Average of the three</td>
+<td>$0.75</td>
+<td>$0.31</td>
+<td>59%</td>
+<td>163 s</td>
+<td>44 s</td>
+</tr>
+</tbody>
+</table>
+<p>Runs vary. Baseline guide runs cost between $0.85 and $1.28 across separate days, and Rupa runs between $0.31 and $0.45, so read the guide saving as 60% to 75%.</p>
+<h2 id="where-the-money-goes">Where the money goes</h2>
+<table>
+<thead>
+<tr>
+<th>Share of cost</th>
+<th>Report, Claude Code</th>
+<th>Report, Rupa</th>
+<th>Guide, Claude Code</th>
+<th>Guide, Rupa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Output (what Claude writes)</td>
+<td>33%</td>
+<td>21%</td>
+<td>44%</td>
+<td>27%</td>
+</tr>
+<tr>
+<td>Cache reads (re-reading context each turn)</td>
+<td>19%</td>
+<td>14%</td>
+<td>18%</td>
+<td>10%</td>
+</tr>
+<tr>
+<td>Cache writes (new context)</td>
+<td>48%</td>
+<td>65%</td>
+<td>37%</td>
+<td>63%</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>A floor of about $0.19.</strong> Starting a session writes the system prompt, tools and skill to cache, roughly 23,000 tokens. That is most of a Rupa run, and it is why Rupa's cost barely moves between tasks.</li>
+<li><strong>Fewer output tokens.</strong> Claude writes Markdown, not markup: 3,000 to 5,200 output tokens per Rupa run against 8,500 to 25,500 for Claude Code.</li>
+<li><strong>Fewer turns.</strong> Every turn re-reads the whole conversation. Claude Code spends turns fixing its own layout; Rupa's page budget and verify checks settle most of that in one render.</li>
+</ul>
+<h2 id="on-a-cheaper-model">On a cheaper model</h2>
+<p>Priced at Claude Sonnet 5.5 rates ($2 input, $10 output, $4 cache write, $0.20 cache read), the same token counts would cost about $0.16 to $0.18 per Rupa document and $0.29 to $0.70 per Claude Code document. The saving keeps its shape. This is arithmetic, not a measurement: Sonnet may take a different number of turns.</p>
+<h2 id="on-a-subscription">On a subscription</h2>
+<p>With Claude Code on a Pro or Max plan there is no per-document bill; each document uses part of the plan's limits instead. If usage counts roughly in proportion to tokens, which is an assumption, Rupa fits about two and a half times as many documents into the same allowance, and finishes each one in under a minute.</p>
+<h2 id="with-claude-the-chat-app">With Claude (the chat app)</h2>
+<p>Not measured. Asked for a PDF, Claude in the chat app writes and runs layout code in its sandbox, which is the same work the Claude Code baseline does, so it should land near the baseline's turns and tokens. On a plan it is not billed per document. Rupa can't help there yet: it is a local CLI plus a Claude Code plugin, and the chat sandbox would need the CLI and its PDF libraries installed. Measuring it properly would mean running the same tasks through the API with the code execution tool.</p>
+<h2 id="at-volume">At volume</h2>
+<p>At API list prices, with the three tasks in equal measure:</p>
+<table>
+<thead>
+<tr>
+<th>Documents a month</th>
+<th>Claude Code</th>
+<th>Rupa</th>
+<th>Saved</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10</td>
+<td>$7.53</td>
+<td>$3.07</td>
+<td>$4.46</td>
+</tr>
+<tr>
+<td>50</td>
+<td>$37.65</td>
+<td>$15.37</td>
+<td>$22.28</td>
+</tr>
+<tr>
+<td>200</td>
+<td>$150.60</td>
+<td>$61.47</td>
+<td>$89.13</td>
+</tr>
+</tbody>
+</table>
+<h2 id="what-finding-out-cost">What finding out cost</h2>
+<p>The benchmarks took 101 runs and $46.30 in tokens. At an average saving of about $0.45 a document, that pays back after roughly a hundred documents. The cost of the build sessions themselves isn't included.</p>
+<h2 id="limits-of-these-numbers">Limits of these numbers</h2>
+<ul>
+<li>Three runs per arm, one model and one person's tasks. Agent runs vary, so the medians matter more than any single run.</li>
+<li>The baseline PDFs fail verify partly by Rupa's own definition (pure black text, Rupa's margins). They were readable; they weren't held to the same check.</li>
+<li>Prices are list prices as of October 2026.</li>
+</ul>
+
+</main>
+</body>
+</html>
