@@ -5,10 +5,6 @@ author: Rupa
 date: Reference
 ---
 
-## Introduction
-
-Rupa separates content from form. Claude writes Markdown, and the renderer applies every visual decision in one place, the same way each time. This paragraph exists to show how body text, spacing and rhythm look on a full page of prose, so a reviewer can compare a rendered page against it. 
-
 # Part One: Prose
 
 ## Body text

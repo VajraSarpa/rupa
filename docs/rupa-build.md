@@ -261,7 +261,7 @@ max_pages: 10
 
 ### Reference pages
 
-A theme's reference pages are its picture of itself. `rupa refs` renders a bundled sample document with the theme and saves the most typical page of each type as a PNG inside the package. Rebuild them whenever the theme's CSS changes, and commit them with it. A sheet without a reference still shows the page, labeled so.
+A theme's reference pages are its picture of itself. `rupa refs` renders a bundled sample document with the theme and saves the most typical page of each type as a PNG inside the package. Rebuild them whenever the theme's CSS changes, and commit them with it. A golden-render test (`tests/test_golden.py`) holds you to that: for every theme it renders the sample, requires it to pass verify, rebuilds the reference pages in a temporary folder, and fails if any of them differs from the committed PNG in more than 0.5% of its pixels. The tolerance covers antialiasing differences between Pango builds; a moved margin fails it. A sheet without a reference still shows the page, labeled so.
 
 ### What it costs
 
@@ -741,12 +741,11 @@ Record the medians in your README with the date, model and task. If a Rupa arm i
 In rough order of value:
 
 1. **Re-run `TASK=guide`** to confirm the height-based cut estimate brings the cut rounds down to one. Then a harder benchmark task (tables, code, a wide table that must be split), where hand-written HTML should struggle more than it did on a two-page prose report.
-2. **A second theme**, such as your dark slate and cyan look for screen HTML, with its own reference pages and a test that renders and verifies every theme.
-3. **A golden-render test in CI** that verifies the sample document against its own references, so a CSS change that breaks the look fails the build.
-4. **Callouts** (note, warning) through a small markdown-it plugin, so Claude never needs raw HTML for them.
-5. **A `--watch` mode** for live preview while you edit by hand.
-6. **More targets** (DOCX through python-docx) behind the same contract and exit codes.
-7. **Harness integration.** Rupa is a plain CLI, so the Pramā harness can call it the same way Claude Code does.
+2. **A second theme**, such as your dark slate and cyan look for screen HTML, with its own reference pages; the golden-render test picks it up from `THEMES` with no new test code.
+3. **Callouts** (note, warning) through a small markdown-it plugin, so Claude never needs raw HTML for them.
+4. **A `--watch` mode** for live preview while you edit by hand.
+5. **More targets** (DOCX through python-docx) behind the same contract and exit codes.
+6. **Harness integration.** Rupa is a plain CLI, so the Pramā harness can call it the same way Claude Code does.
 
 # Turning the build into a showcase
 

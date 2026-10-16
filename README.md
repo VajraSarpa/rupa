@@ -68,7 +68,7 @@ Needs Python 3.11+, [uv](https://docs.astral.sh/uv/), and Pango for WeasyPrint
 
 ```bash
 uv sync
-uv run pytest -q                   # 80 tests
+uv run pytest -q                   # 86 tests
 uvx ruff check src tests
 uv run rupa refs                   # after any theme change; commit the PNGs
 uv run python docs/build.py        # re-render the guide with Rupa

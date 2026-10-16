@@ -764,7 +764,7 @@ $<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </
 <span class="nt">max_pages</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
 </code></pre>
 <h3 id="reference-pages">Reference pages</h3>
-<p>A theme's reference pages are its picture of itself. <code>rupa refs</code> renders a bundled sample document with the theme and saves the most typical page of each type as a PNG inside the package. Rebuild them whenever the theme's CSS changes, and commit them with it. A sheet without a reference still shows the page, labeled so.</p>
+<p>A theme's reference pages are its picture of itself. <code>rupa refs</code> renders a bundled sample document with the theme and saves the most typical page of each type as a PNG inside the package. Rebuild them whenever the theme's CSS changes, and commit them with it. A golden-render test (<code>tests/test_golden.py</code>) holds you to that: for every theme it renders the sample, requires it to pass verify, rebuilds the reference pages in a temporary folder, and fails if any of them differs from the committed PNG in more than 0.5% of its pixels. The tolerance covers antialiasing differences between Pango builds; a moved margin fails it. A sheet without a reference still shows the page, labeled so.</p>
 <h3 id="what-it-costs">What it costs</h3>
 <p>An image costs roughly its width times height divided by 750 in input tokens. A sheet at the default 90 DPI is about 1,530 × 1,020 pixels, or about 2,000 tokens.</p>
 <table>
@@ -3298,10 +3298,6 @@ author: Rupa
 <span class="gu">date: Reference</span>
 <span class="gu">---</span>
 
-<span class="gu">## Introduction</span>
-
-Rupa separates content from form. Claude writes Markdown, and the renderer applies every visual decision in one place, the same way each time. This paragraph exists to show how body text, spacing and rhythm look on a full page of prose, so a reviewer can compare a rendered page against it. 
-
 <span class="gh"># Part One: Prose</span>
 
 <span class="gu">## Body text</span>
@@ -3936,8 +3932,7 @@ bench/bench.sh
 <p>In rough order of value:</p>
 <ol>
 <li><strong>Re-run <code>TASK=guide</code></strong> to confirm the height-based cut estimate brings the cut rounds down to one. Then a harder benchmark task (tables, code, a wide table that must be split), where hand-written HTML should struggle more than it did on a two-page prose report.</li>
-<li><strong>A second theme</strong>, such as your dark slate and cyan look for screen HTML, with its own reference pages and a test that renders and verifies every theme.</li>
-<li><strong>A golden-render test in CI</strong> that verifies the sample document against its own references, so a CSS change that breaks the look fails the build.</li>
+<li><strong>A second theme</strong>, such as your dark slate and cyan look for screen HTML, with its own reference pages; the golden-render test picks it up from <code>THEMES</code> with no new test code.</li>
 <li><strong>Callouts</strong> (note, warning) through a small markdown-it plugin, so Claude never needs raw HTML for them.</li>
 <li><strong>A <code>--watch</code> mode</strong> for live preview while you edit by hand.</li>
 <li><strong>More targets</strong> (DOCX through python-docx) behind the same contract and exit codes.</li>
