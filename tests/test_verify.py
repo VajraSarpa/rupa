@@ -123,6 +123,19 @@ def test_title_only_document_is_not_a_stranded_heading():
     assert failing(run_checks(pages, load_wants(None))) == {}
 
 
+def test_heading_ending_the_last_page_is_not_stranded():
+    lines = [body_line(70), body_line(690, size=15, bold=True)]
+    pages = [page(1), page(2), page(3, lines=lines)]
+    assert failing(run_checks(pages, load_wants(None))) == {}
+
+
+def test_heading_only_section_after_toc_passes_verify(tmp_path):
+    data, _ = to_pdf(parse("---\ntitle: CI\n---\n\n## ok\n"))
+    pdf = tmp_path / "ci.pdf"
+    pdf.write_bytes(data)
+    assert verify(pdf, load_wants(None), tmp_path / "v").ok
+
+
 def test_title_only_render_passes_verify(tmp_path):
     data, _ = to_pdf(parse("# Hello\n"))
     pdf = tmp_path / "hello.pdf"

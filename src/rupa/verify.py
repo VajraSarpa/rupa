@@ -315,12 +315,11 @@ def run_checks(pages: list[PageInfo], wants: dict) -> list[CheckResult]:
     )
 
     stranded = []
-    for p in pages:
+    # The last page is exempt: nothing follows its final line, so no page break
+    # separated a heading from its content (this also covers a title-only doc).
+    for p in pages[:-1]:
         if p.lines:
             tail = p.lines[-1]
-            # A title-only document ends on its own title: nothing follows it.
-            if p.number == 1 and tail is p.lines[0]:
-                continue
             if tail.bold and not tail.mono and tail.size >= HEADING_PT:
                 stranded.append(p.number)
     add("heading-at-bottom", stranded, "heading is the last line on the page")
