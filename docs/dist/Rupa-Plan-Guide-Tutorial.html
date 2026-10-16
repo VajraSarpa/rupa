@@ -1279,6 +1279,38 @@ $<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </
 <p>This is the one task where baseline did well. It never clipped the table: two runs put it on a landscape page and one fitted it on portrait with half-inch margins, at 7.4pt and 6.6pt type (one header broke mid-word). Rupa can't change orientation or shrink one table, so it restructures instead and keeps 9.8pt type. That costs fix rounds: the shipped arm saved only 13% on cost and took one more turn. The render-only arm is cheapest but shipped every table overflowing, so on this task verify is what makes the output correct. A theme option for wide tables would cut the fix rounds; the next build adds one.</p>
 <h3 id="wide-tables-in-smaller-type-2026-10-16">Wide tables in smaller type (2026-10-16)</h3>
 <p><code>print.css</code> now sets a table of 9 or more columns in 8pt type, 11 or more in 7.5pt, with tighter cell padding; the old padding alone took about 160pt of an 11-column table's 497pt. The skill tells Claude that about 11 short columns fit and to write two tables beyond that. Re-rendered with the new rule, all nine Rupa first drafts from the full wide run fit, where all nine had overflowed. One draft still fails verify on a separate problem: a 180-character <code>--query</code> in a code block, which Rupa wraps only at spaces so a command is never silently broken.</p>
+<p>Measured with <code>TASK=wide ARMS=&quot;rupa rupa-verify&quot;</code>, three runs each, Opus 5.5. Baseline is the full run above; it doesn't use Rupa, so the change can't affect it.</p>
+<table>
+<thead>
+<tr>
+<th>Arm</th>
+<th>Turns</th>
+<th>Cost</th>
+<th>PDFs passing verify</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>baseline (full run above)</td>
+<td>11</td>
+<td>$0.54</td>
+<td>0 of 3</td>
+</tr>
+<tr>
+<td><code>rupa</code> (render only)</td>
+<td>5</td>
+<td>$0.32</td>
+<td>3 of 3</td>
+</tr>
+<tr>
+<td><code>rupa-verify</code> (as shipped)</td>
+<td>6</td>
+<td>$0.33</td>
+<td>3 of 3</td>
+</tr>
+</tbody>
+</table>
+<p>Every run fitted on its first render, with no fix rounds: one Write, one render, and for the shipped arm one clean verify. Each kept a single eleven-column table at 7.5pt, carried across a page break with its header repeated. Against baseline the shipped arm takes 45% fewer turns and costs 40% less, in line with the other tasks, where before the rule it saved 13%. Render-only now ships correct tables too, so on this task verify is a check that passes rather than the step that makes the output right.</p>
 <h3 id="how-to-read-the-results">How to read the results</h3>
 <ul>
 <li>Compare medians, not single runs. Agent runs vary.</li>

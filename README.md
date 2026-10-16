@@ -89,12 +89,11 @@ and $1.19, and 7 of 9 Rupa runs fitted on their first render. Baseline varied
 between $0.85 and $1.19 across three guide runs, so read the saving as
 roughly 60–75%.
 
-A table too wide for the page (eleven required columns) is where baseline
-does well: it turns the page to landscape or shrinks the type, and never
-clipped the table. The shipped plugin passed verify on all three runs by
-splitting or tightening the table, at 12 turns and $0.47 against baseline's
-11 turns and $0.54. Render-only Rupa shipped every table overflowing, so
-verify earns its turns here.
+A table too wide for the page (eleven required columns) at first overflowed
+in every Rupa draft, and the shipped plugin saved only 13% while it split or
+tightened the table. The theme now sets tables of 9 or more columns in
+smaller type: every run then fitted on its first render, and the shipped
+plugin took 6 turns and $0.33 against baseline's 11 turns and $0.54.
 
 The first benchmark, before page budgets and flagged-only sampling, found no
 saving. See the guide's "Measuring the savings" section for every run.

@@ -485,6 +485,16 @@ This is the one task where baseline did well. It never clipped the table: two ru
 
 `print.css` now sets a table of 9 or more columns in 8pt type, 11 or more in 7.5pt, with tighter cell padding; the old padding alone took about 160pt of an 11-column table's 497pt. The skill tells Claude that about 11 short columns fit and to write two tables beyond that. Re-rendered with the new rule, all nine Rupa first drafts from the full wide run fit, where all nine had overflowed. One draft still fails verify on a separate problem: a 180-character `--query` in a code block, which Rupa wraps only at spaces so a command is never silently broken.
 
+Measured with `TASK=wide ARMS="rupa rupa-verify"`, three runs each, Opus 5.5. Baseline is the full run above; it doesn't use Rupa, so the change can't affect it.
+
+| Arm | Turns | Cost | PDFs passing verify |
+|---|---|---|---|
+| baseline (full run above) | 11 | $0.54 | 0 of 3 |
+| `rupa` (render only) | 5 | $0.32 | 3 of 3 |
+| `rupa-verify` (as shipped) | 6 | $0.33 | 3 of 3 |
+
+Every run fitted on its first render, with no fix rounds: one Write, one render, and for the shipped arm one clean verify. Each kept a single eleven-column table at 7.5pt, carried across a page break with its header repeated. Against baseline the shipped arm takes 45% fewer turns and costs 40% less, in line with the other tasks, where before the rule it saved 13%. Render-only now ships correct tables too, so on this task verify is a check that passes rather than the step that makes the output right.
+
 ### How to read the results
 
 - Compare medians, not single runs. Agent runs vary.
