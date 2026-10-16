@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1008" viewBox="0 0 1600 1008" role="img" aria-labelledby="t d">
+<title id="t">Rupa architecture</title>
+<desc id="d">Claude writes Markdown through the rupa:render skill; the rupa CLI parses it, renders HTML or PDF from the themes, and verify checks the PDF and writes review sheets for Claude.</desc>
+<defs><marker id="head-cyan" viewBox="0 0 4 4" refX="2" refY="2" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L4 2 L0 4 Z" fill="#22D3EE"/></marker><marker id="head-grey" viewBox="0 0 4 4" refX="2" refY="2" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L4 2 L0 4 Z" fill="#64748B"/></marker></defs>
+<rect width="1600" height="1008" fill="#0F172A"/>
+<rect x="64.5" y="168.5" width="1471" height="159" rx="16" fill="#131C2E" stroke="#1E293B" stroke-width="1"/>
+<rect x="64.5" y="384.5" width="1471" height="335" rx="16" fill="#131C2E" stroke="#1E293B" stroke-width="1"/>
+<rect x="64.5" y="784.5" width="1471" height="159" rx="16" fill="#131C2E" stroke="#1E293B" stroke-width="1"/>
+<line x1="392.0" y1="256.0" x2="317.0" y2="256.0" stroke="#64748B" stroke-width="2" stroke-linecap="round" marker-end="url(#head-grey)"/>
+<line x1="212.0" y1="304.0" x2="212.0" y2="443.0" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" marker-end="url(#head-cyan)"/>
+<line x1="312.0" y1="488.0" x2="371.0" y2="488.0" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" marker-end="url(#head-cyan)"/>
+<line x1="576.0" y1="488.0" x2="635.0" y2="488.0" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" marker-end="url(#head-cyan)"/>
+<line x1="880.0" y1="488.0" x2="939.0" y2="488.0" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" marker-end="url(#head-cyan)"/>
+<line x1="1144.0" y1="488.0" x2="1203.0" y2="488.0" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" marker-end="url(#head-cyan)"/>
+<line x1="720.0" y1="600.0" x2="720.0" y2="533.0" stroke="#64748B" stroke-width="2" stroke-linecap="round" marker-end="url(#head-grey)"/>
+<line x1="1272.0" y1="600.0" x2="1272.0" y2="533.0" stroke="#64748B" stroke-width="2" stroke-linecap="round" marker-end="url(#head-grey)"/>
+<line x1="1424.0" y1="600.0" x2="1424.0" y2="533.0" stroke="#64748B" stroke-width="2" stroke-linecap="round" marker-end="url(#head-grey)"/>
+<line x1="800.0" y1="528.0" x2="800.0" y2="819.0" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" marker-end="url(#head-cyan)"/>
+<line x1="1044.0" y1="528.0" x2="1044.0" y2="819.0" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" marker-end="url(#head-cyan)"/>
+<line x1="1348.0" y1="448.0" x2="1348.0" y2="309.0" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" marker-end="url(#head-cyan)"/>
+<text x="64" y="86" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="36" font-weight="700" fill="#F1F5F9" text-anchor="start">Rupa architecture</text>
+<text x="64" y="123" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="400" fill="#94A3B8" text-anchor="start">Claude writes Markdown. Rupa owns the form, then helps check the result.</text>
+<rect x="1176.5" y="60.5" width="359" height="39" rx="20" fill="#0E2A36" stroke="#22D3EE" stroke-width="1"/>
+<text x="1356" y="85" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="400" fill="#A5F3FC" text-anchor="middle">Markdown in · HTML/PDF out · verified</text>
+<text x="88" y="193" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="#22D3EE" text-anchor="start" letter-spacing="2">CLAUDE CODE · PLUGIN/</text>
+<text x="88" y="409" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="#22D3EE" text-anchor="start" letter-spacing="2">RUPA CLI · SRC/RUPA/</text>
+<text x="88" y="809" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="#22D3EE" text-anchor="start" letter-spacing="2">OUTPUTS</text>
+<rect x="112.5" y="208.5" width="199" height="95" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+<text x="212.0" y="249.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="700" fill="#E2E8F0" text-anchor="middle">Claude</text>
+<text x="212.0" y="273.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">writes Markdown</text>
+<rect x="392.5" y="208.5" width="299" height="95" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+<text x="542.0" y="249.0" font-size="16" text-anchor="middle" fill="#E2E8F0"><tspan font-family="'JetBrains Mono', 'DejaVu Sans Mono', Menlo, monospace" font-weight="700">rupa:render</tspan><tspan font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif"> skill</tspan></text>
+<text x="542.0" y="273.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">render → verify → review</text>
+<rect x="772.5" y="208.5" width="279" height="95" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="912.0" y="249.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="700" fill="#E2E8F0" text-anchor="middle">SessionStart hook</text>
+<text x="912.0" y="273.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">warns if rupa is not on PATH</text>
+<rect x="1209.0" y="209.0" width="278" height="94" rx="12" fill="#0E2A36" stroke="#22D3EE" stroke-width="2"/>
+<text x="1348.0" y="237.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="700" fill="#E2E8F0" text-anchor="middle">Visual review</text>
+<text x="1348.0" y="261.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#A5F3FC" text-anchor="middle">Claude judges each sheet,</text>
+<text x="1348.0" y="285.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#A5F3FC" text-anchor="middle">fixes the Markdown</text>
+<rect x="112.5" y="448.5" width="199" height="79" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+<text x="212.0" y="481.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="700" fill="#E2E8F0" text-anchor="middle">Markdown</text>
+<text x="212.0" y="505.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">+ YAML frontmatter</text>
+<rect x="376.5" y="448.5" width="199" height="79" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+<text x="476.0" y="481.0" font-family="'JetBrains Mono', 'DejaVu Sans Mono', Menlo, monospace" font-size="16" font-weight="700" fill="#E2E8F0" text-anchor="middle">parse()</text>
+<text x="476.0" y="505.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">document.py</text>
+<rect x="640.5" y="448.5" width="239" height="79" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+<text x="760.0" y="481.0" font-family="'JetBrains Mono', 'DejaVu Sans Mono', Menlo, monospace" font-size="16" font-weight="700" fill="#E2E8F0" text-anchor="middle">to_html()</text>
+<text x="760.0" y="505.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">render.py · Jinja</text>
+<rect x="944.5" y="448.5" width="199" height="79" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+<text x="1044.0" y="481.0" font-family="'JetBrains Mono', 'DejaVu Sans Mono', Menlo, monospace" font-size="16" font-weight="700" fill="#E2E8F0" text-anchor="middle">to_pdf()</text>
+<text x="1044.0" y="505.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">WeasyPrint · offline</text>
+<rect x="1209.0" y="449.0" width="278" height="78" rx="12" fill="#0E2A36" stroke="#22D3EE" stroke-width="2"/>
+<text x="1348.0" y="481.0" font-family="'JetBrains Mono', 'DejaVu Sans Mono', Menlo, monospace" font-size="16" font-weight="700" fill="#E2E8F0" text-anchor="middle">verify()</text>
+<text x="1348.0" y="505.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#A5F3FC" text-anchor="middle">8 checks + review sheets</text>
+<rect x="560.5" y="600.5" width="199" height="79" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+<text x="660.0" y="633.0" font-family="'JetBrains Mono', 'DejaVu Sans Mono', Menlo, monospace" font-size="16" font-weight="700" fill="#E2E8F0" text-anchor="middle">themes/*.css</text>
+<text x="660.0" y="657.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">all styling lives here</text>
+<rect x="1208.5" y="600.5" width="127" height="79" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+<text x="1272.0" y="633.0" font-family="'JetBrains Mono', 'DejaVu Sans Mono', Menlo, monospace" font-size="14" font-weight="700" fill="#E2E8F0" text-anchor="middle">references/</text>
+<text x="1272.0" y="657.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">page PNGs</text>
+<rect x="1360.5" y="600.5" width="127" height="79" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+<text x="1424.0" y="633.0" font-family="'JetBrains Mono', 'DejaVu Sans Mono', Menlo, monospace" font-size="14" font-weight="700" fill="#E2E8F0" text-anchor="middle">wants.yaml</text>
+<text x="1424.0" y="657.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">rules</text>
+<rect x="112.5" y="824.5" width="463" height="79" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+<text x="344" y="857" font-size="16" text-anchor="middle" fill="#E2E8F0"><tspan font-family="'JetBrains Mono', 'DejaVu Sans Mono', Menlo, monospace" font-weight="700">stdout</tspan><tspan font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif">: one status line, never the document</tspan></text>
+<text x="344" y="881" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">exit 0 ok · 2 usage · 3 input · 4 render · 5 checks</text>
+<rect x="700.5" y="824.5" width="199" height="79" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+<text x="800.0" y="857.0" font-family="'JetBrains Mono', 'DejaVu Sans Mono', Menlo, monospace" font-size="16" font-weight="700" fill="#E2E8F0" text-anchor="middle">report.html</text>
+<text x="800.0" y="881.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">screen theme</text>
+<rect x="944.5" y="824.5" width="199" height="79" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+<text x="1044.0" y="857.0" font-family="'JetBrains Mono', 'DejaVu Sans Mono', Menlo, monospace" font-size="16" font-weight="700" fill="#E2E8F0" text-anchor="middle">report.pdf</text>
+<text x="1044.0" y="881.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">text #000000</text>
+<rect x="1208.5" y="824.5" width="279" height="79" rx="12" fill="#1E293B" stroke="#334155" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="1348.0" y="845.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="700" fill="#E2E8F0" text-anchor="middle">Benchmark</text>
+<text x="1348.0" y="869.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">bench/ · baseline vs</text>
+<text x="1348.0" y="893.0" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="400" fill="#94A3B8" text-anchor="middle">rupa vs rupa-verify</text>
+<text x="352" y="280" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="400" fill="#94A3B8" text-anchor="middle">instructs</text>
+<text x="248" y="379" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="400" fill="#94A3B8" text-anchor="middle">stdin</text>
+<text x="1360" y="380" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="400" fill="#94A3B8" text-anchor="start">sheets + verify.json</text>
+<text x="836" y="679" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="400" fill="#94A3B8" text-anchor="middle">HTML</text>
+<text x="1076" y="679" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="400" fill="#94A3B8" text-anchor="middle">PDF</text>
+<text x="64" y="972" font-family="'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="400" fill="#64748B" text-anchor="start">github.com/VajraSarpa/rupa · MIT</text>
+</svg>

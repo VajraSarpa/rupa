@@ -5,6 +5,8 @@ and turns it into a styled HTML page or PDF, then helps check the result.
 
 *Rūpa* is Sanskrit for "form".
 
+![Rupa architecture: Claude writes Markdown through the rupa:render skill; the rupa CLI parses, renders and verifies](docs/rupa-architecture.svg)
+
 ```bash
 uv tool install .
 echo "# Hello" | rupa -o hello.pdf
