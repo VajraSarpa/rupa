@@ -9,6 +9,7 @@
 #        MODEL=claude-sonnet-5-5 bench/bench.sh 3
 #        TASK=guide bench/bench.sh 3    prompt from bench/tasks/<TASK>.txt
 #                                        (default: report, a 2-page prose report)
+#        ARMS="rupa rupa-verify" bench/bench.sh 3   only these arms (default: all four)
 # Each run starts in a fresh empty directory, so no arm can see this repo.
 set -euo pipefail
 
@@ -49,8 +50,11 @@ sed 's/`rupa verify out\/report.pdf`/`rupa verify --sample per-type out\/report.
 grep -q -- '--sample per-type' "$PERTYPE/skills/render/SKILL.md" \
   || { echo "bench: could not make the per-type skill; SKILL.md changed?" >&2; exit 2; }
 
+ARMS="${ARMS:-baseline rupa rupa-pertype rupa-verify}"
+
 run_arm() {  # $1 = arm name, remaining args = extra claude flags
   local arm="$1"; shift
+  [[ " $ARMS " == *" $arm "* ]] || return 0
   for i in $(seq 1 "$RUNS"); do
     local work; work="$(mktemp -d)"
     echo "bench: $arm run $i" >&2

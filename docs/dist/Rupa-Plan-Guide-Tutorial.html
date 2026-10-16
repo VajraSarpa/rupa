@@ -3720,6 +3720,7 @@ Rupa separates content from form. Claude writes Markdown, and the renderer appli
 <span class="c1">#        MODEL=claude-sonnet-5-5 bench/bench.sh 3</span>
 <span class="c1">#        TASK=guide bench/bench.sh 3    prompt from bench/tasks/&lt;TASK&gt;.txt</span>
 <span class="c1">#                                        (default: report, a 2-page prose report)</span>
+<span class="c1">#        ARMS="rupa rupa-verify" bench/bench.sh 3   only these arms (default: all four)</span>
 <span class="c1"># Each run starts in a fresh empty directory, so no arm can see this repo.</span>
 <span class="nb">set</span><span class="w"> </span>-euo<span class="w"> </span>pipefail
 
@@ -3760,8 +3761,11 @@ sed<span class="w"> </span><span class="s1">'s/`rupa verify out\/report.pdf`/`ru
 grep<span class="w"> </span>-q<span class="w"> </span>--<span class="w"> </span><span class="s1">'--sample per-type'</span><span class="w"> </span><span class="s2">"</span><span class="nv">$PERTYPE</span><span class="s2">/skills/render/SKILL.md"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span><span class="o">||</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"bench: could not make the per-type skill; SKILL.md changed?"</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
 
+<span class="nv">ARMS</span><span class="o">=</span><span class="s2">"</span><span class="si">${</span><span class="nv">ARMS</span><span class="k">:-</span><span class="nv">baseline</span><span class="p"> rupa rupa-pertype rupa-verify</span><span class="si">}</span><span class="s2">"</span>
+
 run_arm<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w">  </span><span class="c1"># $1 = arm name, remaining args = extra claude flags</span>
 <span class="w">  </span><span class="nb">local</span><span class="w"> </span><span class="nv">arm</span><span class="o">=</span><span class="s2">"</span><span class="nv">$1</span><span class="s2">"</span><span class="p">;</span><span class="w"> </span><span class="nb">shift</span>
+<span class="w">  </span><span class="o">[[</span><span class="w"> </span><span class="s2">" </span><span class="nv">$ARMS</span><span class="s2"> "</span><span class="w"> </span><span class="o">==</span><span class="w"> </span>*<span class="s2">" </span><span class="nv">$arm</span><span class="s2"> "</span>*<span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="m">0</span>
 <span class="w">  </span><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="k">$(</span>seq<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="s2">"</span><span class="nv">$RUNS</span><span class="s2">"</span><span class="k">)</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
 <span class="w">    </span><span class="nb">local</span><span class="w"> </span>work<span class="p">;</span><span class="w"> </span><span class="nv">work</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="k">)</span><span class="s2">"</span>
 <span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"bench: </span><span class="nv">$arm</span><span class="s2"> run </span><span class="nv">$i</span><span class="s2">"</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
@@ -3895,7 +3899,7 @@ cat<span class="w"> </span><span class="s">&lt;&lt;JSON</span>
 <pre class="hl"><code class="language-bash">chmod<span class="w"> </span>+x<span class="w"> </span>bench/bench.sh
 bench/bench.sh
 </code></pre>
-<p>Prompts live in <code>bench/tasks/</code>, one file per task, and <code>TASK=&lt;name&gt;</code> picks one (default <code>report</code>, the two-page prose report). <code>guide</code> is a harder three-page task with a five-column table, a CLI example and a 25-line JSON policy, closer to where hand-written HTML has to work for its layout. Each results folder is named after its task and keeps a copy of the prompt in <code>task.txt</code>.</p>
+<p>Prompts live in <code>bench/tasks/</code>, one file per task, and <code>TASK=&lt;name&gt;</code> picks one (default <code>report</code>, the two-page prose report). <code>guide</code> is a harder three-page task with a five-column table, a CLI example and a 25-line JSON policy, closer to where hand-written HTML has to work for its layout. <code>tight</code> is the guide squeezed into two pages: the required parts alone fit only at tight type, so any real prose goes over the budget and the run has to cut. It exists to test how Rupa runs cut, so run it on the Rupa arms only: <code>ARMS=&quot;rupa rupa-verify&quot;</code> picks which arms run (default all four). Each results folder is named after its task and keeps a copy of the prompt in <code>task.txt</code>.</p>
 <p>If all four arms behaved, run three per arm on a pinned model:</p>
 <pre class="hl"><code class="language-bash"><span class="nv">MODEL</span><span class="o">=</span>claude-sonnet-5-5<span class="w"> </span>bench/bench.sh<span class="w"> </span><span class="m">3</span>
 </code></pre>

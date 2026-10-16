@@ -714,7 +714,7 @@ chmod +x bench/bench.sh
 bench/bench.sh
 ```
 
-Prompts live in `bench/tasks/`, one file per task, and `TASK=<name>` picks one (default `report`, the two-page prose report). `guide` is a harder three-page task with a five-column table, a CLI example and a 25-line JSON policy, closer to where hand-written HTML has to work for its layout. Each results folder is named after its task and keeps a copy of the prompt in `task.txt`.
+Prompts live in `bench/tasks/`, one file per task, and `TASK=<name>` picks one (default `report`, the two-page prose report). `guide` is a harder three-page task with a five-column table, a CLI example and a 25-line JSON policy, closer to where hand-written HTML has to work for its layout. `tight` is the guide squeezed into two pages: the required parts alone fit only at tight type, so any real prose goes over the budget and the run has to cut. It exists to test how Rupa runs cut, so run it on the Rupa arms only: `ARMS="rupa rupa-verify"` picks which arms run (default all four). Each results folder is named after its task and keeps a copy of the prompt in `task.txt`.
 
 If all four arms behaved, run three per arm on a pinned model:
 
