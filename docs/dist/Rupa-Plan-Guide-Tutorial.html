@@ -1164,7 +1164,50 @@ $<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </
 <p>Two runs still cut. One shipped run was asked to cut 4 lines, cut too little, was asked for 4 more and fitted: two rounds, with seven Edits in separate turns, so &quot;all cuts in one turn&quot; doesn't always hold. One per-type run fitted, then pushed itself back over the budget while fixing what it saw on the per-type sheets.</p>
 <p>The plan errs short. Most runs fitted only once Rupa dropped to compact type, so they weren't over-cut, but the Rupa guides still carry about 740 words against baseline's 1,260. Baseline gets its extra words by shrinking margins and type: every baseline PDF fails <code>rupa verify</code>'s <code>overflow</code> and <code>text-color</code> checks.</p>
 <p>One layout fault turned up in run 4's PDFs: a heading and a one-line lead-in (&quot;Run from the delegated administrator account:&quot;) at the bottom of page 1, with the code block moved whole to page 2. Print CSS now keeps a paragraph with the code block or table that follows it and a heading's first list item with the second, and <code>heading-at-bottom</code> also flags a heading with one line directly under it at a page end.</p>
-<h3 id="how-to-read-the-results">How to read the results</h3>
+<h3 id="report-task-current-build-2026-10-16">Report task, current build (2026-10-16)</h3>
+<p>The 2-page report task again, with the bundled fonts, the line plan and the break rules above. Every run produced a 2-page PDF. Medians:</p>
+<table>
+<thead>
+<tr>
+<th>Arm</th>
+<th>Turns</th>
+<th>Cache reads</th>
+<th>Cost</th>
+<th>vs baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>baseline</code></td>
+<td>13</td>
+<td>505,643</td>
+<td>$0.52</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>rupa</code></td>
+<td>5</td>
+<td>152,505</td>
+<td>$0.26</td>
+<td>turns −62%, cost −50%</td>
+</tr>
+<tr>
+<td><code>rupa-pertype</code></td>
+<td>9</td>
+<td>246,035</td>
+<td>$0.34</td>
+<td>turns −31%, cost −36%</td>
+</tr>
+<tr>
+<td><code>rupa-verify</code> (as shipped)</td>
+<td>7</td>
+<td>199,354</td>
+<td>$0.29</td>
+<td>turns −46%, cost −45%</td>
+</tr>
+</tbody>
+</table>
+<p>All nine Rupa runs fitted on their first render, so none cut anything, and every Rupa PDF passes <code>rupa verify</code> while every baseline PDF fails <code>text-color</code>. The shipped arm cost about the same as in the second result ($0.29 against $0.28); two of its runs spent one extra turn listing the folder to confirm <code>report.pdf</code> was there. Rupa's reports came in at about 720 words against baseline's 1,180, down from about 850 in the second result: the line plan makes Claude write to the theme's density rather than past it.</p>
 <ul>
 <li>Compare medians, not single runs. Agent runs vary.</li>
 <li>Judge on turns and cost first. Output tokens are secondary.</li>

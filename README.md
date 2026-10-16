@@ -77,10 +77,10 @@ uv run python docs/build.py        # re-render the guide with Rupa
 ## Status
 
 Working prototype. Benchmark (2026-10-16, three runs per arm on Opus 5.5, a
-two-page report): the plugin as shipped took 6 turns and $0.28 per run
-against baseline's 10 turns and $0.46, which is 39% cheaper, and every run
-produced a 2-page PDF. Rupa's reports carry fewer words than baseline's
-(about 850 against 1,180), because it keeps the theme's margins.
+two-page report): the plugin as shipped took 7 turns and $0.29 per run
+against baseline's 13 turns and $0.52, which is 45% cheaper, and every run
+fitted 2 pages on its first render. Rupa's reports carry fewer words than
+baseline's (about 720 against 1,180), because it keeps the theme's margins.
 
 On a harder task (a 3-page guide with a wide table, CLI and JSON policy) the
 gap widens. In the latest run, after over-budget hints moved from words to

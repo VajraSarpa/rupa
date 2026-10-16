@@ -437,7 +437,19 @@ The plan errs short. Most runs fitted only once Rupa dropped to compact type, so
 
 One layout fault turned up in run 4's PDFs: a heading and a one-line lead-in ("Run from the delegated administrator account:") at the bottom of page 1, with the code block moved whole to page 2. Print CSS now keeps a paragraph with the code block or table that follows it and a heading's first list item with the second, and `heading-at-bottom` also flags a heading with one line directly under it at a page end.
 
-### How to read the results
+### Report task, current build (2026-10-16)
+
+The 2-page report task again, with the bundled fonts, the line plan and the break rules above. Every run produced a 2-page PDF. Medians:
+
+| Arm | Turns | Cache reads | Cost | vs baseline |
+|---|---|---|---|---|
+| `baseline` | 13 | 505,643 | $0.52 | — |
+| `rupa` | 5 | 152,505 | $0.26 | turns −62%, cost −50% |
+| `rupa-pertype` | 9 | 246,035 | $0.34 | turns −31%, cost −36% |
+| `rupa-verify` (as shipped) | 7 | 199,354 | $0.29 | turns −46%, cost −45% |
+
+All nine Rupa runs fitted on their first render, so none cut anything, and every Rupa PDF passes `rupa verify` while every baseline PDF fails `text-color`. The shipped arm cost about the same as in the second result ($0.29 against $0.28); two of its runs spent one extra turn listing the folder to confirm `report.pdf` was there. Rupa's reports came in at about 720 words against baseline's 1,180, down from about 850 in the second result: the line plan makes Claude write to the theme's density rather than past it.
+
 
 - Compare medians, not single runs. Agent runs vary.
 - Judge on turns and cost first. Output tokens are secondary.
