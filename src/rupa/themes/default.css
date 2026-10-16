@@ -119,6 +119,13 @@ th, td {
 }
 th { background: var(--code-bg); font-weight: 600; }
 hr { border: 0; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
+
+/* Task lists and footnotes */
+.contains-task-list { list-style: none; padding-left: 0; }
+.task-list-item-checkbox { display: inline-block; margin: 0 .5em 0 0; vertical-align: -.1em; }
+hr.footnotes-sep { margin: 2rem 0 1rem; }
+.footnotes { font-size: .88em; }
+.footnote-ref a { text-decoration: none; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .hl * { color: inherit !important; }
 }

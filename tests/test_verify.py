@@ -130,6 +130,27 @@ def test_stranded_heading_fails():
     assert failing(run_checks(pages, load_wants(None))) == {"heading-at-bottom": [2]}
 
 
+def test_heading_and_lead_in_followed_by_an_image_passes():
+    lines = [body_line(70), body_line(400, size=15, bold=True), body_line(420)]
+    p2 = page(2, lines=lines)
+    p2.image_bottom = 690.0  # the chart the lead-in introduces
+    pages = [page(1), p2, page(3, lines=[body_line(70, mono=True), body_line(700)])]
+    assert failing(run_checks(pages, load_wants(None))) == {}
+
+
+def test_an_image_counts_toward_page_fill(tmp_path):
+    from PIL import Image
+
+    Image.new("RGB", (900, 700), (30, 110, 140)).save(tmp_path / "chart.png")
+    md = "## Chart\n\nThe chart below.\n\n![chart](chart.png)\n"
+    data, _ = to_pdf(parse(md), "default", base_dir=tmp_path)
+    pdf = tmp_path / "chart.pdf"
+    pdf.write_bytes(data)
+    (shown,) = [p for p in read_pages(pdf) if p.image_bottom]
+    assert shown.image_bottom > shown.lines[-1].bottom
+    assert shown.content_bottom >= shown.image_bottom
+
+
 def test_heading_and_lead_in_before_moved_block_fails():
     lines = [body_line(70), body_line(670, size=15, bold=True), body_line(690)]
     nxt = [body_line(70, mono=True), body_line(700)]

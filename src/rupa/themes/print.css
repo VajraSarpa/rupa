@@ -55,9 +55,11 @@ pre { break-inside: auto; white-space: pre-wrap; orphans: 3; widows: 3; } /* wra
    mixing two fonts' metrics and differed between Pango builds. */
 pre { font: 8.3pt/13.875pt "JetBrains Mono", "DejaVu Sans Mono", monospace; }
 pre code { font-size: 1em; line-height: inherit; }
-p:has(+ pre), p:has(+ table) { break-after: avoid; } /* a lead-in ("Run this:") moves with its block, and so does the heading above it */
+p:not(:has(> img)):is(:has(+ pre), :has(+ table)) { break-after: avoid; } /* a lead-in ("Run this:") moves with its block, and so does the heading above it */
+p:has(> img) { break-before: avoid; } /* and with its image; WeasyPrint has no p:has(+ p > img) */
 :is(h2, h3) + :is(ul, ol) > li:first-child { break-after: avoid; } /* a heading never ends a page with one list item */
 table { display: table; font-size: 9pt; }
+.footnote-backref { display: none; } /* a link back up the page does nothing on paper */
 /* Wide tables get smaller type and tighter cells, so up to about 11 columns
    fit the text width instead of running into the margin. Specific enough to
    beat the fit steps' table and cell rules. */

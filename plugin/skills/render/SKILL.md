@@ -13,7 +13,8 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
    then fits the PDF to N pages itself (drops the contents list, tightens
    type). Plan about 30 lines per page: a line of prose is about 15 words,
    and each code line, table row, list item and heading is one line.
-2. Use `#` for parts, `##` for sections, `###` for subsections.
+2. Use `##` for sections and `###` for subsections. Use `#` parts only in
+   a long document (about 8 pages or more): each part starts a new page.
    Fenced code blocks take a language tag. Images are relative paths to
    files next to the Markdown file (or `data:image` URIs), never URLs.
    A PDF table fits about 11 short columns (Rupa sets 9 or more in smaller

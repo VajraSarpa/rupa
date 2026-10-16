@@ -206,12 +206,12 @@ Frontmatter is optional. Only these keys are accepted; anything else is exit cod
 
 Body conventions:
 
-- `#` is a part. In PDF each part starts a new page.
+- `#` is a part. In PDF each part starts a new page, so the skill keeps parts for long documents (about 8 pages or more); in a short one they leave half-empty pages.
 - `##` is a section, `###` a subsection. Sections get anchors automatically.
 - Fenced code blocks take a language tag for highlighting.
-- Tables use GitHub pipe syntax.
+- Tables use GitHub pipe syntax. `~~strikethrough~~`, task lists (`- [ ]`, `- [x]`) and footnotes (`[^1]`) work too; in a PDF the footnotes are collected at the end.
 - Raw HTML is escaped and shown as text.
-- Images must be relative paths next to the Markdown file, or `data:image` URIs. A URL or absolute path is bad input (exit code 3); a missing file, or one outside the Markdown file's folder, fails the PDF render (exit code 4).
+- Images must be relative paths next to the Markdown file, or `data:image` URIs. A URL or absolute path is bad input (exit code 3); a missing file, or one outside the Markdown file's folder, fails the render (exit code 4). HTML output embeds each image as a data URI, so the file can be sent on its own.
 
 ## Themes
 
@@ -667,9 +667,7 @@ CI installs the PDF system libraries, runs the tests, and does a smoke render. `
 
 ## Step 7: The Claude Code plugin
 
-Create the three plugin files.
-
-`plugin/.claude-plugin/plugin.json`:
+Create the three plugin files, starting with `plugin/.claude-plugin/plugin.json`:
 
 @@include plugin/.claude-plugin/plugin.json json@@
 

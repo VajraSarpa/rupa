@@ -12,7 +12,9 @@ from dataclasses import dataclass, field
 import yaml
 from markdown_it import MarkdownIt
 from mdit_py_plugins.anchors import anchors_plugin
+from mdit_py_plugins.footnote import footnote_plugin
 from mdit_py_plugins.front_matter import front_matter_plugin
+from mdit_py_plugins.tasklists import tasklists_plugin
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import TextLexer, get_lexer_by_name
@@ -56,9 +58,11 @@ def _highlight(code: str, lang: str, _attrs: str) -> str:
 def _build_parser() -> MarkdownIt:
     # html=False: raw HTML in the input is escaped, never passed through.
     md = MarkdownIt("commonmark", {"html": False, "highlight": _highlight}).enable(
-        "table"
+        ["table", "strikethrough"]
     )
     md.use(front_matter_plugin)
+    md.use(tasklists_plugin)
+    md.use(footnote_plugin)
     md.use(anchors_plugin, min_level=1, max_level=3)
     return md
 

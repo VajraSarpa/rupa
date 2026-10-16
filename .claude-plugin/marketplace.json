@@ -1,0 +1,15 @@
+{
+  "name": "rupa",
+  "description": "Rupa: Markdown in, themed and verified HTML or PDF out.",
+  "owner": {
+    "name": "Vajra Sarpa",
+    "url": "https://vajrasarpa.com"
+  },
+  "plugins": [
+    {
+      "name": "rupa",
+      "source": "./plugin",
+      "description": "Write Markdown, let Rupa render the HTML or PDF. Keeps markup out of Claude's output tokens."
+    }
+  ]
+}

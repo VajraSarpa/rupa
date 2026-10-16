@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import base64
+import html as html_lib
+import mimetypes
+import re
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
@@ -121,13 +125,44 @@ pre { padding: .45rem .6rem; font-size: 7.8pt; line-height: 12.15pt; }
 )
 
 
+_IMG_SRC = re.compile(r'(<img src=")([^"]+)(")')
+
+
+def embed_images(body: str, base_dir: str | Path) -> str:
+    """Inline relative image files as data: URIs, so an HTML file stands alone.
+
+    Same rule as the PDF fetcher: only files inside base_dir, and a missing
+    or refused file fails the render instead of leaving a broken image.
+    """
+    base = Path(base_dir).resolve()
+
+    def inline(m: re.Match) -> str:
+        src = html_lib.unescape(m.group(2))
+        if src.startswith("data:"):
+            return m.group(0)
+        path = (base / unquote(src)).resolve()
+        if not path.is_relative_to(base):
+            raise RenderError(f"blocked or missing resource: {path} is outside {base}")
+        try:
+            data = path.read_bytes()
+        except OSError as exc:
+            raise RenderError(f"blocked or missing resource: {path}") from exc
+        mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        uri = f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"
+        return m.group(1) + uri + m.group(3)
+
+    return _IMG_SRC.sub(inline, body)
+
+
 def to_html(
     doc: Document,
     theme: str = "default",
     target: str = "html",
     extra_css: str = "",
     toc_on: bool | None = None,
+    base_dir: str | Path | None = None,
 ) -> str:
+    """Return the page as HTML. With base_dir, images are embedded (see embed_images)."""
     env = Environment(autoescape=select_autoescape(default=True))
     if toc_on is None:
         toc_on = doc.meta.get("toc", True)
@@ -141,7 +176,7 @@ def to_html(
         title=doc.title,
         meta=doc.meta,
         toc=toc,
-        body=doc.body_html,
+        body=embed_images(doc.body_html, base_dir) if base_dir else doc.body_html,
         css=_theme_css(theme, target) + extra_css,
         target=target,
     )

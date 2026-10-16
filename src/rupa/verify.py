@@ -175,6 +175,7 @@ class PageInfo:
     content_bottom: float = 0.0
     table_frac: float = 0.0
     tables: list[tuple] = field(default_factory=list)  # (x0, top, x1, bottom)
+    image_bottom: float = 0.0  # lowest image edge in the body; images have no text
     kind: str = "prose"
 
     @property
@@ -283,8 +284,13 @@ def _read_pages(pdfplumber, pdf_path, want) -> list[PageInfo]:
                 if r["bottom"] < footer_y and r["height"] < 0.95 * body_h
             ]
             line_bottoms = [ln.bottom for ln in info.lines]
+            info.image_bottom = max(
+                (im["bottom"] for im in page.images if im["bottom"] < footer_y),
+                default=0.0,
+            )
             info.content_bottom = max(
-                [r["bottom"] for r in rects] + line_bottoms, default=0.0
+                [r["bottom"] for r in rects] + line_bottoms + [info.image_bottom],
+                default=0.0,
             )
             body_area = (info.width - 2 * MARGIN_SIDE * PT_PER_IN) * body_h
             big = 0.95 * body_h
@@ -381,8 +387,8 @@ def run_checks(pages: list[PageInfo], wants: dict) -> list[CheckResult]:
     # The last page is exempt: nothing follows its final line, so no page break
     # separated a heading from its content (this also covers a title-only doc).
     for idx, p in enumerate(pages[:-1]):
-        if not p.lines:
-            continue
+        if not p.lines or p.image_bottom > p.lines[-1].bottom:
+            continue  # an image after the last line is the heading's content
         if is_heading(p.lines[-1]):
             stranded.append(p.number)
             continue

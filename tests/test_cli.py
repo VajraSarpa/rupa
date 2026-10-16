@@ -86,9 +86,17 @@ def test_relative_image_next_to_the_markdown_is_embedded(tmp_path, capsys):
         assert sum(len(p.images) for p in pdf.pages) == 1
 
 
+def test_html_embeds_images_so_the_file_stands_alone(tmp_path, capsys):
+    target = tmp_path / "out" / "o.html"
+    assert main([_image_doc(tmp_path, "fig.png"), "-o", str(target)]) == EXIT_OK
+    html = target.read_text()
+    assert '<img src="data:image/png;base64,' in html and "fig.png" not in html
+
+
+@pytest.mark.parametrize("ext", ["pdf", "html"])
 @pytest.mark.parametrize("src", ["missing.png", "../secret.png"])
-def test_missing_or_outside_image_fails_the_render(tmp_path, capsys, src):
-    code = main([_image_doc(tmp_path, src), "-o", str(tmp_path / "o.pdf")])
+def test_missing_or_outside_image_fails_the_render(tmp_path, capsys, src, ext):
+    code = main([_image_doc(tmp_path, src), "-o", str(tmp_path / f"o.{ext}")])
     assert code == EXIT_RENDER and "resource" in capsys.readouterr().err
 
 

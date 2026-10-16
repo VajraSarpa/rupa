@@ -93,10 +93,10 @@ def render_main(argv: list[str]) -> int:
     budget = args.pages or doc.meta.get("pages")
     try:
         pages, fit = None, None
+        base = Path(args.input).parent if args.input != "-" else Path.cwd()
         if fmt == "html":
-            data = to_html(doc, theme).encode("utf-8")
+            data = to_html(doc, theme, base_dir=base).encode("utf-8")
         else:
-            base = Path(args.input).parent if args.input != "-" else Path.cwd()
             fit = fit_pdf(doc, theme, base_dir=base, budget=budget)
             data, pages = fit.data, fit.pages
         out.parent.mkdir(parents=True, exist_ok=True)
