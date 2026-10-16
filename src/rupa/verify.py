@@ -174,6 +174,7 @@ class PageInfo:
     off_colors: int = 0  # number of chars not matching the wanted color
     content_bottom: float = 0.0
     table_frac: float = 0.0
+    tables: list[tuple] = field(default_factory=list)  # (x0, top, x1, bottom)
     kind: str = "prose"
 
     @property
@@ -293,6 +294,7 @@ def _read_pages(pdfplumber, pdf_path, want) -> list[PageInfo]:
                 )
             )
             tables = [t for t in no_bg.find_tables() if len(t.columns) >= 2]
+            info.tables = [t.bbox for t in tables]
             table_area = sum(
                 (t.bbox[2] - t.bbox[0]) * (t.bbox[3] - t.bbox[1]) for t in tables
             )
@@ -401,14 +403,32 @@ def run_checks(pages: list[PageInfo], wants: dict) -> list[CheckResult]:
         "heading is the last line, or a heading and one line end the page",
     )
 
-    overflow = []
+    overflow, where = [], []
     for p in pages:
         left = MARGIN_SIDE * PT_PER_IN - 2
         right = p.width - MARGIN_SIDE * PT_PER_IN + 2
-        if any(ln.x0 < left or ln.x1 > right for ln in p.lines):
+        bad = [ln for ln in p.lines if ln.x0 < left or ln.x1 > right]
+        if bad:
             overflow.append(p.number)
-    add("overflow", overflow, "text extends past the side margins")
+            over = max(max(left - ln.x0, ln.x1 - right) for ln in bad) + 2
+            where.append(f"p{p.number} {_overflow_kind(p, bad)} by {over:.0f}pt")
+    add(
+        "overflow",
+        overflow,
+        f"text extends past the side margins ({', '.join(where)})",
+    )
     return results
+
+
+def _overflow_kind(p: PageInfo, bad: list[Line]) -> str:
+    """Name what runs over, so the fix is clear: a table, code, or text."""
+    def in_table(ln: Line) -> bool:
+        mid = (ln.top + ln.bottom) / 2
+        return any(top <= mid <= bottom for _, top, _, bottom in p.tables)
+
+    if any(in_table(ln) for ln in bad):
+        return "table"
+    return "code" if any(ln.mono for ln in bad) else "text"
 
 
 # ---------------------------------------------------------------- sampling + sheets

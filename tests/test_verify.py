@@ -1,4 +1,5 @@
 import json
+import re
 
 import pytest
 
@@ -7,11 +8,14 @@ from rupa.document import parse
 from rupa.render import to_pdf
 from rupa.verify import (
     DEFAULT_WANTS,
+    MARGIN_SIDE,
+    PT_PER_IN,
     Line,
     PageInfo,
     WantsError,
     _to_rgb,
     load_wants,
+    read_pages,
     run_checks,
     sample_pages,
     verify,
@@ -181,6 +185,35 @@ def test_text_past_the_margin_fails():
     lines = [body_line(70), body_line(690, x1=600)]
     pages = [page(1), page(2, lines=lines), page(3)]
     assert failing(run_checks(pages, load_wants(None))) == {"overflow": [2]}
+
+
+def overflow_detail(results):
+    return next(r.detail for r in results if r.id == "overflow")
+
+
+def test_overflow_names_what_runs_over_and_by_how_much():
+    right = LETTER[0] - MARGIN_SIDE * PT_PER_IN
+    text = page(2, lines=[body_line(70), body_line(690, x1=right + 30)])
+    code = page(3, lines=[body_line(70), body_line(690, x1=right + 12, mono=True)])
+    table = page(4, lines=[body_line(70), body_line(300, x1=right + 20)])
+    table.tables = [(60.0, 290.0, right + 20, 400.0)]
+    pages = [page(1), text, code, table, page(5)]
+    detail = overflow_detail(run_checks(pages, load_wants(None)))
+    assert "p2 text by 30pt" in detail
+    assert "p3 code by 12pt" in detail
+    assert "p4 table by 20pt" in detail
+
+
+def test_eleven_column_table_overflows_as_a_table(tmp_path):
+    cols = [f"Column {i}" for i in range(11)]
+    row = ["m7i.2xlarge", "General purpose", "Up to 12.5 Gbps"] + ["0.4032"] * 8
+    md = "## Wide\n\n| " + " | ".join(cols) + " |\n|" + "---|" * 11 + "\n"
+    md += ("| " + " | ".join(row) + " |\n") * 6
+    data, _ = to_pdf(parse(md), "default")
+    pdf = tmp_path / "wide.pdf"
+    pdf.write_bytes(data)
+    detail = overflow_detail(run_checks(read_pages(pdf), load_wants(None)))
+    assert re.search(r"p1 table by \d+pt", detail), detail
 
 
 def test_disabled_checks_are_skipped():

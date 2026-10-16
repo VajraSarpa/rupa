@@ -277,7 +277,7 @@ The sampled review scales with how varied the document is, not how long it is. T
 
 ### The loop
 
-The skill tells Claude to render, verify, open the sheets, and write one verdict per sheet. Claude fixes failures in the Markdown only: split a wide table, shorten a code line, move content around an awkward break. Then it renders and verifies again, at most twice. A problem that can only be fixed in CSS is reported as a theme issue rather than patched, so one document's quirks don't leak into the theme.
+The skill tells Claude to render, verify, open the sheets, and write one verdict per sheet. Claude fixes failures in the Markdown only: split a table that runs past the margin into two that repeat the first column, shorten a code line, move content around an awkward break. The `overflow` detail in `verify.json` says what ran over and by how much (`p1 table by 13pt`), so Claude knows which fix applies. Then it renders and verifies again, at most twice. A problem that can only be fixed in CSS is reported as a theme issue rather than patched, so one document's quirks don't leak into the theme.
 
 ## Plugin anatomy
 
@@ -460,6 +460,10 @@ All nine Rupa runs fitted on their first render, so none cut anything, and every
 | `rupa-verify` (as shipped) | 8 | 139,791 | $0.36 |
 
 Five of the six runs went over the budget on the first render, asking for cuts of 7 to 31 lines. All five cut with a single Write of the whole file and fitted on the next render: one cut round each, with no Edits in any run. The sixth fitted at first. Every PDF passes `rupa verify` and keeps all four required parts, with policies of about 29 to 35 lines. A run that has to cut costs two turns (a Write and a render) on top of a run that fits at once, which is all a cut should cost.
+
+### Wide task: shortening instead of splitting (2026-10-16)
+
+`TASK=wide`, an EC2 sizing guide whose table must keep all eleven columns. One `rupa-verify` run, Opus 5.5: 16 turns, $0.70. The table overflowed; Claude shortened cell text for two fix rounds, still ran 13pt over, and reported a theme issue. It never split the table, though the skill listed that fix, and verify said only "text extends past the side margins". Now the `overflow` detail names what runs over and by how much (`p1 table by 13pt`), and the skill says to split an overflowing table into two that repeat the first column. One run: a failure mode, not a cost.
 
 ### How to read the results
 
@@ -680,7 +684,7 @@ Build the reference pages, and rebuild them whenever the theme changes:
 
 ```bash
 uv run rupa refs
-# rupa: wrote references for 'default' to .../references/default (code=p5, cover=p1, prose=p3, table=p4)
+# rupa: wrote references for 'default' to .../references/default (code=p4, cover=p1, prose=p2, table=p3)
 ```
 
 The wants file with every default spelled out, `wants.example.yaml`. A test keeps it in sync with the code:

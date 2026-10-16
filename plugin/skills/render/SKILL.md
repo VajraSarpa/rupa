@@ -40,8 +40,10 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
    page on the right.
 3. Judge every sheet against each item in `rubric`. Record one line per
    sheet: `p<N> <kind>: PASS` or `p<N> <kind>: FAIL <rubric item> - <what>`.
-4. Fix failures in the Markdown only: split a wide table, shorten a long
-   code line, move or trim content around an awkward break. Make each
+4. Fix failures in the Markdown only: shorten a long code line, move or
+   trim content around an awkward break. If `overflow` names a table, split
+   it into two tables that each repeat the first column, about eight
+   columns at most in each. Shortening cell text rarely closes the gap. Make each
    round's fixes with one Write of the whole file, then render and verify
    again. Stop after two fix rounds.
 5. If a failure can only be fixed in the theme (CSS), do not edit CSS.

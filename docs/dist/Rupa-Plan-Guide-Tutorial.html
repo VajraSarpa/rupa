@@ -795,7 +795,7 @@ $<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </
 </table>
 <p>The sampled review scales with how varied the document is, not how long it is. That is the right place to spend tokens: the reader sees the result.</p>
 <h3 id="the-loop">The loop</h3>
-<p>The skill tells Claude to render, verify, open the sheets, and write one verdict per sheet. Claude fixes failures in the Markdown only: split a wide table, shorten a code line, move content around an awkward break. Then it renders and verifies again, at most twice. A problem that can only be fixed in CSS is reported as a theme issue rather than patched, so one document's quirks don't leak into the theme.</p>
+<p>The skill tells Claude to render, verify, open the sheets, and write one verdict per sheet. Claude fixes failures in the Markdown only: split a table that runs past the margin into two that repeat the first column, shorten a code line, move content around an awkward break. The <code>overflow</code> detail in <code>verify.json</code> says what ran over and by how much (<code>p1 table by 13pt</code>), so Claude knows which fix applies. Then it renders and verifies again, at most twice. A problem that can only be fixed in CSS is reported as a theme issue rather than patched, so one document's quirks don't leak into the theme.</p>
 <h2 id="plugin-anatomy">Plugin anatomy</h2>
 <p>The plugin is deliberately small. Claude Code only needs to know that Rupa exists and how to call it.</p>
 <pre class="hl"><code class="language-text">plugin/
@@ -1235,6 +1235,8 @@ $<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </
 </tbody>
 </table>
 <p>Five of the six runs went over the budget on the first render, asking for cuts of 7 to 31 lines. All five cut with a single Write of the whole file and fitted on the next render: one cut round each, with no Edits in any run. The sixth fitted at first. Every PDF passes <code>rupa verify</code> and keeps all four required parts, with policies of about 29 to 35 lines. A run that has to cut costs two turns (a Write and a render) on top of a run that fits at once, which is all a cut should cost.</p>
+<h3 id="wide-task-shortening-instead-of-splitting-2026-10-16">Wide task: shortening instead of splitting (2026-10-16)</h3>
+<p><code>TASK=wide</code>, an EC2 sizing guide whose table must keep all eleven columns. One <code>rupa-verify</code> run, Opus 5.5: 16 turns, $0.70. The table overflowed; Claude shortened cell text for two fix rounds, still ran 13pt over, and reported a theme issue. It never split the table, though the skill listed that fix, and verify said only &quot;text extends past the side margins&quot;. Now the <code>overflow</code> detail names what runs over and by how much (<code>p1 table by 13pt</code>), and the skill says to split an overflowing table into two that repeat the first column. One run: a failure mode, not a cost.</p>
 <h3 id="how-to-read-the-results">How to read the results</h3>
 <ul>
 <li>Compare medians, not single runs. Agent runs vary.</li>
@@ -2640,8 +2642,10 @@ name: render
    page on the right.
 <span class="k">3.</span> Judge every sheet against each item in <span class="sb">`rubric`</span>. Record one line per
    sheet: <span class="sb">`p&lt;N&gt; &lt;kind&gt;: PASS`</span> or <span class="sb">`p&lt;N&gt; &lt;kind&gt;: FAIL &lt;rubric item&gt; - &lt;what&gt;`</span>.
-<span class="k">4.</span> Fix failures in the Markdown only: split a wide table, shorten a long
-   code line, move or trim content around an awkward break. Make each
+<span class="k">4.</span> Fix failures in the Markdown only: shorten a long code line, move or
+   trim content around an awkward break. If <span class="sb">`overflow`</span> names a table, split
+   it into two tables that each repeat the first column, about eight
+   columns at most in each. Shortening cell text rarely closes the gap. Make each
    round's fixes with one Write of the whole file, then render and verify
    again. Stop after two fix rounds.
 <span class="k">5.</span> If a failure can only be fixed in the theme (CSS), do not edit CSS.
@@ -2859,6 +2863,7 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
     <span class="n">off_colors</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># number of chars not matching the wanted color</span>
     <span class="n">content_bottom</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">table_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">tables</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>  <span class="c1"># (x0, top, x1, bottom)</span>
     <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"prose"</span>
 
     <span class="nd">@property</span>
@@ -2978,6 +2983,7 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
                 <span class="p">)</span>
             <span class="p">)</span>
             <span class="n">tables</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">no_bg</span><span class="o">.</span><span class="n">find_tables</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">]</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">tables</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">bbox</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">]</span>
             <span class="n">table_area</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
                 <span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">bbox</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">t</span><span class="o">.</span><span class="n">bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">bbox</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">t</span><span class="o">.</span><span class="n">bbox</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tables</span>
             <span class="p">)</span>
@@ -3086,14 +3092,32 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
         <span class="s2">"heading is the last line, or a heading and one line end the page"</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">overflow</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">overflow</span><span class="p">,</span> <span class="n">where</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pages</span><span class="p">:</span>
         <span class="n">left</span> <span class="o">=</span> <span class="n">MARGIN_SIDE</span> <span class="o">*</span> <span class="n">PT_PER_IN</span> <span class="o">-</span> <span class="mi">2</span>
         <span class="n">right</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">width</span> <span class="o">-</span> <span class="n">MARGIN_SIDE</span> <span class="o">*</span> <span class="n">PT_PER_IN</span> <span class="o">+</span> <span class="mi">2</span>
-        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">ln</span><span class="o">.</span><span class="n">x0</span> <span class="o">&lt;</span> <span class="n">left</span> <span class="ow">or</span> <span class="n">ln</span><span class="o">.</span><span class="n">x1</span> <span class="o">&gt;</span> <span class="n">right</span> <span class="k">for</span> <span class="n">ln</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">lines</span><span class="p">):</span>
+        <span class="n">bad</span> <span class="o">=</span> <span class="p">[</span><span class="n">ln</span> <span class="k">for</span> <span class="n">ln</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">lines</span> <span class="k">if</span> <span class="n">ln</span><span class="o">.</span><span class="n">x0</span> <span class="o">&lt;</span> <span class="n">left</span> <span class="ow">or</span> <span class="n">ln</span><span class="o">.</span><span class="n">x1</span> <span class="o">&gt;</span> <span class="n">right</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">bad</span><span class="p">:</span>
             <span class="n">overflow</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
-    <span class="n">add</span><span class="p">(</span><span class="s2">"overflow"</span><span class="p">,</span> <span class="n">overflow</span><span class="p">,</span> <span class="s2">"text extends past the side margins"</span><span class="p">)</span>
+            <span class="n">over</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">left</span> <span class="o">-</span> <span class="n">ln</span><span class="o">.</span><span class="n">x0</span><span class="p">,</span> <span class="n">ln</span><span class="o">.</span><span class="n">x1</span> <span class="o">-</span> <span class="n">right</span><span class="p">)</span> <span class="k">for</span> <span class="n">ln</span> <span class="ow">in</span> <span class="n">bad</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span>
+            <span class="n">where</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"p</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">number</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">_overflow_kind</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">bad</span><span class="p">)</span><span class="si">}</span><span class="s2"> by </span><span class="si">{</span><span class="n">over</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">pt"</span><span class="p">)</span>
+    <span class="n">add</span><span class="p">(</span>
+        <span class="s2">"overflow"</span><span class="p">,</span>
+        <span class="n">overflow</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">"text extends past the side margins (</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="k">return</span> <span class="n">results</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_overflow_kind</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">PageInfo</span><span class="p">,</span> <span class="n">bad</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Line</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Name what runs over, so the fix is clear: a table, code, or text."""</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">in_table</span><span class="p">(</span><span class="n">ln</span><span class="p">:</span> <span class="n">Line</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">mid</span> <span class="o">=</span> <span class="p">(</span><span class="n">ln</span><span class="o">.</span><span class="n">top</span> <span class="o">+</span> <span class="n">ln</span><span class="o">.</span><span class="n">bottom</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">top</span> <span class="o">&lt;=</span> <span class="n">mid</span> <span class="o">&lt;=</span> <span class="n">bottom</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">bottom</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">in_table</span><span class="p">(</span><span class="n">ln</span><span class="p">)</span> <span class="k">for</span> <span class="n">ln</span> <span class="ow">in</span> <span class="n">bad</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"table"</span>
+    <span class="k">return</span> <span class="s2">"code"</span> <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">ln</span><span class="o">.</span><span class="n">mono</span> <span class="k">for</span> <span class="n">ln</span> <span class="ow">in</span> <span class="n">bad</span><span class="p">)</span> <span class="k">else</span> <span class="s2">"text"</span>
 
 
 <span class="c1"># ---------------------------------------------------------------- sampling + sheets</span>
@@ -3401,7 +3425,7 @@ Rupa separates content from form. Claude writes Markdown, and the renderer appli
 </code></pre>
 <p>Build the reference pages, and rebuild them whenever the theme changes:</p>
 <pre class="hl"><code class="language-bash">uv<span class="w"> </span>run<span class="w"> </span>rupa<span class="w"> </span>refs
-<span class="c1"># rupa: wrote references for 'default' to .../references/default (code=p5, cover=p1, prose=p3, table=p4)</span>
+<span class="c1"># rupa: wrote references for 'default' to .../references/default (code=p4, cover=p1, prose=p2, table=p3)</span>
 </code></pre>
 <p>The wants file with every default spelled out, <code>wants.example.yaml</code>. A test keeps it in sync with the code:</p>
 <pre class="hl"><code class="language-yaml"><span class="c1"># What a finished PDF must satisfy. Every key is optional; omitted keys use</span>
@@ -3434,6 +3458,7 @@ Rupa separates content from form. Claude writes Markdown, and the renderer appli
 </code></pre>
 <p>The tests, <code>tests/test_verify.py</code>. Most build synthetic pages, so each check is tested in isolation, and two run against a real render:</p>
 <pre class="hl"><code class="language-python"><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
 
@@ -3442,11 +3467,14 @@ Rupa separates content from form. Claude writes Markdown, and the renderer appli
 <span class="kn">from</span><span class="w"> </span><span class="nn">rupa.render</span><span class="w"> </span><span class="kn">import</span> <span class="n">to_pdf</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">rupa.verify</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">DEFAULT_WANTS</span><span class="p">,</span>
+    <span class="n">MARGIN_SIDE</span><span class="p">,</span>
+    <span class="n">PT_PER_IN</span><span class="p">,</span>
     <span class="n">Line</span><span class="p">,</span>
     <span class="n">PageInfo</span><span class="p">,</span>
     <span class="n">WantsError</span><span class="p">,</span>
     <span class="n">_to_rgb</span><span class="p">,</span>
     <span class="n">load_wants</span><span class="p">,</span>
+    <span class="n">read_pages</span><span class="p">,</span>
     <span class="n">run_checks</span><span class="p">,</span>
     <span class="n">sample_pages</span><span class="p">,</span>
     <span class="n">verify</span><span class="p">,</span>
@@ -3616,6 +3644,35 @@ Rupa separates content from form. Claude writes Markdown, and the renderer appli
     <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">body_line</span><span class="p">(</span><span class="mi">70</span><span class="p">),</span> <span class="n">body_line</span><span class="p">(</span><span class="mi">690</span><span class="p">,</span> <span class="n">x1</span><span class="o">=</span><span class="mi">600</span><span class="p">)]</span>
     <span class="n">pages</span> <span class="o">=</span> <span class="p">[</span><span class="n">page</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">page</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">lines</span><span class="o">=</span><span class="n">lines</span><span class="p">),</span> <span class="n">page</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
     <span class="k">assert</span> <span class="n">failing</span><span class="p">(</span><span class="n">run_checks</span><span class="p">(</span><span class="n">pages</span><span class="p">,</span> <span class="n">load_wants</span><span class="p">(</span><span class="kc">None</span><span class="p">)))</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"overflow"</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">]}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">overflow_detail</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">detail</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="s2">"overflow"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_overflow_names_what_runs_over_and_by_how_much</span><span class="p">():</span>
+    <span class="n">right</span> <span class="o">=</span> <span class="n">LETTER</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">MARGIN_SIDE</span> <span class="o">*</span> <span class="n">PT_PER_IN</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">page</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">lines</span><span class="o">=</span><span class="p">[</span><span class="n">body_line</span><span class="p">(</span><span class="mi">70</span><span class="p">),</span> <span class="n">body_line</span><span class="p">(</span><span class="mi">690</span><span class="p">,</span> <span class="n">x1</span><span class="o">=</span><span class="n">right</span> <span class="o">+</span> <span class="mi">30</span><span class="p">)])</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="n">page</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">lines</span><span class="o">=</span><span class="p">[</span><span class="n">body_line</span><span class="p">(</span><span class="mi">70</span><span class="p">),</span> <span class="n">body_line</span><span class="p">(</span><span class="mi">690</span><span class="p">,</span> <span class="n">x1</span><span class="o">=</span><span class="n">right</span> <span class="o">+</span> <span class="mi">12</span><span class="p">,</span> <span class="n">mono</span><span class="o">=</span><span class="kc">True</span><span class="p">)])</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">page</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">lines</span><span class="o">=</span><span class="p">[</span><span class="n">body_line</span><span class="p">(</span><span class="mi">70</span><span class="p">),</span> <span class="n">body_line</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="n">x1</span><span class="o">=</span><span class="n">right</span> <span class="o">+</span> <span class="mi">20</span><span class="p">)])</span>
+    <span class="n">table</span><span class="o">.</span><span class="n">tables</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">60.0</span><span class="p">,</span> <span class="mf">290.0</span><span class="p">,</span> <span class="n">right</span> <span class="o">+</span> <span class="mi">20</span><span class="p">,</span> <span class="mf">400.0</span><span class="p">)]</span>
+    <span class="n">pages</span> <span class="o">=</span> <span class="p">[</span><span class="n">page</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">text</span><span class="p">,</span> <span class="n">code</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">page</span><span class="p">(</span><span class="mi">5</span><span class="p">)]</span>
+    <span class="n">detail</span> <span class="o">=</span> <span class="n">overflow_detail</span><span class="p">(</span><span class="n">run_checks</span><span class="p">(</span><span class="n">pages</span><span class="p">,</span> <span class="n">load_wants</span><span class="p">(</span><span class="kc">None</span><span class="p">)))</span>
+    <span class="k">assert</span> <span class="s2">"p2 text by 30pt"</span> <span class="ow">in</span> <span class="n">detail</span>
+    <span class="k">assert</span> <span class="s2">"p3 code by 12pt"</span> <span class="ow">in</span> <span class="n">detail</span>
+    <span class="k">assert</span> <span class="s2">"p4 table by 20pt"</span> <span class="ow">in</span> <span class="n">detail</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_eleven_column_table_overflows_as_a_table</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">):</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"Column </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">11</span><span class="p">)]</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"m7i.2xlarge"</span><span class="p">,</span> <span class="s2">"General purpose"</span><span class="p">,</span> <span class="s2">"Up to 12.5 Gbps"</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"0.4032"</span><span class="p">]</span> <span class="o">*</span> <span class="mi">8</span>
+    <span class="n">md</span> <span class="o">=</span> <span class="s2">"## Wide</span><span class="se">\n\n</span><span class="s2">| "</span> <span class="o">+</span> <span class="s2">" | "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">+</span> <span class="s2">" |</span><span class="se">\n</span><span class="s2">|"</span> <span class="o">+</span> <span class="s2">"---|"</span> <span class="o">*</span> <span class="mi">11</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span>
+    <span class="n">md</span> <span class="o">+=</span> <span class="p">(</span><span class="s2">"| "</span> <span class="o">+</span> <span class="s2">" | "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">+</span> <span class="s2">" |</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span> <span class="o">*</span> <span class="mi">6</span>
+    <span class="n">data</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">to_pdf</span><span class="p">(</span><span class="n">parse</span><span class="p">(</span><span class="n">md</span><span class="p">),</span> <span class="s2">"default"</span><span class="p">)</span>
+    <span class="n">pdf</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"wide.pdf"</span>
+    <span class="n">pdf</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">detail</span> <span class="o">=</span> <span class="n">overflow_detail</span><span class="p">(</span><span class="n">run_checks</span><span class="p">(</span><span class="n">read_pages</span><span class="p">(</span><span class="n">pdf</span><span class="p">),</span> <span class="n">load_wants</span><span class="p">(</span><span class="kc">None</span><span class="p">)))</span>
+    <span class="k">assert</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">"p1 table by \d+pt"</span><span class="p">,</span> <span class="n">detail</span><span class="p">),</span> <span class="n">detail</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">test_disabled_checks_are_skipped</span><span class="p">():</span>
