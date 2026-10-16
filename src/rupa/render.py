@@ -42,6 +42,28 @@ TEMPLATE = """<!doctype html>
 
 THEMES = ("default",)
 
+# Fonts ship with Rupa so a PDF looks the same on every machine, whatever is
+# installed. Only the PDF target uses them; HTML keeps the CSS font stack.
+FONT_DIR = Path(str(resources.files("rupa") / "themes" / "fonts")).resolve()
+FONT_FACES = (  # (family, file stem, weight, style)
+    ("Inter", "Inter-Regular", 400, "normal"),
+    ("Inter", "Inter-Italic", 400, "italic"),
+    ("Inter", "Inter-Medium", 500, "normal"),
+    ("Inter", "Inter-SemiBold", 600, "normal"),
+    ("Inter", "Inter-Bold", 700, "normal"),
+    ("Inter", "Inter-BoldItalic", 700, "italic"),
+    ("JetBrains Mono", "JetBrainsMono-Regular", 400, "normal"),
+    ("JetBrains Mono", "JetBrainsMono-Bold", 700, "normal"),
+)
+
+
+def _font_faces() -> str:
+    return "\n".join(
+        f'@font-face {{ font-family: "{family}"; font-weight: {weight}; '
+        f'font-style: {style}; src: url("{(FONT_DIR / f"{stem}.ttf").as_uri()}"); }}'
+        for family, stem, weight, style in FONT_FACES
+    )
+
 
 class RenderError(RuntimeError):
     """Raised when a target cannot be produced."""
@@ -53,6 +75,7 @@ def _theme_css(theme: str, target: str) -> str:
     pkg = resources.files("rupa") / "themes"
     css = (pkg / f"{theme}.css").read_text(encoding="utf-8")
     if target == "pdf":
+        css = _font_faces() + "\n" + css
         css += "\n" + (pkg / "print.css").read_text(encoding="utf-8")
     css += "\n" + HtmlFormatter(style="default").get_style_defs(".hl")
     return css
@@ -148,12 +171,13 @@ def to_pdf(
         def fetch(self, url, headers=None):
             if url.startswith("file:"):
                 path = Path(unquote(urlparse(url).path)).resolve()
-                if not path.is_relative_to(base):
+                if not (path.is_relative_to(base) or path.parent == FONT_DIR):
                     raise ValueError(f"{path} is outside {base}")
             return super().fetch(url, headers)
 
-    # Files under base and data: URIs only. Anything else, or a missing file,
-    # fails the render instead of fetching from the network or vanishing.
+    # Files under base, Rupa's own fonts, and data: URIs only. Anything else,
+    # or a missing file, fails the render instead of fetching from the
+    # network or vanishing.
     fetcher = ContainedFetcher(allowed_protocols={"file", "data"}, fail_on_errors=True)
     html = to_html(doc, theme, target="pdf", extra_css=extra_css, toc_on=toc_on)
     try:
@@ -175,9 +199,9 @@ class Fit:
     cut_words: int  # prose words to cut to fit, at the last step; 0 when it fits
 
 
-# Prose at the tightest fit step holds about 1.47 words per point of page
+# Prose at the tightest fit step holds about 1.49 words per point of page
 # height, paragraph gaps included (measured on a full page of body text).
-TIGHT_WORDS_PER_PT = 1.47
+TIGHT_WORDS_PER_PT = 1.49
 
 
 def _words_after(data: bytes, budget: int) -> int:

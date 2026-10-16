@@ -25,7 +25,7 @@ Claude writes content, Rupa applies a tested theme and prints one status line.
 | Path | What it is |
 |---|---|
 | `src/rupa/` | The CLI: `rupa` (render), `rupa verify` (check a PDF), `rupa refs` (rebuild reference pages) |
-| `src/rupa/themes/` | Theme CSS. PDF text is forced to solid black |
+| `src/rupa/themes/` | Theme CSS. PDF text is forced to solid black. `fonts/` bundles Inter and JetBrains Mono (SIL OFL 1.1), so a PDF looks the same on any machine |
 | `src/rupa/references/` | Reference pages each theme is visually compared against |
 | `plugin/` | Claude Code plugin: one skill that renders, verifies and reviews |
 | `plugin/evals/` | `claude plugin eval` suite: does the skill trigger, render with rupa, and pass verify |

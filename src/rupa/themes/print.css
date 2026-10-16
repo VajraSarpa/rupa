@@ -37,7 +37,7 @@ body, p, li, td, th, h1, h2, h3, h4, blockquote, code, pre,
 .doc-title { string-set: doctitle content(); font-weight: 700; font-size: 26pt; }
 h1 { font-weight: 700; font-size: 20pt; }
 h2 { font-weight: 700; font-size: 15pt; break-after: avoid; }
-h3 { font-weight: 650; font-size: 12pt; break-after: avoid; }
+h3 { font-weight: 600; font-size: 12pt; break-after: avoid; }
 strong, th { font-weight: 700; }
 .subtitle, .byline { font-weight: 500; }
 a { text-decoration: none; }

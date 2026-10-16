@@ -80,5 +80,9 @@ two rounds), and report theme problems instead of editing CSS. The skill's
 - A different look is a theme change, never styling added to Markdown.
 - PDF text is forced to solid black (`text-color` check); keep it that way in
   themes.
+- PDFs use the bundled fonts in `src/rupa/themes/fonts/`, never system fonts,
+  so renders, reference pages and fit constants match on every machine. The
+  image guard in `render.py` allows that folder and nothing else outside the
+  document's own. Use weights 400/500/600/700 only; WeasyPrint drops others.
 - `docs/build.py` expands `@@include path lang@@` lines with real source
   files, so the guide quotes code directly from `src/`.

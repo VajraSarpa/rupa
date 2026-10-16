@@ -173,6 +173,10 @@ $ rupa notes.md -o out/notes.pdf --json
 {"ok": true, "path": "out/notes.pdf", "format": "pdf", "pages": 3, "bytes": 48211}
 ```
 
+### Fonts
+
+PDFs embed Inter and JetBrains Mono from `src/rupa/themes/fonts/` (both SIL Open Font License 1.1, licences alongside). Before that, a PDF used whatever the machine had: on a machine without Inter the theme fell back to Liberation Sans, the reference pages no longer matched the renders, and the fit numbers drifted. The image guard lets the renderer read that one folder besides the document's own.
+
 ### Page budgets
 
 `pages: N` in the frontmatter (or `--pages N`) gives a PDF a page budget. If the first render is over, Rupa tightens the form, never the content, one step at a time: it drops the contents list, then sets compact type, then tight type. Margins and heading sizes stay fixed, because `verify` measures against them. The status line names the steps used:

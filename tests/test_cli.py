@@ -190,3 +190,19 @@ def test_cut_estimate_counts_space_not_words_for_code():
     with pdfplumber.open(io.BytesIO(fit.data)) as pdf:
         words_past = sum(len((p.extract_text() or "").split()) for p in pdf.pages[1:])
     assert fit.cut_words > 3 * words_past
+
+
+def test_pdf_embeds_bundled_fonts():
+    # Fonts ship with Rupa, so the PDF doesn't depend on what is installed.
+    import io
+
+    import pdfplumber
+
+    from rupa.document import parse
+    from rupa.render import to_pdf
+
+    data, _ = to_pdf(parse("# T\n\nBody **bold** and `code`.\n"))
+    with pdfplumber.open(io.BytesIO(data)) as pdf:
+        fonts = {c["fontname"].split("+")[-1] for c in pdf.pages[0].chars}
+    assert any(f.startswith("Inter") for f in fonts)
+    assert any(f.startswith("JetBrains") for f in fonts)
