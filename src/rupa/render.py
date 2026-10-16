@@ -56,6 +56,24 @@ THEME_TEXT_COLORS = {
     "cyan-dark": ("#e6edf6", "#38bdf8", "#9fb0c8", "#6b7d98"),
 }
 
+# Without a `toc` key, a contents list is added only when it has this many
+# entries. A one- or two-section document doesn't need one, and the list's
+# page break would leave a near-empty first page.
+TOC_MIN_ENTRIES = 3
+
+
+def _toc_entries(doc: Document) -> list:
+    # H1s act as parts, H2s as sections. An H1 that repeats the title is skipped.
+    return [h for h in doc.headings if h.level <= 2 and h.text != doc.title]
+
+
+def toc_default(doc: Document) -> bool:
+    """The frontmatter's `toc` if set, else on for TOC_MIN_ENTRIES or more entries."""
+    if "toc" in doc.meta:
+        return bool(doc.meta["toc"])
+    return len(_toc_entries(doc)) >= TOC_MIN_ENTRIES
+
+
 # Fonts ship with Rupa so a PDF looks the same on every machine, whatever is
 # installed. Only the PDF target uses them; HTML keeps the CSS font stack.
 FONT_DIR = Path(str(resources.files("rupa") / "themes" / "fonts")).resolve()
@@ -185,13 +203,8 @@ def to_html(
     """Return the page as HTML. With base_dir, images are embedded (see embed_images)."""
     env = Environment(autoescape=select_autoescape(default=True))
     if toc_on is None:
-        toc_on = doc.meta.get("toc", True)
-    # H1s act as parts, H2s as sections. An H1 that repeats the title is skipped.
-    toc = (
-        [h for h in doc.headings if h.level <= 2 and h.text != doc.title]
-        if toc_on
-        else []
-    )
+        toc_on = toc_default(doc)
+    toc = _toc_entries(doc) if toc_on else []
     return env.from_string(TEMPLATE).render(
         title=doc.title,
         meta=doc.meta,
@@ -304,7 +317,7 @@ def fit_pdf(
         return Fit(data, pages, [], 0)
     applied: list[str] = []
     css = ""
-    toc_on = doc.meta.get("toc", True)
+    toc_on = toc_default(doc)
     for name, step_css in FIT_STEPS:
         if step_css is None:
             if not toc_on:

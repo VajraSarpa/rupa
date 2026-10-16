@@ -10,7 +10,7 @@ skill makes Claude use it instead of hand-writing markup.
 
 ```bash
 uv sync                                   # needs Pango for WeasyPrint (see README)
-uv run pytest -q                          # 113 tests
+uv run pytest -q                          # 117 tests
 uv run pytest tests/test_verify.py::test_stranded_heading_fails   # one test
 uvx ruff check src tests                  # CI runs this too
 echo "# Hello" | uv run rupa -o out/hello.pdf && uv run rupa verify out/hello.pdf
@@ -82,7 +82,8 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
 ### Plugin (`plugin/`)
 
 One skill, `skills/render/SKILL.md` (`rupa:render`), plus a SessionStart hook
-that warns if `rupa` isn't on PATH. The skill's rules: write Markdown, never
+(`hooks/check-rupa.sh`) that warns if `rupa` isn't on PATH or is older than
+its `MIN` version. Raise `MIN` whenever the skill starts relying on a newer CLI. The skill's rules: write Markdown, never
 hand-write HTML/CSS/PDF code, fix verify failures in the Markdown only (at most
 two rounds), and report theme problems instead of editing CSS. The skill's
 `description` drives triggering; the `trigger` eval cases test it.

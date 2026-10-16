@@ -69,3 +69,35 @@ def test_a_label_above_a_part_title_still_starts_a_part():
     label = Line(60, 67, 58, 100, 7, True, False, "PART 1")
     title = Line(75, 95, 58, 300, 20, False, True, "Part One")
     assert PageInfo(1, 612, 792, lines=[label, title]).starts_part
+
+
+def _toc_shown(md):
+    from rupa.document import parse
+    from rupa.render import to_html
+
+    return '<nav class="toc">' in to_html(parse(md))
+
+
+def test_toc_off_by_default_for_short_documents():
+    assert not _toc_shown("---\ntitle: T\n---\n\n## A\n\nx\n\n## B\n\ny\n")
+
+
+def test_toc_on_by_default_from_three_sections():
+    assert _toc_shown("---\ntitle: T\n---\n\n## A\n\nx\n\n## B\n\ny\n\n## C\n\nz\n")
+
+
+def test_toc_frontmatter_overrides_default():
+    assert _toc_shown("---\ntitle: T\ntoc: true\n---\n\n## A\n\nx\n")
+    assert not _toc_shown(
+        "---\ntitle: T\ntoc: false\n---\n\n## A\n\nx\n\n## B\n\ny\n\n## C\n\nz\n"
+    )
+
+
+def test_short_pdf_is_one_page(tmp_path):
+    from rupa.document import parse
+    from rupa.render import to_pdf
+
+    _, pages = to_pdf(
+        parse("---\ntitle: T\n---\n\n## ok\n\nBody.\n"), "default", tmp_path
+    )
+    assert pages == 1
