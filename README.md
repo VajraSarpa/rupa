@@ -82,12 +82,19 @@ against baseline's 13 turns and $0.52, which is 45% cheaper, and every run
 fitted 2 pages on its first render. Rupa's reports carry fewer words than
 baseline's (about 720 against 1,180), because it keeps the theme's margins.
 
-On a harder task (a 3-page guide with a wide table, CLI and JSON policy) the
+On a harder task (a 3-page guide with a five-column table, CLI and JSON policy) the
 gap widens. In the latest run, after over-budget hints moved from words to
 lines, the shipped plugin took 6 turns and $0.31 against baseline's 23 turns
 and $1.19, and 7 of 9 Rupa runs fitted on their first render. Baseline varied
 between $0.85 and $1.19 across three guide runs, so read the saving as
 roughly 60–75%.
+
+A table too wide for the page (eleven required columns) is where baseline
+does well: it turns the page to landscape or shrinks the type, and never
+clipped the table. The shipped plugin passed verify on all three runs by
+splitting or tightening the table, at 12 turns and $0.47 against baseline's
+11 turns and $0.54. Render-only Rupa shipped every table overflowing, so
+verify earns its turns here.
 
 The first benchmark, before page budgets and flagged-only sampling, found no
 saving. See the guide's "Measuring the savings" section for every run.

@@ -463,7 +463,23 @@ Five of the six runs went over the budget on the first render, asking for cuts o
 
 ### Wide task: shortening instead of splitting (2026-10-16)
 
-`TASK=wide`, an EC2 sizing guide whose table must keep all eleven columns. One `rupa-verify` run, Opus 5.5: 16 turns, $0.70. The table overflowed; Claude shortened cell text for two fix rounds, still ran 13pt over, and reported a theme issue. It never split the table, though the skill listed that fix, and verify said only "text extends past the side margins". Now the `overflow` detail names what runs over and by how much (`p1 table by 13pt`), and the skill says to split an overflowing table into two that repeat the first column. One run: a failure mode, not a cost.
+`TASK=wide`, an EC2 sizing guide whose table must keep all eleven columns. One `rupa-verify` run, Opus 5.5: 16 turns, $0.70. The table overflowed; Claude shortened cell text for two fix rounds, still ran 13pt over, and reported a theme issue. It never split the table, though the skill listed that fix, and verify said only "text extends past the side margins". Now the `overflow` detail names what runs over and by how much (`p1 table by 13pt`), and the skill says to split an overflowing table into two that repeat the first column. One run: a failure mode, not a cost. After the change, a single run split the table on its first fix round and passed: 8 turns, $0.37.
+
+### Wide task, all arms (2026-10-16)
+
+`TASK=wide`, three runs per arm, Opus 5.5, after the overflow and split changes. Medians:
+
+| Arm | Turns | Cost | PDFs passing verify |
+|---|---|---|---|
+| baseline | 11 | $0.54 | 0 of 3 (own margins and colors) |
+| `rupa` (render only) | 5 | $0.31 | 0 of 3: table overflows |
+| `rupa-pertype` | 17 | $0.64 | 2 of 3 |
+| `rupa-verify` (as shipped) | 12 | $0.47 | 3 of 3 |
+
+Every Rupa first draft overflowed, by 31 to 85pt. Of the six runs that verified, two split the table on the first fix round and two shortened cells first and split on the second. Two only shortened: one fitted, and a per-type run stayed 25pt over and shipped with the failure reported. The runs that shortened first read "a table … across eleven columns" as forbidding a split. Every fix round was a Python rewrite of the Markdown rather than the one Write the skill asks for, which cost nothing extra here.
+
+This is the one task where baseline did well. It never clipped the table: two runs put it on a landscape page and one fitted it on portrait with half-inch margins, at 7.4pt and 6.6pt type (one header broke mid-word). Rupa can't change orientation or shrink one table, so it restructures instead and keeps 9.8pt type. That costs fix rounds: the shipped arm saved only 13% on cost and took one more turn. The render-only arm is cheapest but shipped every table overflowing, so on this task verify is what makes the output correct. A theme option for wide tables (smaller type, or a landscape page) would cut the fix rounds.
+
 
 ### How to read the results
 
