@@ -57,7 +57,7 @@ Then check the result where it matters, because people read these documents and 
 
 - A layout language. If Markdown cannot express it, it waits for a later version.
 - DOCX or PPTX output. They can be added as new targets behind the same contract.
-- Remote assets. PDF rendering refuses network fetches by design.
+- Remote assets. Images must be relative paths or `data:image` URIs, so neither HTML nor PDF fetches from the network.
 
 ## Architecture
 
@@ -193,7 +193,7 @@ Body conventions:
 - Fenced code blocks take a language tag for highlighting.
 - Tables use GitHub pipe syntax.
 - Raw HTML is escaped and shown as text.
-- Images must be local files. Remote URLs fail the PDF render with exit code 4.
+- Images must be relative paths next to the Markdown file, or `data:image` URIs. A URL or absolute path is bad input (exit code 3); a missing file, or one outside the Markdown file's folder, fails the PDF render (exit code 4).
 
 ## Themes
 
@@ -451,7 +451,7 @@ Write the tests before moving on. `tests/test_document.py`:
 
 ## Step 3: The renderer and themes
 
-All styling decisions live in `render.py` and the CSS files. The HTML template is inline so the package has one less file to ship. The PDF function restricts resource fetching to local files and `data:` URLs.
+All styling decisions live in `render.py` and the CSS files. The HTML template is inline so the package has one less file to ship. The PDF function resolves relative images against the input file's folder and refuses to read files outside it.
 
 One trap worth knowing: WeasyPrint's `FatalURLFetchingError` inherits from `BaseException`, not `Exception`, so a plain `except Exception` does not catch it. That is why the code names it explicitly. This was found by a failing test during the build.
 

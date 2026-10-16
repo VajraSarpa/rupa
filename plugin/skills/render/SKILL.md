@@ -10,7 +10,8 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
 1. Write the content as Markdown. Optional frontmatter keys: `title`,
    `subtitle`, `author`, `date`, `theme`, `toc` (true/false). No other keys.
 2. Use `#` for parts, `##` for sections, `###` for subsections.
-   Fenced code blocks take a language tag.
+   Fenced code blocks take a language tag. Images are relative paths to
+   files next to the Markdown file (or `data:image` URIs), never URLs.
 3. Render with one command, using the extension the user asked for:
 
    ```bash

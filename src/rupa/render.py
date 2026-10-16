@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from importlib import resources
+from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 from jinja2 import Environment, select_autoescape
 from pygments.formatters import HtmlFormatter
@@ -74,19 +76,38 @@ def to_html(doc: Document, theme: str = "default", target: str = "html") -> str:
     )
 
 
-def to_pdf(doc: Document, theme: str = "default") -> tuple[bytes, int]:
-    """Return (pdf_bytes, page_count)."""
+def to_pdf(
+    doc: Document, theme: str = "default", base_dir: str | Path | None = None
+) -> tuple[bytes, int]:
+    """Return (pdf_bytes, page_count).
+
+    Relative image paths resolve against base_dir (default: the current
+    directory), and only files inside it can be read.
+    """
     try:
         from weasyprint import HTML, URLFetcher
         from weasyprint.urls import FatalURLFetchingError
     except ImportError as exc:  # pragma: no cover - depends on system libs
         raise RenderError("PDF needs WeasyPrint and its system libraries") from exc
-    # Local files and data: URIs only. A remote URL fails the render instead of
-    # silently fetching from the network.
-    fetcher = URLFetcher(allowed_protocols={"file", "data"}, fail_on_errors=True)
+
+    base = Path(base_dir or ".").resolve()
+
+    class ContainedFetcher(URLFetcher):
+        def fetch(self, url, headers=None):
+            if url.startswith("file:"):
+                path = Path(unquote(urlparse(url).path)).resolve()
+                if not path.is_relative_to(base):
+                    raise ValueError(f"{path} is outside {base}")
+            return super().fetch(url, headers)
+
+    # Files under base and data: URIs only. Anything else, or a missing file,
+    # fails the render instead of fetching from the network or vanishing.
+    fetcher = ContainedFetcher(allowed_protocols={"file", "data"}, fail_on_errors=True)
     html = to_html(doc, theme, target="pdf")
     try:
-        rendered = HTML(string=html, url_fetcher=fetcher).render()
+        rendered = HTML(
+            string=html, base_url=f"{base.as_uri()}/", url_fetcher=fetcher
+        ).render()
         return rendered.write_pdf(), len(rendered.pages)
     except FatalURLFetchingError as exc:  # subclasses BaseException, not Exception
         raise RenderError(f"blocked or missing resource: {exc}") from exc

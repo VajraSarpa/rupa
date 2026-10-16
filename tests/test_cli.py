@@ -1,6 +1,8 @@
 import io
 import json
 
+import pytest
+
 from rupa.cli import EXIT_INPUT, EXIT_OK, EXIT_RENDER, EXIT_USAGE, main
 
 DOC = "---\ntitle: T\n---\n\n## A\n\nBody text.\n"
@@ -56,10 +58,38 @@ def test_unknown_theme_exit_code(tmp_path, monkeypatch, capsys):
     assert code == EXIT_RENDER and "unknown theme" in err
 
 
-def test_remote_resources_are_blocked_in_pdf(tmp_path, monkeypatch, capsys):
-    md = "## x\n\n![remote](https://example.com/a.png)\n"
-    code, _, err = run(monkeypatch, capsys, ["-o", str(tmp_path / "o.pdf")], stdin=md)
-    assert code == EXIT_RENDER and "example.com" in err
+@pytest.mark.parametrize("ext", ["pdf", "html"])
+def test_remote_images_are_rejected(tmp_path, monkeypatch, capsys, ext):
+    md = "## x\n\n![remote](https://example.com/a.png?d=secret)\n"
+    out = str(tmp_path / f"o.{ext}")
+    code, _, err = run(monkeypatch, capsys, ["-o", out], stdin=md)
+    assert code == EXIT_INPUT and "example.com" in err
+
+
+def _image_doc(tmp_path, src):
+    from PIL import Image
+
+    (tmp_path / "doc").mkdir()
+    Image.new("RGB", (40, 20), "red").save(tmp_path / "doc" / "fig.png")
+    Image.new("RGB", (40, 20)).save(tmp_path / "secret.png")
+    md = tmp_path / "doc" / "t.md"
+    md.write_text(f"## x\n\n![f]({src})\n")
+    return str(md)
+
+
+def test_relative_image_next_to_the_markdown_is_embedded(tmp_path, capsys):
+    import pdfplumber
+
+    target = tmp_path / "out" / "o.pdf"
+    assert main([_image_doc(tmp_path, "fig.png"), "-o", str(target)]) == EXIT_OK
+    with pdfplumber.open(target) as pdf:
+        assert sum(len(p.images) for p in pdf.pages) == 1
+
+
+@pytest.mark.parametrize("src", ["missing.png", "../secret.png"])
+def test_missing_or_outside_image_fails_the_render(tmp_path, capsys, src):
+    code = main([_image_doc(tmp_path, src), "-o", str(tmp_path / "o.pdf")])
+    assert code == EXIT_RENDER and "resource" in capsys.readouterr().err
 
 
 def test_to_flag_overrides_extension(tmp_path, monkeypatch, capsys):

@@ -79,3 +79,16 @@ def test_heading_text_has_no_markdown_syntax():
 def test_unknown_keys_of_mixed_types_are_rejected_cleanly():
     with pytest.raises(InputError, match="unknown frontmatter"):
         parse("---\n1: x\nfoo: y\n---\n\ntext")
+
+
+@pytest.mark.parametrize(
+    "src", ["https://e.com/a.png", "//e.com/a.png", "/etc/a.png", "C:/a.png"]
+)
+def test_non_relative_images_are_rejected(src):
+    with pytest.raises(InputError, match="relative path"):
+        parse(f"![a]({src})\n")
+
+
+def test_relative_and_data_images_are_allowed():
+    doc = parse("![a](img/fig.png) ![b](data:image/png;base64,AAAA)\n")
+    assert 'src="img/fig.png"' in doc.body_html

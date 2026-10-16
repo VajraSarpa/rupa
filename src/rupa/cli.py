@@ -79,7 +79,8 @@ def render_main(argv: list[str]) -> int:
         if fmt == "html":
             data = to_html(doc, theme).encode("utf-8")
         else:
-            data, pages = to_pdf(doc, theme)
+            base = Path(args.input).parent if args.input != "-" else Path.cwd()
+            data, pages = to_pdf(doc, theme, base_dir=base)
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_bytes(data)
     except (RenderError, OSError) as exc:

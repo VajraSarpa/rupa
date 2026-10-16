@@ -63,6 +63,21 @@ def _build_parser() -> MarkdownIt:
     return md
 
 
+_SCHEME = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*:")
+
+
+def _check_image(src: str) -> None:
+    """Images are relative paths or inline data, never fetched from elsewhere.
+
+    A remote image in the HTML would be fetched by the reader's browser, which
+    leaks that the page was opened and anything put in the URL.
+    """
+    if src.startswith("data:image/"):
+        return
+    if _SCHEME.match(src) or src.startswith(("/", "\\")):
+        raise InputError(f"image '{src}' must be a relative path or a data:image URI")
+
+
 def _plain_text(inline) -> str:
     """Heading text without Markdown syntax: `**Big** `Plan`` -> 'Big Plan'."""
     parts = []
@@ -105,6 +120,11 @@ def parse(text: str) -> Document:
                     anchor=tok.attrs.get("id", ""),
                 )
             )
+
+    for tok in tokens:
+        for child in tok.children or []:
+            if child.type == "image":
+                _check_image(str(child.attrs.get("src", "")))
 
     doc = Document(meta=meta, body_html="", headings=headings)
     # The cover already shows the title, so a leading H1 that repeats it is

@@ -10,7 +10,7 @@ skill makes Claude use it instead of hand-writing markup.
 
 ```bash
 uv sync                                   # needs Pango for WeasyPrint (see README)
-uv run pytest -q                          # 59 tests
+uv run pytest -q                          # 68 tests
 uv run pytest tests/test_verify.py::test_stranded_heading_fails   # one test
 uvx ruff check src tests                  # CI runs this too
 echo "# Hello" | uv run rupa -o out/hello.pdf && uv run rupa verify out/hello.pdf
@@ -38,9 +38,13 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
   date, theme, toc); anything else is an `InputError`. Raw HTML is escaped
   (`html=False`), never passed through.
 - **`render.py`** owns all styling: a Jinja template plus `themes/<name>.css`,
-  with `themes/print.css` appended for PDF. WeasyPrint's URL fetcher allows
-  only `file:` and `data:`, so a remote resource fails the render rather than
-  fetching from the network. Themes must be listed in `THEMES`.
+  with `themes/print.css` appended for PDF. Themes must be listed in
+  `THEMES`.
+- **Images:** `document.py` rejects any image that isn't a relative path or a
+  `data:image` URI (exit 3), so neither HTML nor PDF ever fetches from the
+  network. For PDF, relative paths resolve against the input file's folder
+  (cwd for stdin), and the WeasyPrint fetcher refuses files outside it; a
+  missing or refused file fails the render (exit 4) rather than vanishing.
 - **`verify.py`** reads the PDF with pdfplumber into `PageInfo`/`Line`
   records, classifies pages (cover / prose / table / code), runs the checks
   in `ALL_CHECKS` against a wants dict (`DEFAULT_WANTS`, overridable by a
