@@ -28,6 +28,7 @@ Claude writes content, Rupa applies a tested theme and prints one status line.
 | `src/rupa/themes/` | Theme CSS. PDF text is forced to solid black |
 | `src/rupa/references/` | Reference pages each theme is visually compared against |
 | `plugin/` | Claude Code plugin: one skill that renders, verifies and reviews |
+| `plugin/evals/` | `claude plugin eval` suite: does the skill trigger, render with rupa, and pass verify |
 | `bench/` | Three-arm benchmark (baseline, Rupa, Rupa + verify) and a fake `claude` for testing it |
 | `docs/` | Plan, guide and tutorial: Markdown source, build script, rendered PDF and HTML |
 | `wants.example.yaml` | Every verification rule, with its default |
