@@ -29,7 +29,7 @@ Claude writes content, Rupa applies a tested theme and prints one status line.
 | `src/rupa/references/` | Reference pages each theme is visually compared against |
 | `plugin/` | Claude Code plugin: one skill that renders, verifies and reviews |
 | `plugin/evals/` | `claude plugin eval` suite: does the skill trigger, render with rupa, and pass verify |
-| `bench/` | Three-arm benchmark (baseline, Rupa, Rupa + verify) and a fake `claude` for testing it |
+| `bench/` | Four-arm benchmark (baseline, Rupa, Rupa + flagged-only review, Rupa + verify) and a fake `claude` for testing it |
 | `docs/` | Plan, guide and tutorial: Markdown source, build script, rendered PDF and HTML |
 | `wants.example.yaml` | Every verification rule, with its default |
 
@@ -65,7 +65,7 @@ Needs Python 3.11+, [uv](https://docs.astral.sh/uv/), and Pango for WeasyPrint
 
 ```bash
 uv sync
-uv run pytest -q                   # 68 tests
+uv run pytest -q                   # 70 tests
 uvx ruff check src tests
 uv run rupa refs                   # after any theme change; commit the PNGs
 uv run python docs/build.py        # re-render the guide with Rupa

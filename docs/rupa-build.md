@@ -322,17 +322,18 @@ One run from the build, not a benchmark: asked for a one-page PDF summary of the
 
 Output was about half a percent of the tokens processed. Every turn re-reads the conversation, so cost tracks turns. That changes what Rupa should be judged on: not mainly smaller output, but fewer turns. No hunting for a PDF tool, no render debugging, and one-line errors that are fixed in one edit.
 
-### Three arms
+### Four arms
 
-`bench/bench.sh` runs the same task in three arms through Claude Code's print mode (`claude -p ... --output-format json`):
+`bench/bench.sh` runs the same task in four arms through Claude Code's print mode (`claude -p ... --output-format json`):
 
 | Arm | Setup | Answers |
 |---|---|---|
 | `baseline` | No plugin | What it costs today |
 | `rupa` | Plugin with the skill's Verify section removed | What rendering through Rupa saves |
+| `rupa-flagged` | Plugin whose skill runs `rupa verify --sample flagged` | What verify costs when sheets are made only for pages a code check flags |
 | `rupa-verify` | Plugin as shipped | What the visual review adds back |
 
-The render-only arm uses a copy of the plugin made at run time, so all three arms get exactly the same prompt. Each run starts in a fresh empty directory, so no arm can read the Rupa repo. `bench/summarize.py` prints one row per run and the medians per arm, with turns and cache reads first, then a line comparing each Rupa arm to the baseline.
+The render-only and flagged arms use copies of the plugin made at run time, so all four arms get exactly the same prompt. Each run starts in a fresh empty directory, so no arm can read the Rupa repo. `bench/summarize.py` prints one row per run and the medians per arm, with turns and cache reads first, then a line comparing each Rupa arm to the baseline.
 
 ### What it will cost
 
@@ -342,6 +343,7 @@ Estimates on the default model, from the run above:
 |---|---|
 | `baseline` | $0.40–1.00; wide, because it depends on whether Claude detours to find and install a PDF tool |
 | `rupa` | $0.25–0.40 |
+| `rupa-flagged` | not measured yet |
 | `rupa-verify` | $0.30–0.50 |
 
 A pilot of one run per arm is about $1–2. Three runs per arm is about $3–6. A pricier model scales these proportionally.
@@ -582,7 +584,7 @@ The tests, `tests/test_verify.py`. Most build synthetic pages, so each check is 
 
 ## Step 9: Measure
 
-`bench/bench.sh` sets up the three arms and runs them. The `awk` line builds the render-only plugin by dropping everything from `## Verify` up to the skill's closing line:
+`bench/bench.sh` sets up the four arms and runs them. The `awk` line builds the render-only plugin by dropping everything from `## Verify` up to the skill's closing line, and the `sed` line builds the flagged-only plugin by adding `--sample flagged` to the verify command:
 
 @@include bench/bench.sh bash@@
 
@@ -597,8 +599,9 @@ Before spending anything, test the plumbing with a stand-in for `claude` that wr
 ```bash
 PATH="$PWD/bench/fake:$PATH" bench/bench.sh 2
 # ...
-# rupa         turns -40%   cost -40%
-# rupa-verify  turns -25%   cost -25%
+# rupa          turns -40%   cost -40%
+# rupa-flagged  turns -35%   cost -35%
+# rupa-verify   turns -25%   cost -25%
 ```
 
 Those numbers come from the stand-in, not from Claude.
@@ -610,7 +613,7 @@ chmod +x bench/bench.sh
 bench/bench.sh
 ```
 
-If all three arms behaved, run three per arm on a pinned model:
+If all four arms behaved, run three per arm on a pinned model:
 
 ```bash
 MODEL=claude-sonnet-5-5 bench/bench.sh 3

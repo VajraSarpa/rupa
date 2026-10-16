@@ -43,6 +43,7 @@ DEFAULT_RUBRIC = [
     "page balance: no awkward breaks (a lone row, a stranded heading, a near-empty page)",
     "style: colors, rules and boxes match the reference; text is solid black",
 ]
+SAMPLE_MODES = ("per-type", "flagged", "all", "none")
 DEFAULT_WANTS = {
     "theme": "default",
     "page_size": "letter",
@@ -135,8 +136,8 @@ def _validate(wants: dict) -> None:
     bad = set(wants["checks"]) - set(ALL_CHECKS)
     if bad:
         raise WantsError(f"unknown checks: {sorted(bad)}")
-    if vision["sample"] not in ("per-type", "all", "none"):
-        raise WantsError("vision.sample must be per-type, all or none")
+    if vision["sample"] not in SAMPLE_MODES:
+        raise WantsError(f"vision.sample must be one of {', '.join(SAMPLE_MODES)}")
     if not _is_int(vision["max_sheets"]) or vision["max_sheets"] < 0:
         raise WantsError("vision.max_sheets must be a whole number of at least 0")
     if not _is_int(vision["resolution"]) or not 30 <= vision["resolution"] <= 300:
@@ -396,7 +397,10 @@ def run_checks(pages: list[PageInfo], wants: dict) -> list[CheckResult]:
 def sample_pages(
     pages: list[PageInfo], results: list[CheckResult], wants: dict
 ) -> list[PageInfo]:
-    """Flagged pages first, then one representative (the middle one) per page kind."""
+    """Flagged pages first, then one representative (the middle one) per page kind.
+
+    "flagged" stops after the flagged pages, so a clean PDF gets no sheets.
+    """
     mode = wants["vision"]["sample"]
     if mode == "none":
         return []
@@ -404,7 +408,7 @@ def sample_pages(
         return pages[: wants["vision"]["max_sheets"]]
     flagged = sorted({n for r in results for n in r.pages if n <= len(pages)})
     chosen: list[int] = list(flagged)
-    for kind in ("cover", "prose", "table", "code"):
+    for kind in () if mode == "flagged" else ("cover", "prose", "table", "code"):
         of_kind = [p.number for p in pages if p.kind == kind]
         if of_kind and not any(n in of_kind for n in chosen):
             chosen.append(of_kind[len(of_kind) // 2])

@@ -9,7 +9,7 @@ import statistics
 import sys
 from pathlib import Path
 
-ARMS = ("baseline", "rupa", "rupa-verify")
+ARMS = ("baseline", "rupa", "rupa-flagged", "rupa-verify")
 COLS = ("turns", "cache_read", "cache_write", "input", "output", "cost_usd", "secs")
 
 

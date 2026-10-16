@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Compare Claude Code cost on the same task across three arms:
+# Compare Claude Code cost on the same task across four arms:
 #   baseline       no plugin: Claude writes the HTML/CSS and finds its own PDF tool
 #   rupa           plugin, render only (the skill's Verify section is removed)
+#   rupa-flagged   plugin, verify with sheets only for pages a code check flags
 #   rupa-verify    plugin as shipped: render, then verify with a visual review
 #
 # Usage: bench/bench.sh [runs]        default 1 run per arm (a pilot)
@@ -20,13 +21,27 @@ MODEL_FLAG=()
 mkdir -p "$RESULTS"
 command -v rupa >/dev/null || { echo "bench: rupa is not on PATH" >&2; exit 2; }
 
-# The render-only arm uses a copy of the plugin whose skill stops before "## Verify".
+# Variant arms use a copy of the plugin with an edited skill.
 # Copy only what loads, not evals/ and its results.
+plugin_copy() {  # $1 = directory to create
+  mkdir -p "$1"
+  cp -r "$ROOT/plugin/.claude-plugin" "$ROOT/plugin/hooks" "$ROOT/plugin/skills" "$1/"
+}
+SKILL="$ROOT/plugin/skills/render/SKILL.md"
+
+# Render only: the skill stops before "## Verify".
 NOVERIFY="$RESULTS/plugin-noverify"
-mkdir -p "$NOVERIFY"
-cp -r "$ROOT/plugin/.claude-plugin" "$ROOT/plugin/hooks" "$ROOT/plugin/skills" "$NOVERIFY/"
+plugin_copy "$NOVERIFY"
 awk '/^## Verify/ {skip=1} /^Do not add styling/ {skip=0} !skip' \
-  "$ROOT/plugin/skills/render/SKILL.md" > "$NOVERIFY/skills/render/SKILL.md"
+  "$SKILL" > "$NOVERIFY/skills/render/SKILL.md"
+
+# Flagged only: verify makes sheets just for pages a code check flags.
+FLAGGED="$RESULTS/plugin-flagged"
+plugin_copy "$FLAGGED"
+sed 's/`rupa verify out\/report.pdf`/`rupa verify --sample flagged out\/report.pdf`/' \
+  "$SKILL" > "$FLAGGED/skills/render/SKILL.md"
+grep -q -- '--sample flagged' "$FLAGGED/skills/render/SKILL.md" \
+  || { echo "bench: could not make the flagged skill; SKILL.md changed?" >&2; exit 2; }
 
 run_arm() {  # $1 = arm name, remaining args = extra claude flags
   local arm="$1"; shift
@@ -44,6 +59,7 @@ run_arm() {  # $1 = arm name, remaining args = extra claude flags
 
 run_arm baseline
 run_arm rupa --plugin-dir "$NOVERIFY"
+run_arm rupa-flagged --plugin-dir "$FLAGGED"
 run_arm rupa-verify --plugin-dir "$ROOT/plugin"
 
 python3 "$ROOT/bench/summarize.py" "$RESULTS"

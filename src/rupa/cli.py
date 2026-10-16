@@ -106,7 +106,14 @@ def render_main(argv: list[str]) -> int:
 
 
 def verify_main(argv: list[str]) -> int:
-    from .verify import EXIT_CHECKS_FAILED, PdfError, WantsError, load_wants, verify
+    from .verify import (
+        EXIT_CHECKS_FAILED,
+        SAMPLE_MODES,
+        PdfError,
+        WantsError,
+        load_wants,
+        verify,
+    )
 
     p = argparse.ArgumentParser(prog="rupa verify", description="Check a rendered PDF.")
     p.add_argument("pdf")
@@ -119,6 +126,11 @@ def verify_main(argv: list[str]) -> int:
     p.add_argument(
         "--out", help="directory for sheets and verify.json (default: <pdf>.verify/)"
     )
+    p.add_argument(
+        "--sample",
+        choices=SAMPLE_MODES,
+        help="which pages get review sheets (overrides the wants file)",
+    )
     p.add_argument("--json", action="store_true")
     args = p.parse_args(argv)
     pdf = Path(args.pdf)
@@ -130,6 +142,8 @@ def verify_main(argv: list[str]) -> int:
     except WantsError as exc:
         _err(args, str(exc))
         return EXIT_INPUT
+    if args.sample:
+        wants["vision"]["sample"] = args.sample
     out = Path(args.out) if args.out else pdf.with_suffix(".verify")
     try:
         report = verify(pdf, wants, out, theme=args.theme)

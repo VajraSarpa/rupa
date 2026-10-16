@@ -123,3 +123,11 @@ def test_verify_bad_wants_value_is_bad_input(tmp_path, capsys):
     wants.write_text('text_color: "#GGG"\n')
     code = main(["verify", str(pdf), "--wants", str(wants)])
     assert code == EXIT_INPUT and "text_color" in capsys.readouterr().err
+
+
+def test_verify_sample_flag_overrides_wants(tmp_path, monkeypatch, capsys):
+    pdf = tmp_path / "o.pdf"
+    run(monkeypatch, capsys, ["-o", str(pdf)])
+    code = main(["verify", str(pdf), "--sample", "flagged", "--json"])
+    report = json.loads(capsys.readouterr().out)
+    assert code == EXIT_OK and report["ok"] and report["sheets"] == []

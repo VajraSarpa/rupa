@@ -187,6 +187,16 @@ def test_sampling_takes_flagged_pages_then_one_per_kind():
     assert sum(pages[n - 1].kind == "prose" for n in picked) == 1  # prose covered once
 
 
+def test_sampling_flagged_takes_only_flagged_pages():
+    pages = [page(1, kind="cover")] + [page(n, kind="prose") for n in range(2, 6)]
+    wants = load_wants(None)
+    wants["vision"]["sample"] = "flagged"
+    assert sample_pages(pages, run_checks(pages, wants), wants) == []
+    pages[2].off_colors = 1  # page 3 flagged
+    picked = [p.number for p in sample_pages(pages, run_checks(pages, wants), wants)]
+    assert picked == [3]
+
+
 def test_sampling_none_returns_nothing():
     wants = load_wants(None)
     wants["vision"]["sample"] = "none"
