@@ -366,9 +366,22 @@ Rupa didn't save turns. The transcripts show why, and it isn't rendering:
 - **The flagged arm threw its saving away.** On a clean PDF verify made no sheets, so Claude rendered the pages with `pdftoppm` and looked anyway.
 - Baseline never detoured to find or install a PDF tool on this machine: Chrome and reportlab were already there. The estimate above assumed it would.
 
-What changed in response: page budgets (above), so Rupa does the density fitting baseline did by hand and gives a word count when cutting is unavoidable; the skill sets `pages` when the user asks for a length, writes about 450 words per page, and doesn't look at pages when verify made no sheets; `sample: flagged` is now the default. These changes haven't been benchmarked yet. Re-run `bench/bench.sh 3` to measure them.
+What changed in response: page budgets (above), so Rupa does the density fitting baseline did by hand and gives a word count when cutting is unavoidable; the skill sets `pages` when the user asks for a length, writes about 450 words per page, and doesn't look at pages when verify made no sheets; `sample: flagged` is now the default. A run of three per arm costs about $6 on Opus.
 
-A run of three per arm costs about $6 on Opus.
+### Second result (2026-10-16)
+
+Same task, model and runs, after page budgets and flagged-only sampling. Every run produced a 2-page PDF. Medians:
+
+| Arm | Turns | Cache reads | Cost | vs baseline |
+|---|---|---|---|---|
+| `baseline` | 10 | 351,496 | $0.46 | — |
+| `rupa` | 5 | 152,505 | $0.27 | turns −50%, cost −42% |
+| `rupa-pertype` | 9 | 247,766 | $0.36 | turns −10%, cost −22% |
+| `rupa-verify` (as shipped) | 6 | 153,765 | $0.28 | turns −40%, cost −39% |
+
+Every Rupa run set `pages: 2` and fitted on its first render, so none cut content or measured pages. The shipped arm is one render plus one `verify` that came back clean, with no sheets to open. Per-type sampling costs about three extra turns for sheets on a PDF that has nothing wrong with it, which confirms flagged as the default. The Rupa runs were also tighter: the slowest shipped run took 6 turns, against 20 before.
+
+One caveat: the Rupa reports are shorter. Median text was about 850 words against about 1,180 for baseline, because baseline packs the page with smaller margins and type, and Rupa keeps the theme's margins. Some of the saving is less writing (median output 3,100 tokens against 7,150). For a fixed page count that's a fair trade, but it is a difference in the product as well as in cost.
 
 ### How to read the results
 
@@ -647,7 +660,7 @@ Record the medians in your README with the date, model and task. If a Rupa arm i
 
 In rough order of value:
 
-1. **Re-run the benchmark** with page budgets and flagged sampling, and record it next to the first result. Then add a harder task (tables, code, a wide table that must be split), where hand-written HTML should struggle more than it did on a two-page prose report.
+1. **A harder benchmark task** (tables, code, a wide table that must be split), where hand-written HTML should struggle more than it did on a two-page prose report.
 2. **A second theme**, such as your dark slate and cyan look for screen HTML, with its own reference pages and a test that renders and verifies every theme.
 3. **A golden-render test in CI** that verifies the sample document against its own references, so a CSS change that breaks the look fails the build.
 4. **Callouts** (note, warning) through a small markdown-it plugin, so Claude never needs raw HTML for them.

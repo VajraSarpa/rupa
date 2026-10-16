@@ -76,12 +76,14 @@ uv run python docs/build.py        # re-render the guide with Rupa
 
 ## Status
 
-Working prototype. The first benchmark (2026-10-15, three runs per arm on
-Opus 5.5, a two-page report) found no saving: render-only was 7% cheaper than
-baseline, and verify with per-type sheets was 27% more expensive. The extra
-turns came from fitting two pages, which led to page budgets and flagged-only
-sampling. Those haven't been benchmarked yet; see the guide's "Measuring the
-savings" section.
+Working prototype. Benchmark (2026-10-16, three runs per arm on Opus 5.5, a
+two-page report): the plugin as shipped took 6 turns and $0.28 per run
+against baseline's 10 turns and $0.46, which is 39% cheaper, and every run
+produced a 2-page PDF. Rupa's reports carry fewer words than baseline's
+(about 850 against 1,180), because it keeps the theme's margins.
+
+The first benchmark, before page budgets and flagged-only sampling, found no
+saving. See the guide's "Measuring the savings" section for both runs.
 
 ## License
 

@@ -978,8 +978,52 @@ $<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </
 <li><strong>The flagged arm threw its saving away.</strong> On a clean PDF verify made no sheets, so Claude rendered the pages with <code>pdftoppm</code> and looked anyway.</li>
 <li>Baseline never detoured to find or install a PDF tool on this machine: Chrome and reportlab were already there. The estimate above assumed it would.</li>
 </ul>
-<p>What changed in response: page budgets (above), so Rupa does the density fitting baseline did by hand and gives a word count when cutting is unavoidable; the skill sets <code>pages</code> when the user asks for a length, writes about 450 words per page, and doesn't look at pages when verify made no sheets; <code>sample: flagged</code> is now the default. These changes haven't been benchmarked yet. Re-run <code>bench/bench.sh 3</code> to measure them.</p>
-<p>A run of three per arm costs about $6 on Opus.</p>
+<p>What changed in response: page budgets (above), so Rupa does the density fitting baseline did by hand and gives a word count when cutting is unavoidable; the skill sets <code>pages</code> when the user asks for a length, writes about 450 words per page, and doesn't look at pages when verify made no sheets; <code>sample: flagged</code> is now the default. A run of three per arm costs about $6 on Opus.</p>
+<h3 id="second-result-2026-10-16">Second result (2026-10-16)</h3>
+<p>Same task, model and runs, after page budgets and flagged-only sampling. Every run produced a 2-page PDF. Medians:</p>
+<table>
+<thead>
+<tr>
+<th>Arm</th>
+<th>Turns</th>
+<th>Cache reads</th>
+<th>Cost</th>
+<th>vs baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>baseline</code></td>
+<td>10</td>
+<td>351,496</td>
+<td>$0.46</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>rupa</code></td>
+<td>5</td>
+<td>152,505</td>
+<td>$0.27</td>
+<td>turns −50%, cost −42%</td>
+</tr>
+<tr>
+<td><code>rupa-pertype</code></td>
+<td>9</td>
+<td>247,766</td>
+<td>$0.36</td>
+<td>turns −10%, cost −22%</td>
+</tr>
+<tr>
+<td><code>rupa-verify</code> (as shipped)</td>
+<td>6</td>
+<td>153,765</td>
+<td>$0.28</td>
+<td>turns −40%, cost −39%</td>
+</tr>
+</tbody>
+</table>
+<p>Every Rupa run set <code>pages: 2</code> and fitted on its first render, so none cut content or measured pages. The shipped arm is one render plus one <code>verify</code> that came back clean, with no sheets to open. Per-type sampling costs about three extra turns for sheets on a PDF that has nothing wrong with it, which confirms flagged as the default. The Rupa runs were also tighter: the slowest shipped run took 6 turns, against 20 before.</p>
+<p>One caveat: the Rupa reports are shorter. Median text was about 850 words against about 1,180 for baseline, because baseline packs the page with smaller margins and type, and Rupa keeps the theme's margins. Some of the saving is less writing (median output 3,100 tokens against 7,150). For a fixed page count that's a fair trade, but it is a difference in the product as well as in cost.</p>
 <h3 id="how-to-read-the-results">How to read the results</h3>
 <ul>
 <li>Compare medians, not single runs. Agent runs vary.</li>
@@ -3542,7 +3586,7 @@ bench/bench.sh
 <h2 id="step-10-what-to-build-next">Step 10: What to build next</h2>
 <p>In rough order of value:</p>
 <ol>
-<li><strong>Re-run the benchmark</strong> with page budgets and flagged sampling, and record it next to the first result. Then add a harder task (tables, code, a wide table that must be split), where hand-written HTML should struggle more than it did on a two-page prose report.</li>
+<li><strong>A harder benchmark task</strong> (tables, code, a wide table that must be split), where hand-written HTML should struggle more than it did on a two-page prose report.</li>
 <li><strong>A second theme</strong>, such as your dark slate and cyan look for screen HTML, with its own reference pages and a test that renders and verifies every theme.</li>
 <li><strong>A golden-render test in CI</strong> that verifies the sample document against its own references, so a CSS change that breaks the look fails the build.</li>
 <li><strong>Callouts</strong> (note, warning) through a small markdown-it plugin, so Claude never needs raw HTML for them.</li>
