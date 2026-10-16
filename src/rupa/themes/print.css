@@ -1,0 +1,54 @@
+/* PDF overrides. Text is forced solid black (#000000, full opacity). */
+@page {
+  size: Letter;
+  margin: 0.85in 0.8in 0.9in;
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    font: 500 8.5pt Inter, sans-serif;
+    color: #000000;
+  }
+  @bottom-left {
+    content: string(doctitle);
+    font: 500 8.5pt Inter, sans-serif;
+    color: #000000;
+  }
+}
+@page :first { @bottom-left { content: none; } }
+:root {
+  --ink: #000000; --muted: #000000; --accent: #0e7490;
+  --rule: #94a3b8; --code-bg: #f1f5f9; --bg: #ffffff;
+}
+html, body { background: #ffffff; }
+body {
+  max-width: none;
+  padding: 0;
+  font-size: 10.5pt;
+  line-height: 1.55;
+  color: #000000;
+  font-weight: 400;
+}
+body, p, li, td, th, h1, h2, h3, h4, blockquote, code, pre,
+.subtitle, .byline, .toc a, a {
+  color: #000000 !important;
+  opacity: 1 !important;
+}
+.hl * { color: #000000 !important; font-style: normal !important; }
+
+.doc-title { string-set: doctitle content(); font-weight: 700; font-size: 26pt; }
+h1 { font-weight: 700; font-size: 20pt; }
+h2 { font-weight: 700; font-size: 15pt; break-after: avoid; }
+h3 { font-weight: 650; font-size: 12pt; break-after: avoid; }
+strong, th { font-weight: 700; }
+.subtitle, .byline { font-weight: 500; }
+a { text-decoration: none; }
+
+.toc { break-after: page; font-size: 9pt; line-height: 1.35; padding: .6rem 1rem; }
+.toc li { font-weight: 500; margin: .05rem 0; }
+.toc li.l1 { margin-top: .35rem; }
+main h1 { break-before: page; margin-top: 0; }
+
+blockquote, tr { break-inside: avoid; }
+thead { display: table-header-group; }
+pre { break-inside: auto; white-space: pre-wrap; } /* wrap at spaces, never mid-token */
+pre code { font-size: 8.3pt; }
+table { display: table; font-size: 9pt; }

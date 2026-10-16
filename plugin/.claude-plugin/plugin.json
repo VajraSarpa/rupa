@@ -1,0 +1,9 @@
+{
+  "name": "rupa",
+  "displayName": "Rupa",
+  "version": "0.1.0",
+  "description": "Write Markdown, let Rupa render the HTML or PDF. Keeps markup out of Claude's output tokens.",
+  "author": { "name": "Vajra Sarpa", "url": "https://vajrasarpa.com" },
+  "license": "MIT",
+  "keywords": ["render", "pdf", "html", "markdown"]
+}

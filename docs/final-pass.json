@@ -1,0 +1,5 @@
+{"line": "verify: 8/8 checks pass; 4 sheets for visual review in verify/", "pages": 64,
+ "rows": [{"page": 1, "kind": "cover", "verdict": "PASS"},
+          {"page": 10, "kind": "table", "verdict": "PASS"},
+          {"page": 12, "kind": "prose", "verdict": "PASS"},
+          {"page": 39, "kind": "code", "verdict": "PASS"}]}

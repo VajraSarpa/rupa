@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Stand-in for `claude` to test bench.sh plumbing without spending tokens.
+# Usage: PATH="$PWD/bench/fake:$PATH" bench/bench.sh 2
+# Reports fewer turns for the plugin arms so the comparison lines have
+# something to show. The numbers are made up; only the plumbing is real.
+plugin=""
+while [[ $# -gt 0 ]]; do [[ "$1" == "--plugin-dir" ]] && plugin="$2"; shift; done
+turns=20
+if [[ -n "$plugin" ]]; then
+  turns=12
+  grep -q "## Verify" "$plugin/skills/render/SKILL.md" && turns=15
+fi
+printf '%%PDF-1.4 fake\n' > report.pdf
+cat <<JSON
+{"num_turns": $turns, "total_cost_usd": 0.$turns, "duration_ms": 30000,
+ "usage": {"input_tokens": 5, "cache_creation_input_tokens": 50000,
+           "cache_read_input_tokens": $((turns * 40000)), "output_tokens": 4000}}
+JSON

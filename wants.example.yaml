@@ -1,0 +1,27 @@
+# What a finished PDF must satisfy. Every key is optional; omitted keys use
+# the defaults shown here. Unknown keys are an error.
+theme: default            # whose reference pages the sheets compare against
+page_size: letter         # letter | a4
+max_pages: 100
+text_color: "#000000"     # every character must be this color
+sparse_fill: 0.4          # flag a page under 40% full, unless a part starts next
+near_empty_fill: 0.2      # flag a page under 20% full, always
+checks:                   # remove any you don't want
+  - text-color
+  - page-size
+  - max-pages
+  - blank-page
+  - near-empty
+  - sparse
+  - heading-at-bottom
+  - overflow
+vision:
+  sample: per-type        # per-type | all | none
+  max_sheets: 8           # cap on sheet images per run
+  resolution: 90          # DPI for page images; ~1,500 x 1,000 px per sheet
+  rubric:                 # what Claude judges on each sheet
+    - "hierarchy: titles, headings and body read in the same order and weight as the reference"
+    - "spacing: margins, gaps and alignment match the reference; nothing crowded or floating"
+    - "overflow: no text, table or code is clipped, cut off or running into the margin"
+    - "page balance: no awkward breaks (a lone row, a stranded heading, a near-empty page)"
+    - "style: colors, rules and boxes match the reference; text is solid black"

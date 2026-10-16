@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v rupa >/dev/null || echo 'rupa CLI not on PATH: run uv tool install <path-to-rupa>'"
+          }
+        ]
+      }
+    ]
+  }
+}
