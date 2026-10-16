@@ -713,8 +713,8 @@ $<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </
 <p>Code blocks use <code>white-space: pre-wrap</code> and nothing else. WeasyPrint treats <code>word-wrap: break-word</code> as permission to break anywhere, which split <code>solid</code> into <code>s</code> and <code>olid</code> in an earlier render of this document. The visual review caught it; the code checks couldn't.</p>
 <p>To add a theme, copy <code>default.css</code> to <code>newname.css</code>, change the variables at the top, add the name to <code>THEMES</code> in <code>render.py</code>, and run <code>rupa refs --theme newname</code> to build its reference pages.</p>
 <h2 id="verification">Verification</h2>
-<p>Rendering proves the file exists. Verification checks that it's right, in two tiers.</p>
-<p><strong>Tier 1: code checks.</strong> <code>rupa verify</code> reads the PDF with pdfplumber and checks what can be measured exactly. Each check is free, repeatable and reports page numbers.</p>
+<p>Rendering proves the file exists. Verification checks that it's right, in two tiers.
+<strong>Tier 1: code checks.</strong> <code>rupa verify</code> reads the PDF with pdfplumber and checks what can be measured exactly. Each check is free, repeatable and reports page numbers.</p>
 <table>
 <thead>
 <tr>
@@ -749,7 +749,7 @@ $<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </
 </tr>
 <tr>
 <td><code>heading-at-bottom</code></td>
-<td>A heading is the last line on a page</td>
+<td>A heading is the last line on a page, or a heading and one line end it and the next page doesn't open with a heading</td>
 </tr>
 <tr>
 <td><code>overflow</code></td>
@@ -1072,6 +1072,98 @@ $<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </
 <p>The gap widens with layout work. Baseline built the PDF with reportlab or Chrome, then went round after round adjusting page breaks and spacing and checking page images, writing 17,700 output tokens per run. The Rupa arms wrote less than half that.</p>
 <p>The Rupa runs still spent turns cutting. The first draft was always over 3 pages at the tightest type, and the &quot;cut about N words&quot; estimate ran low: most runs took two to four cut rounds. Rupa counted the words on the overflow pages, but here the overflow was mostly the JSON policy, which has one or two words a line, so &quot;cut 34 words&quot; meant about fifteen lines of space. The estimate now measures the height used past the budget and converts it to prose words at tight type, plus 10%. On a guide-like sample it asked for 177 words, and one cut of that size fitted. The three-arm medians above predate this fix. The render-only arm happens to be slower than the shipped arm here (14 turns against 7); with three runs that's noise from how many cut rounds each run needed.</p>
 <p>Rupa's guides again carry fewer words (about 750 against 1,300), for the same reason as before.</p>
+<h3 id="harder-task-with-bundled-fonts-2026-10-16">Harder task, with bundled fonts (2026-10-16)</h3>
+<p>Same guide task after the switch to bundled Inter and JetBrains Mono and the height-based estimate. Medians:</p>
+<table>
+<thead>
+<tr>
+<th>Arm</th>
+<th>Turns</th>
+<th>Cache reads</th>
+<th>Cost</th>
+<th>vs baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>baseline</code></td>
+<td>18</td>
+<td>854,510</td>
+<td>$0.94</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>rupa</code></td>
+<td>7</td>
+<td>204,375</td>
+<td>$0.39</td>
+<td>turns −61%, cost −58%</td>
+</tr>
+<tr>
+<td><code>rupa-pertype</code></td>
+<td>15</td>
+<td>311,164</td>
+<td>$0.53</td>
+<td>turns −17%, cost −44%</td>
+</tr>
+<tr>
+<td><code>rupa-verify</code> (as shipped)</td>
+<td>12</td>
+<td>206,585</td>
+<td>$0.42</td>
+<td>turns −33%, cost −56%</td>
+</tr>
+</tbody>
+</table>
+<p>Cost held, but cutting was still the weak spot. Every Rupa run went over 3 pages on its first render, and only 3 of the 6 render-only and shipped runs fitted after one cut. The runs that were told to cut a lot cut too much: they fitted at compact type with half a page spare, at 518 to 578 words. The cause was the unit. The hint was in words, but a code line or a table row frees several times the space of a prose word, so a run that cut code to meet a word count overshot. Claude also spent one turn per Edit.</p>
+<p>What changed in response: the over-budget hint now asks for lines (&quot;cut about 4 lines (a line of prose is about 18 words; a code line or table row is one line)&quot;), and the skill plans about 30 lines per page before writing and makes all cuts in one turn.</p>
+<h3 id="harder-task-cuts-in-lines-2026-10-16">Harder task, cuts in lines (2026-10-16)</h3>
+<p>Same task after the lines-based hint and the per-page line plan. Every run produced a 3-page PDF. Medians:</p>
+<table>
+<thead>
+<tr>
+<th>Arm</th>
+<th>Turns</th>
+<th>Cache reads</th>
+<th>Cost</th>
+<th>vs baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>baseline</code></td>
+<td>23</td>
+<td>1,051,781</td>
+<td>$1.19</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>rupa</code></td>
+<td>5</td>
+<td>107,903</td>
+<td>$0.28</td>
+<td>turns −78%, cost −76%</td>
+</tr>
+<tr>
+<td><code>rupa-pertype</code></td>
+<td>15</td>
+<td>359,063</td>
+<td>$0.49</td>
+<td>turns −35%, cost −59%</td>
+</tr>
+<tr>
+<td><code>rupa-verify</code> (as shipped)</td>
+<td>6</td>
+<td>155,203</td>
+<td>$0.31</td>
+<td>turns −74%, cost −74%</td>
+</tr>
+</tbody>
+</table>
+<p>The line plan mostly removed cutting. 7 of the 9 Rupa runs fitted on their first render, all three render-only runs took exactly 5 turns, and two of the three shipped runs were one render plus a clean verify. Baseline was costlier than in either earlier guide run ($1.19 against $0.85 and $0.94). Agent runs vary, so the percentages are wider than the true gap; the shipped arm's own cost ($0.31) is the steadier number.</p>
+<p>Two runs still cut. One shipped run was asked to cut 4 lines, cut too little, was asked for 4 more and fitted: two rounds, with seven Edits in separate turns, so &quot;all cuts in one turn&quot; doesn't always hold. One per-type run fitted, then pushed itself back over the budget while fixing what it saw on the per-type sheets.</p>
+<p>The plan errs short. Most runs fitted only once Rupa dropped to compact type, so they weren't over-cut, but the Rupa guides still carry about 740 words against baseline's 1,260. Baseline gets its extra words by shrinking margins and type: every baseline PDF fails <code>rupa verify</code>'s <code>overflow</code> and <code>text-color</code> checks.</p>
+<p>One layout fault turned up in run 4's PDFs: a heading and a one-line lead-in (&quot;Run from the delegated administrator account:&quot;) at the bottom of page 1, with the code block moved whole to page 2. Print CSS now keeps a paragraph with the code block or table that follows it and a heading's first list item with the second, and <code>heading-at-bottom</code> also flags a heading with one line directly under it at a page end.</p>
 <h3 id="how-to-read-the-results">How to read the results</h3>
 <ul>
 <li>Compare medians, not single runs. Agent runs vary.</li>
@@ -1666,19 +1758,22 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span>
     <span class="n">pages</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>  <span class="c1"># fit steps applied, in order; empty if none were needed</span>
-    <span class="n">cut_words</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># prose words to cut to fit, at the last step; 0 when it fits</span>
+    <span class="n">cut_lines</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># lines to cut to fit, at the last step; 0 when it fits</span>
 
 
-<span class="c1"># Prose at the tightest fit step holds about 1.49 words per point of page</span>
-<span class="c1"># height, paragraph gaps included (measured on a full page of body text).</span>
-<span class="n">TIGHT_WORDS_PER_PT</span> <span class="o">=</span> <span class="mf">1.49</span>
+<span class="c1"># At the tightest fit step a line takes about 12.4pt of page height, paragraph</span>
+<span class="c1"># gaps included, and a line of prose holds about 18 words (measured on full</span>
+<span class="c1"># pages of body text and of code).</span>
+<span class="n">TIGHT_LINE_PT</span> <span class="o">=</span> <span class="mf">12.4</span>
+<span class="n">PROSE_WORDS_PER_LINE</span> <span class="o">=</span> <span class="mi">18</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_words_after</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">budget</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Prose words that would fill the space used past the budget.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_lines_after</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">budget</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Lines of content to cut so the space used past the budget fits.</span>
 
-<span class="sd">    Measured as height rather than counted, because overflow is often code</span>
-<span class="sd">    or a table, which take far more room per word than prose.</span>
+<span class="sd">    Counted in lines, not words: overflow is often code or a table, where a</span>
+<span class="sd">    line holds one or two words, so a word count asks for far too little</span>
+<span class="sd">    there and far too much when prose is cut instead.</span>
 <span class="sd">    """</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
@@ -1695,7 +1790,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
             <span class="k">if</span> <span class="n">body</span><span class="p">:</span>
                 <span class="n">used</span> <span class="o">+=</span> <span class="nb">max</span><span class="p">(</span><span class="n">body</span><span class="p">)</span> <span class="o">-</span> <span class="n">MARGIN_TOP</span> <span class="o">*</span> <span class="n">PT_PER_IN</span>
     <span class="c1"># 10% over, since blocks that can't split (rows, short code) break late.</span>
-    <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">used</span> <span class="o">*</span> <span class="n">TIGHT_WORDS_PER_PT</span> <span class="o">*</span> <span class="mf">1.1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">used</span> <span class="o">/</span> <span class="n">TIGHT_LINE_PT</span> <span class="o">*</span> <span class="mf">1.1</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">fit_pdf</span><span class="p">(</span>
@@ -1707,8 +1802,8 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="w">    </span><span class="sd">"""Render a PDF, tightening it step by step until it fits `budget` pages.</span>
 
 <span class="sd">    Content is never cut. If the tightest step is still over, the result</span>
-<span class="sd">    says roughly how many words of prose to cut to free the space used past</span>
-<span class="sd">    the budget.</span>
+<span class="sd">    says roughly how many lines to cut to free the space used past the</span>
+<span class="sd">    budget.</span>
 <span class="sd">    """</span>
     <span class="n">data</span><span class="p">,</span> <span class="n">pages</span> <span class="o">=</span> <span class="n">to_pdf</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">theme</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">budget</span> <span class="ow">or</span> <span class="n">pages</span> <span class="o">&lt;=</span> <span class="n">budget</span><span class="p">:</span>
@@ -1727,7 +1822,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
         <span class="n">data</span><span class="p">,</span> <span class="n">pages</span> <span class="o">=</span> <span class="n">to_pdf</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">theme</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">,</span> <span class="n">extra_css</span><span class="o">=</span><span class="n">css</span><span class="p">,</span> <span class="n">toc_on</span><span class="o">=</span><span class="n">toc_on</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">pages</span> <span class="o">&lt;=</span> <span class="n">budget</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">Fit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pages</span><span class="p">,</span> <span class="n">applied</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">Fit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pages</span><span class="p">,</span> <span class="n">applied</span><span class="p">,</span> <span class="n">_words_after</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">budget</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">Fit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pages</span><span class="p">,</span> <span class="n">applied</span><span class="p">,</span> <span class="n">_lines_after</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">budget</span><span class="p">))</span>
 </code></pre>
 <p>The screen theme, <code>src/rupa/themes/default.css</code>:</p>
 <pre class="hl"><code class="language-css"><span class="c">/* Rupa default theme: slate ink, one cyan accent. Screen first. */</span>
@@ -1909,6 +2004,8 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="nt">thead</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">display</span><span class="p">:</span><span class="w"> </span><span class="kc">table-header-group</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 <span class="nt">pre</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">break-inside</span><span class="p">:</span><span class="w"> </span><span class="kc">auto</span><span class="p">;</span><span class="w"> </span><span class="k">white-space</span><span class="p">:</span><span class="w"> </span><span class="kc">pre-wrap</span><span class="p">;</span><span class="w"> </span><span class="k">orphans</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="k">widows</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* wrap at spaces, never mid-token; no 1-2 line fragments across a page break */</span>
 <span class="nt">pre</span><span class="w"> </span><span class="nt">code</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">font-size</span><span class="p">:</span><span class="w"> </span><span class="mf">8.3</span><span class="kt">pt</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="nt">p</span><span class="p">:</span><span class="nd">has</span><span class="o">(+</span><span class="w"> </span><span class="nt">pre</span><span class="o">),</span><span class="w"> </span><span class="nt">p</span><span class="p">:</span><span class="nd">has</span><span class="o">(+</span><span class="w"> </span><span class="nt">table</span><span class="o">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">break-after</span><span class="p">:</span><span class="w"> </span><span class="kc">avoid</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* a lead-in ("Run this:") moves with its block, and so does the heading above it */</span>
+<span class="p">:</span><span class="nd">is</span><span class="o">(</span><span class="nt">h2</span><span class="o">,</span><span class="w"> </span><span class="nt">h3</span><span class="o">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">:</span><span class="nd">is</span><span class="o">(</span><span class="nt">ul</span><span class="o">,</span><span class="w"> </span><span class="nt">ol</span><span class="o">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="nt">li</span><span class="p">:</span><span class="nd">first-child</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">break-after</span><span class="p">:</span><span class="w"> </span><span class="kc">avoid</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* a heading never ends a page with one list item */</span>
 <span class="nt">table</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">display</span><span class="p">:</span><span class="w"> </span><span class="kc">table</span><span class="p">;</span><span class="w"> </span><span class="k">font-size</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="kt">pt</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 </code></pre>
 <p><strong>Checkpoint:</strong> in <code>uv run python</code>, run <code>from rupa.document import parse; from rupa.render import to_pdf; data, n = to_pdf(parse(&quot;## Hi&quot;)); print(n)</code>. It prints a page count.</p>
@@ -1941,7 +2038,14 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">__version__</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.document</span><span class="w"> </span><span class="kn">import</span> <span class="n">InputError</span><span class="p">,</span> <span class="n">parse</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.render</span><span class="w"> </span><span class="kn">import</span> <span class="n">THEMES</span><span class="p">,</span> <span class="n">RenderError</span><span class="p">,</span> <span class="n">fit_pdf</span><span class="p">,</span> <span class="n">to_html</span><span class="p">,</span> <span class="n">to_pdf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.render</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PROSE_WORDS_PER_LINE</span><span class="p">,</span>
+    <span class="n">THEMES</span><span class="p">,</span>
+    <span class="n">RenderError</span><span class="p">,</span>
+    <span class="n">fit_pdf</span><span class="p">,</span>
+    <span class="n">to_html</span><span class="p">,</span>
+    <span class="n">to_pdf</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">EXIT_OK</span><span class="p">,</span> <span class="n">EXIT_USAGE</span><span class="p">,</span> <span class="n">EXIT_INPUT</span><span class="p">,</span> <span class="n">EXIT_RENDER</span><span class="p">,</span> <span class="n">EXIT_CHECKS</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span>
 <span class="n">FORMATS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"html"</span><span class="p">,</span> <span class="s2">"pdf"</span><span class="p">)</span>
@@ -2016,7 +2120,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
         <span class="n">_err</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">EXIT_RENDER</span>
 
-    <span class="n">over</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">fit</span> <span class="ow">and</span> <span class="n">fit</span><span class="o">.</span><span class="n">cut_words</span><span class="p">)</span>
+    <span class="n">over</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">fit</span> <span class="ow">and</span> <span class="n">fit</span><span class="o">.</span><span class="n">cut_lines</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">json</span><span class="p">:</span>
         <span class="n">status</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"ok"</span><span class="p">:</span> <span class="ow">not</span> <span class="n">over</span><span class="p">,</span>
@@ -2026,7 +2130,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
             <span class="s2">"bytes"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span>
         <span class="p">}</span>
         <span class="k">if</span> <span class="n">fit</span> <span class="ow">and</span> <span class="n">budget</span><span class="p">:</span>
-            <span class="n">status</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">budget</span><span class="o">=</span><span class="n">budget</span><span class="p">,</span> <span class="n">fit</span><span class="o">=</span><span class="n">fit</span><span class="o">.</span><span class="n">steps</span><span class="p">,</span> <span class="n">cut_words</span><span class="o">=</span><span class="n">fit</span><span class="o">.</span><span class="n">cut_words</span><span class="p">)</span>
+            <span class="n">status</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">budget</span><span class="o">=</span><span class="n">budget</span><span class="p">,</span> <span class="n">fit</span><span class="o">=</span><span class="n">fit</span><span class="o">.</span><span class="n">steps</span><span class="p">,</span> <span class="n">cut_lines</span><span class="o">=</span><span class="n">fit</span><span class="o">.</span><span class="n">cut_lines</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">status</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">extra</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">", </span><span class="si">{</span><span class="n">pages</span><span class="si">}</span><span class="s2"> page</span><span class="si">{</span><span class="s1">'s'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">pages</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">''</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">pages</span> <span class="k">else</span> <span class="s2">""</span>
@@ -2036,7 +2140,9 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
         <span class="k">if</span> <span class="n">over</span><span class="p">:</span>
             <span class="n">line</span> <span class="o">+=</span> <span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"; over the </span><span class="si">{</span><span class="n">budget</span><span class="si">}</span><span class="s2">-page budget at the tightest type:"</span>
-                <span class="sa">f</span><span class="s2">" cut about </span><span class="si">{</span><span class="n">fit</span><span class="o">.</span><span class="n">cut_words</span><span class="si">}</span><span class="s2"> words and render again"</span>
+                <span class="sa">f</span><span class="s2">" cut about </span><span class="si">{</span><span class="n">fit</span><span class="o">.</span><span class="n">cut_lines</span><span class="si">}</span><span class="s2"> lines (a line of prose is about"</span>
+                <span class="sa">f</span><span class="s2">" </span><span class="si">{</span><span class="n">PROSE_WORDS_PER_LINE</span><span class="si">}</span><span class="s2"> words; a code line or table row is"</span>
+                <span class="s2">" one line) and render again"</span>
             <span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">EXIT_CHECKS</span> <span class="k">if</span> <span class="n">over</span> <span class="k">else</span> <span class="n">EXIT_OK</span>
@@ -2292,7 +2398,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="p">)</span>
     <span class="n">status</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">code</span> <span class="o">==</span> <span class="n">EXIT_OK</span> <span class="ow">and</span> <span class="n">status</span><span class="p">[</span><span class="s2">"ok"</span><span class="p">]</span>
-    <span class="k">assert</span> <span class="n">status</span><span class="p">[</span><span class="s2">"pages"</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">status</span><span class="p">[</span><span class="s2">"fit"</span><span class="p">]</span> <span class="ow">and</span> <span class="n">status</span><span class="p">[</span><span class="s2">"cut_words"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">status</span><span class="p">[</span><span class="s2">"pages"</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">status</span><span class="p">[</span><span class="s2">"fit"</span><span class="p">]</span> <span class="ow">and</span> <span class="n">status</span><span class="p">[</span><span class="s2">"cut_lines"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">test_page_budget_over_says_how_much_to_cut</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">):</span>
@@ -2301,7 +2407,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
         <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="p">[</span><span class="s2">"-o"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">target</span><span class="p">)],</span> <span class="n">stdin</span><span class="o">=</span><span class="n">LONG</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">budget</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="k">assert</span> <span class="n">code</span> <span class="o">==</span> <span class="mi">5</span> <span class="ow">and</span> <span class="n">target</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>  <span class="c1"># the file is still written</span>
-    <span class="k">assert</span> <span class="s2">"over the 1-page budget"</span> <span class="ow">in</span> <span class="n">out</span> <span class="ow">and</span> <span class="s2">"cut about"</span> <span class="ow">in</span> <span class="n">out</span>
+    <span class="k">assert</span> <span class="s2">"over the 1-page budget"</span> <span class="ow">in</span> <span class="n">out</span> <span class="ow">and</span> <span class="s2">"lines"</span> <span class="ow">in</span> <span class="n">out</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">test_pages_flag_overrides_frontmatter</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">):</span>
@@ -2321,9 +2427,9 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="k">assert</span> <span class="n">code</span> <span class="o">==</span> <span class="n">EXIT_OK</span> <span class="ow">and</span> <span class="s2">"fit"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">test_cut_estimate_counts_space_not_words_for_code</span><span class="p">():</span>
-    <span class="c1"># A JSON block has one or two words a line, so the words past the budget</span>
-    <span class="c1"># undercount the space to free. The estimate must cover the lines.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_cut_estimate_counts_lines_of_code</span><span class="p">():</span>
+    <span class="c1"># A JSON block has one or two words a line, so a word count of the</span>
+    <span class="c1"># overflow says far too little. The estimate must cover the lines.</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pdfplumber</span>
@@ -2334,8 +2440,10 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="n">code</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s1">'  "key</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">": "value",'</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">150</span><span class="p">))</span>
     <span class="n">fit</span> <span class="o">=</span> <span class="n">fit_pdf</span><span class="p">(</span><span class="n">parse</span><span class="p">(</span><span class="sa">f</span><span class="s2">"# T</span><span class="se">\n\n</span><span class="s2">```json</span><span class="se">\n{{\n</span><span class="si">{</span><span class="n">code</span><span class="si">}</span><span class="se">\n}}\n</span><span class="s2">```</span><span class="se">\n</span><span class="s2">"</span><span class="p">),</span> <span class="n">budget</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">pdfplumber</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">data</span><span class="p">))</span> <span class="k">as</span> <span class="n">pdf</span><span class="p">:</span>
-        <span class="n">words_past</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">((</span><span class="n">p</span><span class="o">.</span><span class="n">extract_text</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pdf</span><span class="o">.</span><span class="n">pages</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
-    <span class="k">assert</span> <span class="n">fit</span><span class="o">.</span><span class="n">cut_words</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">words_past</span>
+        <span class="n">lines_past</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">((</span><span class="n">p</span><span class="o">.</span><span class="n">extract_text</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pdf</span><span class="o">.</span><span class="n">pages</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="p">)</span>  <span class="c1"># less the footer line</span>
+    <span class="k">assert</span> <span class="n">lines_past</span> <span class="o">&lt;=</span> <span class="n">fit</span><span class="o">.</span><span class="n">cut_lines</span> <span class="o">&lt;=</span> <span class="n">lines_past</span> <span class="o">*</span> <span class="mf">1.3</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">test_pdf_embeds_bundled_fonts</span><span class="p">():</span>
@@ -2419,7 +2527,8 @@ name: render
    <span class="sb">`subtitle`</span>, <span class="sb">`author`</span>, <span class="sb">`date`</span>, <span class="sb">`theme`</span>, <span class="sb">`toc`</span> (true/false), <span class="sb">`pages`</span>.
    No other keys. If the user asks for a page count, set <span class="sb">`pages: N`</span>: Rupa
    then fits the PDF to N pages itself (drops the contents list, tightens
-   type). Write to about 450 words per page.
+   type). Plan about 30 lines per page: a line of prose is about 15 words,
+   and each code line, table row, list item and heading is one line.
 <span class="k">2.</span> Use <span class="sb">`#`</span> for parts, <span class="sb">`##`</span> for sections, <span class="sb">`###`</span> for subsections.
    Fenced code blocks take a language tag. Images are relative paths to
    files next to the Markdown file (or <span class="sb">`data:image`</span> URIs), never URLs.
@@ -2432,8 +2541,9 @@ name: render
 <span class="k">4.</span> Read only the one-line status. Do not open or print the output file.
 <span class="k">5.</span> On a non-zero exit, fix the Markdown: <span class="sb">`3`</span> bad input and <span class="sb">`4`</span> render
    failure explain themselves on stderr; <span class="sb">`5`</span> means the PDF is still over
-   <span class="sb">`pages`</span> and the status line says about how many words to cut. Cut that
-   many in one edit and render again. Do not measure pages yourself.
+   <span class="sb">`pages`</span> and the status line says about how many lines to cut. Cut that
+   many, all in one turn (rewrite the file or send every edit together),
+   and render again. Do not measure pages yourself.
 
 <span class="gu">## Verify (PDF)</span>
 
@@ -2862,15 +2972,34 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
         <span class="sa">f</span><span class="s2">"under </span><span class="si">{</span><span class="n">wants</span><span class="p">[</span><span class="s1">'sparse_fill'</span><span class="p">]</span><span class="si">:</span><span class="s2">.0%</span><span class="si">}</span><span class="s2"> full with no part break after"</span><span class="p">,</span>
     <span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_heading</span><span class="p">(</span><span class="n">ln</span><span class="p">:</span> <span class="n">Line</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ln</span><span class="o">.</span><span class="n">bold</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ln</span><span class="o">.</span><span class="n">mono</span> <span class="ow">and</span> <span class="n">ln</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;=</span> <span class="n">HEADING_PT</span>
+
     <span class="n">stranded</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="c1"># The last page is exempt: nothing follows its final line, so no page break</span>
     <span class="c1"># separated a heading from its content (this also covers a title-only doc).</span>
-    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pages</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
-            <span class="n">tail</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lines</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">tail</span><span class="o">.</span><span class="n">bold</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">tail</span><span class="o">.</span><span class="n">mono</span> <span class="ow">and</span> <span class="n">tail</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;=</span> <span class="n">HEADING_PT</span><span class="p">:</span>
-                <span class="n">stranded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
-    <span class="n">add</span><span class="p">(</span><span class="s2">"heading-at-bottom"</span><span class="p">,</span> <span class="n">stranded</span><span class="p">,</span> <span class="s2">"heading is the last line on the page"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pages</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">lines</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">is_heading</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">lines</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="n">stranded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="c1"># A heading and a one-line lead-in ("Run this:") whose block moved to</span>
+        <span class="c1"># the next page. A complete one-line section before a new heading is fine.</span>
+        <span class="n">nxt</span> <span class="o">=</span> <span class="n">pages</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lines</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">lines</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+            <span class="ow">and</span> <span class="n">is_heading</span><span class="p">(</span><span class="n">head</span> <span class="o">:=</span> <span class="n">p</span><span class="o">.</span><span class="n">lines</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+            <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">lines</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">top</span> <span class="o">-</span> <span class="n">head</span><span class="o">.</span><span class="n">bottom</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">head</span><span class="o">.</span><span class="n">size</span>  <span class="c1"># directly under it</span>
+            <span class="ow">and</span> <span class="n">nxt</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_heading</span><span class="p">(</span><span class="n">nxt</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">):</span>
+            <span class="n">stranded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
+    <span class="n">add</span><span class="p">(</span>
+        <span class="s2">"heading-at-bottom"</span><span class="p">,</span>
+        <span class="n">stranded</span><span class="p">,</span>
+        <span class="s2">"heading is the last line, or a heading and one line end the page"</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="n">overflow</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pages</span><span class="p">:</span>
@@ -3349,6 +3478,20 @@ Rupa separates content from form. Claude writes Markdown, and the renderer appli
     <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">body_line</span><span class="p">(</span><span class="mi">70</span><span class="p">),</span> <span class="n">body_line</span><span class="p">(</span><span class="mi">690</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">bold</span><span class="o">=</span><span class="kc">True</span><span class="p">)]</span>
     <span class="n">pages</span> <span class="o">=</span> <span class="p">[</span><span class="n">page</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">page</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">lines</span><span class="o">=</span><span class="n">lines</span><span class="p">),</span> <span class="n">page</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
     <span class="k">assert</span> <span class="n">failing</span><span class="p">(</span><span class="n">run_checks</span><span class="p">(</span><span class="n">pages</span><span class="p">,</span> <span class="n">load_wants</span><span class="p">(</span><span class="kc">None</span><span class="p">)))</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"heading-at-bottom"</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">]}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_heading_and_lead_in_before_moved_block_fails</span><span class="p">():</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">body_line</span><span class="p">(</span><span class="mi">70</span><span class="p">),</span> <span class="n">body_line</span><span class="p">(</span><span class="mi">670</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">bold</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">body_line</span><span class="p">(</span><span class="mi">690</span><span class="p">)]</span>
+    <span class="n">nxt</span> <span class="o">=</span> <span class="p">[</span><span class="n">body_line</span><span class="p">(</span><span class="mi">70</span><span class="p">,</span> <span class="n">mono</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">body_line</span><span class="p">(</span><span class="mi">700</span><span class="p">)]</span>
+    <span class="n">pages</span> <span class="o">=</span> <span class="p">[</span><span class="n">page</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">page</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">lines</span><span class="o">=</span><span class="n">lines</span><span class="p">),</span> <span class="n">page</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">lines</span><span class="o">=</span><span class="n">nxt</span><span class="p">)]</span>
+    <span class="k">assert</span> <span class="n">failing</span><span class="p">(</span><span class="n">run_checks</span><span class="p">(</span><span class="n">pages</span><span class="p">,</span> <span class="n">load_wants</span><span class="p">(</span><span class="kc">None</span><span class="p">)))</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"heading-at-bottom"</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">]}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_one_line_section_before_next_heading_passes</span><span class="p">():</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">body_line</span><span class="p">(</span><span class="mi">70</span><span class="p">),</span> <span class="n">body_line</span><span class="p">(</span><span class="mi">670</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">bold</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">body_line</span><span class="p">(</span><span class="mi">690</span><span class="p">)]</span>
+    <span class="n">nxt</span> <span class="o">=</span> <span class="p">[</span><span class="n">body_line</span><span class="p">(</span><span class="mi">70</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">bold</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">body_line</span><span class="p">(</span><span class="mi">700</span><span class="p">)]</span>
+    <span class="n">pages</span> <span class="o">=</span> <span class="p">[</span><span class="n">page</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">page</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">lines</span><span class="o">=</span><span class="n">lines</span><span class="p">),</span> <span class="n">page</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">lines</span><span class="o">=</span><span class="n">nxt</span><span class="p">)]</span>
+    <span class="k">assert</span> <span class="n">failing</span><span class="p">(</span><span class="n">run_checks</span><span class="p">(</span><span class="n">pages</span><span class="p">,</span> <span class="n">load_wants</span><span class="p">(</span><span class="kc">None</span><span class="p">)))</span> <span class="o">==</span> <span class="p">{}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">test_title_only_document_is_not_a_stranded_heading</span><span class="p">():</span>

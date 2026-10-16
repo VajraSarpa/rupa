@@ -83,10 +83,14 @@ produced a 2-page PDF. Rupa's reports carry fewer words than baseline's
 (about 850 against 1,180), because it keeps the theme's margins.
 
 On a harder task (a 3-page guide with a wide table, CLI and JSON policy) the
-gap widens: 7 turns and $0.35 against 20 turns and $0.85, 59% cheaper.
+gap widens. In the latest run, after over-budget hints moved from words to
+lines, the shipped plugin took 6 turns and $0.31 against baseline's 23 turns
+and $1.19, and 7 of 9 Rupa runs fitted on their first render. Baseline varied
+between $0.85 and $1.19 across three guide runs, so read the saving as
+roughly 60–75%.
 
 The first benchmark, before page budgets and flagged-only sampling, found no
-saving. See the guide's "Measuring the savings" section for both runs.
+saving. See the guide's "Measuring the savings" section for every run.
 
 ## License
 

@@ -235,7 +235,6 @@ To add a theme, copy `default.css` to `newname.css`, change the variables at the
 ## Verification
 
 Rendering proves the file exists. Verification checks that it's right, in two tiers.
-
 **Tier 1: code checks.** `rupa verify` reads the PDF with pdfplumber and checks what can be measured exactly. Each check is free, repeatable and reports page numbers.
 
 | Check | Fails when |
@@ -246,7 +245,7 @@ Rendering proves the file exists. Verification checks that it's right, in two ti
 | `blank-page` | A page has no text |
 | `near-empty` | A page is under 20% full (cover and last page exempt) |
 | `sparse` | A page is under 40% full and the next page doesn't start a new part |
-| `heading-at-bottom` | A heading is the last line on a page |
+| `heading-at-bottom` | A heading is the last line on a page, or a heading and one line end it and the next page doesn't open with a heading |
 | `overflow` | Text runs past the side margins |
 
 **Tier 2: visual review.** Code can't tell whether a page looks right. For that, `rupa verify` classifies each page as cover, prose, table or code. It then writes a sheet image for every page a code check flagged (with `sample: per-type`, one page of each type too), with the theme's reference page on the left and the rendered page on the right. Claude opens those sheets and judges each one against a fixed rubric: hierarchy, spacing, overflow, page balance and style.
@@ -403,6 +402,40 @@ The gap widens with layout work. Baseline built the PDF with reportlab or Chrome
 The Rupa runs still spent turns cutting. The first draft was always over 3 pages at the tightest type, and the "cut about N words" estimate ran low: most runs took two to four cut rounds. Rupa counted the words on the overflow pages, but here the overflow was mostly the JSON policy, which has one or two words a line, so "cut 34 words" meant about fifteen lines of space. The estimate now measures the height used past the budget and converts it to prose words at tight type, plus 10%. On a guide-like sample it asked for 177 words, and one cut of that size fitted. The three-arm medians above predate this fix. The render-only arm happens to be slower than the shipped arm here (14 turns against 7); with three runs that's noise from how many cut rounds each run needed.
 
 Rupa's guides again carry fewer words (about 750 against 1,300), for the same reason as before.
+
+### Harder task, with bundled fonts (2026-10-16)
+
+Same guide task after the switch to bundled Inter and JetBrains Mono and the height-based estimate. Medians:
+
+| Arm | Turns | Cache reads | Cost | vs baseline |
+|---|---|---|---|---|
+| `baseline` | 18 | 854,510 | $0.94 | — |
+| `rupa` | 7 | 204,375 | $0.39 | turns −61%, cost −58% |
+| `rupa-pertype` | 15 | 311,164 | $0.53 | turns −17%, cost −44% |
+| `rupa-verify` (as shipped) | 12 | 206,585 | $0.42 | turns −33%, cost −56% |
+
+Cost held, but cutting was still the weak spot. Every Rupa run went over 3 pages on its first render, and only 3 of the 6 render-only and shipped runs fitted after one cut. The runs that were told to cut a lot cut too much: they fitted at compact type with half a page spare, at 518 to 578 words. The cause was the unit. The hint was in words, but a code line or a table row frees several times the space of a prose word, so a run that cut code to meet a word count overshot. Claude also spent one turn per Edit.
+
+What changed in response: the over-budget hint now asks for lines ("cut about 4 lines (a line of prose is about 18 words; a code line or table row is one line)"), and the skill plans about 30 lines per page before writing and makes all cuts in one turn.
+
+### Harder task, cuts in lines (2026-10-16)
+
+Same task after the lines-based hint and the per-page line plan. Every run produced a 3-page PDF. Medians:
+
+| Arm | Turns | Cache reads | Cost | vs baseline |
+|---|---|---|---|---|
+| `baseline` | 23 | 1,051,781 | $1.19 | — |
+| `rupa` | 5 | 107,903 | $0.28 | turns −78%, cost −76% |
+| `rupa-pertype` | 15 | 359,063 | $0.49 | turns −35%, cost −59% |
+| `rupa-verify` (as shipped) | 6 | 155,203 | $0.31 | turns −74%, cost −74% |
+
+The line plan mostly removed cutting. 7 of the 9 Rupa runs fitted on their first render, all three render-only runs took exactly 5 turns, and two of the three shipped runs were one render plus a clean verify. Baseline was costlier than in either earlier guide run ($1.19 against $0.85 and $0.94). Agent runs vary, so the percentages are wider than the true gap; the shipped arm's own cost ($0.31) is the steadier number.
+
+Two runs still cut. One shipped run was asked to cut 4 lines, cut too little, was asked for 4 more and fitted: two rounds, with seven Edits in separate turns, so "all cuts in one turn" doesn't always hold. One per-type run fitted, then pushed itself back over the budget while fixing what it saw on the per-type sheets.
+
+The plan errs short. Most runs fitted only once Rupa dropped to compact type, so they weren't over-cut, but the Rupa guides still carry about 740 words against baseline's 1,260. Baseline gets its extra words by shrinking margins and type: every baseline PDF fails `rupa verify`'s `overflow` and `text-color` checks.
+
+One layout fault turned up in run 4's PDFs: a heading and a one-line lead-in ("Run from the delegated administrator account:") at the bottom of page 1, with the code block moved whole to page 2. Print CSS now keeps a paragraph with the code block or table that follows it and a heading's first list item with the second, and `heading-at-bottom` also flags a heading with one line directly under it at a page end.
 
 ### How to read the results
 

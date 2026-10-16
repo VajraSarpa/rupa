@@ -52,4 +52,5 @@ thead { display: table-header-group; }
 pre { break-inside: auto; white-space: pre-wrap; orphans: 3; widows: 3; } /* wrap at spaces, never mid-token; no 1-2 line fragments across a page break */
 pre code { font-size: 8.3pt; }
 p:has(+ pre), p:has(+ table) { break-after: avoid; } /* a lead-in ("Run this:") moves with its block, and so does the heading above it */
+:is(h2, h3) + :is(ul, ol) > li:first-child { break-after: avoid; } /* a heading never ends a page with one list item */
 table { display: table; font-size: 9pt; }
