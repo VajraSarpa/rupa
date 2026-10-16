@@ -1,0 +1,1 @@
+Write a 2-page PDF report on the AWS Well-Architected security pillar, saved as report.pdf in the current directory.

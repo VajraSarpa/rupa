@@ -648,6 +648,8 @@ chmod +x bench/bench.sh
 bench/bench.sh
 ```
 
+Prompts live in `bench/tasks/`, one file per task, and `TASK=<name>` picks one (default `report`, the two-page prose report). `guide` is a harder three-page task with a five-column table, a CLI example and a 25-line JSON policy, closer to where hand-written HTML has to work for its layout. Each results folder is named after its task and keeps a copy of the prompt in `task.txt`.
+
 If all four arms behaved, run three per arm on a pinned model:
 
 ```bash

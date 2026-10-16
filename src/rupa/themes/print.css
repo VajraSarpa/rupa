@@ -49,6 +49,6 @@ main h1 { break-before: page; margin-top: 0; }
 
 blockquote, tr { break-inside: avoid; }
 thead { display: table-header-group; }
-pre { break-inside: auto; white-space: pre-wrap; } /* wrap at spaces, never mid-token */
+pre { break-inside: auto; white-space: pre-wrap; orphans: 3; widows: 3; } /* wrap at spaces, never mid-token; no 1-2 line fragments across a page break */
 pre code { font-size: 8.3pt; }
 table { display: table; font-size: 9pt; }
