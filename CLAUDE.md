@@ -69,6 +69,9 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
   never the document.
 - Exit codes: `0` ok, `2` usage, `3` bad input, `4` render failure,
   `5` verify checks failed, or a PDF still over its `pages` budget.
+- Any non-zero exit or crash is appended to `~/.rupa/log.jsonl` (`RUPA_LOG`
+  moves or disables it). Tests point it at a tmp file via `tests/conftest.py`;
+  `bench.sh` sets `RUPA_LOG=off`. Logging must never change stdout or exit codes.
 - Status-line wording is matched by evals (e.g. `verify: N/N checks pass`).
 
 ### Plugin (`plugin/`)

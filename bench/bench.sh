@@ -27,6 +27,7 @@ MODEL_FLAG=()
 mkdir -p "$RESULTS"
 cp "$TASK_FILE" "$RESULTS/task.txt"
 command -v rupa >/dev/null || { echo "bench: rupa is not on PATH" >&2; exit 2; }
+export RUPA_LOG=off  # keep benchmark runs out of the real-use failure log
 
 # Variant arms use a copy of the plugin with an edited skill.
 # Copy only what loads, not evals/ and its results.

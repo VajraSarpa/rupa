@@ -216,3 +216,46 @@ def test_pdf_embeds_bundled_fonts():
         fonts = {c["fontname"].split("+")[-1] for c in pdf.pages[0].chars}
     assert any(f.startswith("Inter") for f in fonts)
     assert any(f.startswith("JetBrains") for f in fonts)
+
+
+def _entries(path):
+    return [json.loads(line) for line in path.read_text().splitlines()]
+
+
+def test_success_is_not_logged(tmp_path, monkeypatch, capsys, _rupa_log):
+    code, _, _ = run(monkeypatch, capsys, ["-o", str(tmp_path / "o.html")])
+    assert code == EXIT_OK and not _rupa_log.exists()
+
+
+def test_failure_is_logged(tmp_path, monkeypatch, capsys, _rupa_log):
+    argv = ["-o", str(tmp_path / "o.html")]
+    code, out, err = run(monkeypatch, capsys, argv, stdin="")
+    (entry,) = _entries(_rupa_log)
+    assert code == EXIT_INPUT and entry["exit"] == EXIT_INPUT
+    assert entry["argv"] == argv and "empty" in entry["stderr"]
+    # the contract is unchanged: the user still sees the same output
+    assert "empty" in err and out == ""
+
+
+def test_usage_error_is_logged(tmp_path, monkeypatch, capsys, _rupa_log):
+    with pytest.raises(SystemExit):
+        run(monkeypatch, capsys, ["-o", str(tmp_path / "o.html"), "--no-such-flag"])
+    (entry,) = _entries(_rupa_log)
+    assert entry["exit"] == EXIT_USAGE and "--no-such-flag" in entry["stderr"]
+
+
+def test_crash_is_logged_with_traceback(tmp_path, monkeypatch, capsys, _rupa_log):
+    def boom(*a, **k):
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr("rupa.cli.to_html", boom)
+    with pytest.raises(RuntimeError):
+        run(monkeypatch, capsys, ["-o", str(tmp_path / "o.html")])
+    (entry,) = _entries(_rupa_log)
+    assert entry["exit"] == 1 and "kaboom" in entry["traceback"]
+
+
+def test_log_off(tmp_path, monkeypatch, capsys, _rupa_log):
+    monkeypatch.setenv("RUPA_LOG", "off")
+    run(monkeypatch, capsys, ["-o", str(tmp_path / "o.html")], stdin="")
+    assert not _rupa_log.exists()

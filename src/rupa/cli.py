@@ -10,14 +10,20 @@ Contract:
   stdout -> ONE status line (or one JSON object with --json). Never the document.
   exit   -> 0 ok, 2 usage, 3 bad input, 4 render failure,
             5 verify checks failed, or a PDF still over its page budget
+
+Every run that exits non-zero or crashes is appended to a JSONL log,
+~/.rupa/log.jsonl by default. RUPA_LOG=<path> moves it; RUPA_LOG=off stops it.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import tempfile
+import traceback
+from datetime import UTC, datetime
 from importlib import resources
 from pathlib import Path
 
@@ -222,13 +228,76 @@ def refs_main(argv: list[str]) -> int:
     return EXIT_OK
 
 
-def main(argv: list[str] | None = None) -> int:
-    argv = list(sys.argv[1:] if argv is None else argv)
+class _Tee:
+    """Pass writes through to a stream and keep a copy for the log."""
+
+    def __init__(self, stream):
+        self.stream, self.text = stream, []
+
+    def write(self, s):
+        self.text.append(s)
+        return self.stream.write(s)
+
+    def __getattr__(self, name):
+        return getattr(self.stream, name)
+
+
+def _log_path() -> Path | None:
+    value = os.environ.get("RUPA_LOG", "")
+    if value.lower() in ("off", "0", "false", "no"):
+        return None
+    return Path(value) if value else Path.home() / ".rupa" / "log.jsonl"
+
+
+def _log(argv, code, out: _Tee, err: _Tee, crash: str | None = None) -> None:
+    path = _log_path()
+    if path is None:
+        return
+    entry = {
+        "time": datetime.now(UTC).isoformat(timespec="seconds"),
+        "version": __version__,
+        "cwd": str(Path.cwd()),
+        "argv": argv,
+        "exit": code,
+        "stdout": "".join(out.text).strip(),
+        "stderr": "".join(err.text).strip(),
+    }
+    if crash:
+        entry["traceback"] = crash
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except OSError:
+        pass  # logging must never change what the CLI does
+
+
+def _dispatch(argv: list[str]) -> int:
     if argv and argv[0] == "verify":
         return verify_main(argv[1:])
     if argv and argv[0] == "refs":
         return refs_main(argv[1:])
     return render_main(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    out, err = _Tee(sys.stdout), _Tee(sys.stderr)
+    sys.stdout, sys.stderr = out, err
+    code, crash = EXIT_OK, None
+    try:
+        code = _dispatch(argv)
+        return code
+    except SystemExit as exc:  # argparse usage errors, --help, --version
+        code = exc.code if isinstance(exc.code, int) else int(exc.code is not None)
+        raise
+    except Exception:
+        code, crash = 1, traceback.format_exc()
+        raise
+    finally:
+        sys.stdout, sys.stderr = out.stream, err.stream
+        if code:
+            _log(argv, code, out, err, crash)
 
 
 if __name__ == "__main__":  # pragma: no cover

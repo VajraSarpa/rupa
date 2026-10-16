@@ -42,6 +42,9 @@ Claude writes content, Rupa applies a tested theme and prints one status line.
   words to cut
 - **stdout:** one status line, never the document
 - **exit codes:** `0` ok, `2` usage, `3` bad input, `4` render failure, `5` verify checks failed or a PDF still over its page budget
+- **failure log:** every run that exits non-zero or crashes is appended to
+  `~/.rupa/log.jsonl` (time, argv, exit code, output, traceback if any).
+  `RUPA_LOG=<path>` moves it; `RUPA_LOG=off` stops it
 
 ## Verification
 
