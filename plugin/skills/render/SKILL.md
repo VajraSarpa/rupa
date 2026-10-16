@@ -26,8 +26,8 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
 5. On a non-zero exit, fix the Markdown: `3` bad input and `4` render
    failure explain themselves on stderr; `5` means the PDF is still over
    `pages` and the status line says about how many lines to cut. Cut that
-   many, all in one turn (rewrite the file or send every edit together),
-   and render again. Do not measure pages yourself.
+   many by rewriting the whole Markdown file with one Write, not a series
+   of Edits, then render again. Do not measure pages yourself.
 
 ## Verify (PDF)
 
@@ -41,8 +41,9 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
 3. Judge every sheet against each item in `rubric`. Record one line per
    sheet: `p<N> <kind>: PASS` or `p<N> <kind>: FAIL <rubric item> - <what>`.
 4. Fix failures in the Markdown only: split a wide table, shorten a long
-   code line, move or trim content around an awkward break. Then render and
-   verify again. Stop after two fix rounds.
+   code line, move or trim content around an awkward break. Make each
+   round's fixes with one Write of the whole file, then render and verify
+   again. Stop after two fix rounds.
 5. If a failure can only be fixed in the theme (CSS), do not edit CSS.
    Report it to the user as a theme issue.
 6. Tell the user the final check line and your per-sheet verdicts in a few

@@ -1161,7 +1161,7 @@ $<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </
 </tbody>
 </table>
 <p>The line plan mostly removed cutting. 7 of the 9 Rupa runs fitted on their first render, all three render-only runs took exactly 5 turns, and two of the three shipped runs were one render plus a clean verify. Baseline was costlier than in either earlier guide run ($1.19 against $0.85 and $0.94). Agent runs vary, so the percentages are wider than the true gap; the shipped arm's own cost ($0.31) is the steadier number.</p>
-<p>Two runs still cut. One shipped run was asked to cut 4 lines, cut too little, was asked for 4 more and fitted: two rounds, with seven Edits in separate turns, so &quot;all cuts in one turn&quot; doesn't always hold. One per-type run fitted, then pushed itself back over the budget while fixing what it saw on the per-type sheets.</p>
+<p>Two runs still cut. One shipped run was asked to cut 4 lines, cut too little, was asked for 4 more and fitted: two rounds, with seven Edits in separate turns, so &quot;all cuts in one turn&quot; doesn't always hold. The skill now says how: rewrite the whole Markdown file with one Write, not a series of Edits, for budget cuts and verify fixes alike. That change hasn't been benchmarked yet. One per-type run fitted, then pushed itself back over the budget while fixing what it saw on the per-type sheets.</p>
 <p>The plan errs short. Most runs fitted only once Rupa dropped to compact type, so they weren't over-cut, but the Rupa guides still carry about 740 words against baseline's 1,260. Baseline gets its extra words by shrinking margins and type: every baseline PDF fails <code>rupa verify</code>'s <code>overflow</code> and <code>text-color</code> checks.</p>
 <p>One layout fault turned up in run 4's PDFs: a heading and a one-line lead-in (&quot;Run from the delegated administrator account:&quot;) at the bottom of page 1, with the code block moved whole to page 2. Print CSS now keeps a paragraph with the code block or table that follows it and a heading's first list item with the second, and <code>heading-at-bottom</code> also flags a heading with one line directly under it at a page end.</p>
 <h3 id="report-task-current-build-2026-10-16">Report task, current build (2026-10-16)</h3>
@@ -2585,8 +2585,8 @@ name: render
 <span class="k">5.</span> On a non-zero exit, fix the Markdown: <span class="sb">`3`</span> bad input and <span class="sb">`4`</span> render
    failure explain themselves on stderr; <span class="sb">`5`</span> means the PDF is still over
    <span class="sb">`pages`</span> and the status line says about how many lines to cut. Cut that
-   many, all in one turn (rewrite the file or send every edit together),
-   and render again. Do not measure pages yourself.
+   many by rewriting the whole Markdown file with one Write, not a series
+   of Edits, then render again. Do not measure pages yourself.
 
 <span class="gu">## Verify (PDF)</span>
 
@@ -2600,8 +2600,9 @@ name: render
 <span class="k">3.</span> Judge every sheet against each item in <span class="sb">`rubric`</span>. Record one line per
    sheet: <span class="sb">`p&lt;N&gt; &lt;kind&gt;: PASS`</span> or <span class="sb">`p&lt;N&gt; &lt;kind&gt;: FAIL &lt;rubric item&gt; - &lt;what&gt;`</span>.
 <span class="k">4.</span> Fix failures in the Markdown only: split a wide table, shorten a long
-   code line, move or trim content around an awkward break. Then render and
-   verify again. Stop after two fix rounds.
+   code line, move or trim content around an awkward break. Make each
+   round's fixes with one Write of the whole file, then render and verify
+   again. Stop after two fix rounds.
 <span class="k">5.</span> If a failure can only be fixed in the theme (CSS), do not edit CSS.
    Report it to the user as a theme issue.
 <span class="k">6.</span> Tell the user the final check line and your per-sheet verdicts in a few

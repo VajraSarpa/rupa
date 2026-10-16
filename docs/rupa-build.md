@@ -431,7 +431,7 @@ Same task after the lines-based hint and the per-page line plan. Every run produ
 
 The line plan mostly removed cutting. 7 of the 9 Rupa runs fitted on their first render, all three render-only runs took exactly 5 turns, and two of the three shipped runs were one render plus a clean verify. Baseline was costlier than in either earlier guide run ($1.19 against $0.85 and $0.94). Agent runs vary, so the percentages are wider than the true gap; the shipped arm's own cost ($0.31) is the steadier number.
 
-Two runs still cut. One shipped run was asked to cut 4 lines, cut too little, was asked for 4 more and fitted: two rounds, with seven Edits in separate turns, so "all cuts in one turn" doesn't always hold. One per-type run fitted, then pushed itself back over the budget while fixing what it saw on the per-type sheets.
+Two runs still cut. One shipped run was asked to cut 4 lines, cut too little, was asked for 4 more and fitted: two rounds, with seven Edits in separate turns, so "all cuts in one turn" doesn't always hold. The skill now says how: rewrite the whole Markdown file with one Write, not a series of Edits, for budget cuts and verify fixes alike. That change hasn't been benchmarked yet. One per-type run fitted, then pushed itself back over the budget while fixing what it saw on the per-type sheets.
 
 The plan errs short. Most runs fitted only once Rupa dropped to compact type, so they weren't over-cut, but the Rupa guides still carry about 740 words against baseline's 1,260. Baseline gets its extra words by shrinking margins and type: every baseline PDF fails `rupa verify`'s `overflow` and `text-color` checks.
 
