@@ -141,9 +141,11 @@ cheaper:
 
 ![The same eleven-column table: Claude Code alone at 6.6pt with a header split mid-word, and Rupa at 7.5pt on the first render](docs/img/wide-table-before-after.png)
 
-The full record, including every run and what changed between them, is in
-the build guide ([PDF](docs/dist/Rupa-Plan-Guide-Tutorial.pdf), section
-"Measuring the savings").
+Every run is published as data in [`bench/data/`](bench/data/): 101 runs
+with turns, cost, time, tokens, context and each PDF's verify result, plus
+medians that name the published numbers they back. The story of what changed
+between runs is in the build guide ([PDF](docs/dist/Rupa-Plan-Guide-Tutorial.pdf),
+section "Measuring the savings").
 
 ## Contract
 
@@ -169,7 +171,7 @@ The plugin and its evals depend on this.
 | `src/rupa/references/` | The reference pages each theme is compared against |
 | `plugin/` | The Claude Code plugin: one skill that renders, verifies and reviews |
 | `plugin/evals/` | A `claude plugin eval` suite: does the skill trigger, render with Rupa and pass verify |
-| `bench/` | The four-arm benchmark, plus a fake `claude` for testing it without spending tokens |
+| `bench/` | The four-arm benchmark, a fake `claude` for testing it without spending tokens, and `data/` with every run |
 | `docs/` | The build guide, cost analysis and architecture diagram, with their sources |
 
 ## Develop

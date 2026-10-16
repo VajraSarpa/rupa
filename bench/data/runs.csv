@@ -1,0 +1,102 @@
+folder,task,build,arm,run,model,turns,cost_usd,secs,input,output,cache_read,cache_write,api_calls,context_start,context_peak,context_added,pdf,verify_passed,verify_total,verify_failed
+20261015-223853,report,"pilot, one run per arm",baseline,1,"claude-haiku-5-5,claude-opus-5-5",15,0.5575,96,24,9261,564996,32381,12,42033,55110,13077,yes,7,8,text-color
+20261015-223853,report,"pilot, one run per arm",rupa,1,"claude-haiku-5-5,claude-opus-5-5",8,0.353,66,12,5108,244235,25230,6,42119,47959,5840,yes,8,8,
+20261015-223853,report,"pilot, one run per arm",rupa-verify,1,"claude-haiku-5-5,claude-opus-5-5",16,0.6267,95,24,7336,589922,45217,12,42115,66123,24008,yes,8,8,
+20261015-230620,report,"first result, before page budgets",baseline,1,"claude-haiku-5-5,claude-opus-5-5",10,0.4301,82,16,6968,345251,27691,8,42032,50420,8388,yes,6,8,text-color overflow
+20261015-230620,report,"first result, before page budgets",baseline,2,"claude-haiku-5-5,claude-opus-5-5",8,0.4049,77,14,6493,295844,26966,7,42024,49695,7671,yes,6,8,text-color overflow
+20261015-230620,report,"first result, before page budgets",baseline,3,"claude-haiku-5-5,claude-opus-5-5",9,0.4427,74,14,7627,299095,28767,7,42034,51496,9462,yes,7,8,text-color
+20261015-230620,report,"first result, before page budgets",rupa,1,"claude-haiku-5-5,claude-opus-5-5",10,0.3983,71,14,6353,296826,26460,7,42120,49189,7069,yes,8,8,
+20261015-230620,report,"first result, before page budgets",rupa,2,"claude-haiku-5-5,claude-opus-5-5",7,0.3396,59,10,5052,198881,24829,5,42124,47558,5434,yes,8,8,
+20261015-230620,report,"first result, before page budgets",rupa,3,"claude-haiku-5-5,claude-opus-5-5",17,0.5698,107,30,8939,704017,31240,15,42122,53969,11847,yes,8,8,
+20261015-230620,report,"first result, before page budgets",rupa-flagged,1,"claude-haiku-5-5,claude-opus-5-5",8,0.3422,64,10,4849,201484,25600,5,42118,48329,6211,yes,8,8,
+20261015-230620,report,"first result, before page budgets",rupa-flagged,2,"claude-haiku-5-5,claude-opus-5-5",13,0.4296,71,20,5920,438591,27903,10,42121,50632,8511,yes,8,8,
+20261015-230620,report,"first result, before page budgets",rupa-flagged,3,"claude-haiku-5-5,claude-opus-5-5",18,0.5307,90,24,7818,558253,32811,12,42120,55540,13420,yes,8,8,
+20261015-230620,report,"first result, before page budgets",rupa-verify,1,"claude-haiku-5-5,claude-opus-5-5",12,0.4581,70,18,5681,401717,32989,9,42121,55718,13597,yes,8,8,
+20261015-230620,report,"first result, before page budgets",rupa-verify,2,"claude-haiku-5-5,claude-opus-5-5",20,0.6687,106,32,7990,816061,43173,16,42119,65902,23783,yes,8,8,
+20261015-230620,report,"first result, before page budgets",rupa-verify,3,"claude-haiku-5-5,claude-opus-5-5",15,0.5445,89,22,6617,523338,38411,11,42119,61140,19021,yes,8,8,
+20261015-235429,report,page budgets and flagged-only sheets,baseline,1,"claude-haiku-5-5,claude-opus-5-5",12,0.4591,73,20,7151,444054,28377,10,42031,51106,9075,yes,6,8,text-color overflow
+20261015-235429,report,page budgets and flagged-only sheets,baseline,2,"claude-haiku-5-5,claude-opus-5-5",9,0.4222,67,14,6743,298042,28437,7,42026,51166,9140,yes,6,8,text-color overflow
+20261015-235429,report,page budgets and flagged-only sheets,baseline,3,"claude-haiku-5-5,claude-opus-5-5",10,0.4823,89,16,8395,351496,30486,8,42033,53215,11182,yes,6,8,text-color overflow
+20261015-235429,report,page budgets and flagged-only sheets,rupa,1,"claude-haiku-5-5,claude-opus-5-5",5,0.2779,50,8,3199,153115,22896,4,42118,45625,3507,yes,8,8,
+20261015-235429,report,page budgets and flagged-only sheets,rupa,2,"claude-haiku-5-5,claude-opus-5-5",5,0.2658,35,8,2788,152505,22420,4,42123,45149,3026,yes,8,8,
+20261015-235429,report,page budgets and flagged-only sheets,rupa,3,"claude-haiku-5-5,claude-opus-5-5",5,0.2564,34,8,2455,152169,22087,4,42122,44816,2694,yes,8,8,
+20261015-235429,report,page budgets and flagged-only sheets,rupa-pertype,1,"claude-haiku-5-5,claude-opus-5-5",9,0.3558,45,12,3711,247766,28980,6,42121,51709,9588,yes,8,8,
+20261015-235429,report,page budgets and flagged-only sheets,rupa-pertype,2,"claude-haiku-5-5,claude-opus-5-5",14,0.4722,61,22,4641,499762,34901,11,42125,57630,15505,yes,8,8,
+20261015-235429,report,page budgets and flagged-only sheets,rupa-pertype,3,"claude-haiku-5-5,claude-opus-5-5",9,0.3559,43,12,3706,247729,29008,6,42118,51737,9619,yes,8,8,
+20261015-235429,report,page budgets and flagged-only sheets,rupa-verify,1,"claude-haiku-5-5,claude-opus-5-5",6,0.294,39,10,3329,199639,23414,5,42120,46143,4023,yes,8,8,
+20261015-235429,report,page budgets and flagged-only sheets,rupa-verify,2,"claude-haiku-5-5,claude-opus-5-5",6,0.2792,38,8,3127,153765,23218,4,42119,45947,3828,yes,8,8,
+20261015-235429,report,page budgets and flagged-only sheets,rupa-verify,3,"claude-haiku-5-5,claude-opus-5-5",6,0.2778,37,8,3092,153614,23138,4,42112,45867,3755,yes,8,8,
+20261016-000922-guide,guide,"first guide run, word-based cut hints",baseline,1,"claude-haiku-5-5,claude-opus-5-5",15,0.7977,162,24,16516,616684,42977,12,42142,65706,23564,yes,6,8,text-color overflow
+20261016-000922-guide,guide,"first guide run, word-based cut hints",baseline,2,"claude-haiku-5-5,claude-opus-5-5",20,0.8551,180,30,17670,786720,43009,15,42140,65738,23598,yes,6,8,text-color overflow
+20261016-000922-guide,guide,"first guide run, word-based cut hints",baseline,3,"claude-haiku-5-5,claude-opus-5-5",20,0.8545,185,32,17712,833617,41652,16,42142,64381,22239,yes,6,8,text-color overflow
+20261016-000922-guide,guide,"first guide run, word-based cut hints",rupa,1,"claude-haiku-5-5,claude-opus-5-5",11,0.3797,78,10,6319,200371,26632,5,42222,49361,7139,yes,7,8,heading-at-bottom
+20261016-000922-guide,guide,"first guide run, word-based cut hints",rupa,2,"claude-haiku-5-5,claude-opus-5-5",14,0.4716,90,16,8403,349399,29177,8,42226,51906,9680,yes,8,8,
+20261016-000922-guide,guide,"first guide run, word-based cut hints",rupa,3,"claude-haiku-5-5,claude-opus-5-5",14,0.4648,96,16,8238,348457,28764,8,42229,51493,9264,yes,8,8,
+20261016-000922-guide,guide,"first guide run, word-based cut hints",rupa-pertype,1,"claude-haiku-5-5,claude-opus-5-5",19,0.5255,102,14,8382,312611,36896,7,42222,59625,17403,yes,8,8,
+20261016-000922-guide,guide,"first guide run, word-based cut hints",rupa-pertype,2,"claude-haiku-5-5,claude-opus-5-5",17,0.5477,92,20,6375,473810,40652,10,42232,63381,21149,yes,8,8,
+20261016-000922-guide,guide,"first guide run, word-based cut hints",rupa-pertype,3,"claude-haiku-5-5,claude-opus-5-5",11,0.4643,73,14,6464,303802,34257,7,42223,56986,14763,yes,8,8,
+20261016-000922-guide,guide,"first guide run, word-based cut hints",rupa-verify,1,"claude-haiku-5-5,claude-opus-5-5",13,0.4066,84,12,6645,251811,27892,6,42223,50621,8398,yes,8,8,
+20261016-000922-guide,guide,"first guide run, word-based cut hints",rupa-verify,2,"claude-haiku-5-5,claude-opus-5-5",7,0.3495,64,12,4885,249016,25224,6,42230,47953,5723,yes,8,8,
+20261016-000922-guide,guide,"first guide run, word-based cut hints",rupa-verify,3,"claude-haiku-5-5,claude-opus-5-5",7,0.32,49,12,3894,247301,24055,6,42226,46784,4558,yes,8,8,
+20261016-004331-guide,guide,with bundled fonts,baseline,1,"claude-haiku-5-5,claude-opus-5-5",18,0.8628,188,32,17554,854510,42571,16,42140,65300,23160,yes,6,8,text-color overflow
+20261016-004331-guide,guide,with bundled fonts,baseline,2,"claude-haiku-5-5,claude-opus-5-5",17,0.9423,219,28,20021,767861,48504,14,42140,71233,29093,yes,6,8,text-color overflow
+20261016-004331-guide,guide,with bundled fonts,baseline,3,"claude-haiku-5-5,claude-opus-5-5",23,0.9853,223,36,20560,988847,47009,18,42135,69738,27603,yes,7,8,text-color
+20261016-004331-guide,guide,with bundled fonts,rupa,1,"claude-haiku-5-5,claude-opus-5-5",6,0.3613,66,10,5754,200139,25751,5,42229,48480,6251,yes,8,8,
+20261016-004331-guide,guide,with bundled fonts,rupa,2,"claude-haiku-5-5,claude-opus-5-5",11,0.4008,80,10,7017,204375,27430,5,42233,50159,7926,yes,8,8,
+20261016-004331-guide,guide,with bundled fonts,rupa,3,"claude-haiku-5-5,claude-opus-5-5",7,0.3944,68,12,6646,249474,26429,6,42228,49158,6930,yes,7,8,heading-at-bottom
+20261016-004331-guide,guide,with bundled fonts,rupa-pertype,1,"claude-haiku-5-5,claude-opus-5-5",11,0.4823,82,14,7184,305258,34674,7,42231,57403,15172,yes,8,8,
+20261016-004331-guide,guide,with bundled fonts,rupa-pertype,2,"claude-haiku-5-5,claude-opus-5-5",15,0.5248,105,14,8529,311164,36478,7,42223,59207,16984,yes,8,8,
+20261016-004331-guide,guide,with bundled fonts,rupa-pertype,3,"claude-haiku-5-5,claude-opus-5-5",18,0.6433,124,20,9884,474737,43786,10,42228,66515,24287,yes,8,8,
+20261016-004331-guide,guide,with bundled fonts,rupa-verify,1,"claude-haiku-5-5,claude-opus-5-5",8,0.4166,105,10,7561,206585,27985,5,42230,50714,8484,yes,7,8,heading-at-bottom
+20261016-004331-guide,guide,with bundled fonts,rupa-verify,2,"claude-haiku-5-5,claude-opus-5-5",12,0.3741,71,10,5901,204023,26887,5,42224,49616,7392,yes,8,8,
+20261016-004331-guide,guide,with bundled fonts,rupa-verify,3,"claude-haiku-5-5,claude-opus-5-5",14,0.4209,82,12,7127,255487,28382,6,42230,51111,8881,yes,8,8,
+20261016-062258-guide,guide,line-based cut hints,baseline,1,"claude-haiku-5-5,claude-opus-5-5",32,1.2836,252,52,25530,1627885,55881,26,42138,78610,36472,yes,6,8,text-color overflow
+20261016-062258-guide,guide,line-based cut hints,baseline,2,"claude-haiku-5-5,claude-opus-5-5",19,0.8467,170,34,16618,901215,41723,17,42136,64452,22316,yes,6,8,text-color overflow
+20261016-062258-guide,guide,line-based cut hints,baseline,3,"claude-haiku-5-5,claude-opus-5-5",23,1.1941,262,36,27687,1051781,53716,18,42137,76445,34308,yes,6,8,text-color overflow
+20261016-062258-guide,guide,line-based cut hints,rupa,1,"claude-haiku-5-5,claude-opus-5-5",5,0.2748,43,6,3393,107888,23140,3,42229,45869,3640,yes,8,8,
+20261016-062258-guide,guide,line-based cut hints,rupa,2,"claude-haiku-5-5,claude-opus-5-5",5,0.2871,39,6,3825,107925,23605,3,42230,46334,4104,yes,8,8,
+20261016-062258-guide,guide,line-based cut hints,rupa,3,"claude-haiku-5-5,claude-opus-5-5",5,0.2828,43,6,3666,107903,23461,3,42230,46190,3960,yes,8,8,
+20261016-062258-guide,guide,line-based cut hints,rupa-pertype,1,"claude-haiku-5-5,claude-opus-5-5",17,0.6329,124,24,8663,579875,42925,12,42230,65654,23424,yes,7,8,heading-at-bottom
+20261016-062258-guide,guide,line-based cut hints,rupa-pertype,2,"claude-haiku-5-5,claude-opus-5-5",15,0.4938,75,16,5306,359063,39453,8,42225,62182,19957,yes,8,8,
+20261016-062258-guide,guide,line-based cut hints,rupa-pertype,3,"claude-haiku-5-5,claude-opus-5-5",10,0.3935,50,12,4399,249996,31910,6,42227,54639,12412,yes,8,8,
+20261016-062258-guide,guide,line-based cut hints,rupa-verify,1,"claude-haiku-5-5,claude-opus-5-5",16,0.4527,81,16,7511,354383,28919,8,42234,51648,9414,yes,8,8,
+20261016-062258-guide,guide,line-based cut hints,rupa-verify,2,"claude-haiku-5-5,claude-opus-5-5",6,0.3093,45,8,4164,155203,24352,4,42232,47081,4849,yes,8,8,
+20261016-062258-guide,guide,line-based cut hints,rupa-verify,3,"claude-haiku-5-5,claude-opus-5-5",6,0.3055,45,8,4047,155042,24175,4,42227,46904,4677,yes,8,8,
+20261016-065003-report,report,report on the current build,baseline,1,"claude-haiku-5-5,claude-opus-5-5",13,0.5232,110,22,8468,506894,31524,11,42033,54253,12220,yes,7,8,text-color
+20261016-065003-report,report,report on the current build,baseline,2,"claude-haiku-5-5,claude-opus-5-5",14,0.5393,112,22,9074,505643,32064,11,42031,54793,12762,yes,7,8,text-color
+20261016-065003-report,report,report on the current build,baseline,3,"claude-haiku-5-5,claude-opus-5-5",9,0.4884,116,18,8518,400881,29711,9,42033,52440,10407,yes,7,8,text-color
+20261016-065003-report,report,report on the current build,rupa,1,"claude-haiku-5-5,claude-opus-5-5",5,0.2637,39,8,2704,152505,22374,4,42122,45103,2981,yes,8,8,
+20261016-065003-report,report,report on the current build,rupa,2,"claude-haiku-5-5,claude-opus-5-5",5,0.2588,32,8,2526,152290,22212,4,42122,44941,2819,yes,8,8,
+20261016-065003-report,report,report on the current build,rupa,3,"claude-haiku-5-5,claude-opus-5-5",5,0.2641,32,8,2674,152561,22490,4,42120,45219,3099,yes,8,8,
+20261016-065003-report,report,report on the current build,rupa-pertype,1,"claude-haiku-5-5,claude-opus-5-5",9,0.3352,43,12,2966,245700,28325,6,42121,51054,8933,yes,8,8,
+20261016-065003-report,report,report on the current build,rupa-pertype,2,"claude-haiku-5-5,claude-opus-5-5",10,0.3528,45,14,3188,296420,28691,7,42120,51420,9300,yes,8,8,
+20261016-065003-report,report,report on the current build,rupa-pertype,3,"claude-haiku-5-5,claude-opus-5-5",9,0.3374,39,12,3023,246035,28438,6,42130,51167,9037,yes,8,8,
+20261016-065003-report,report,report on the current build,rupa-verify,1,"claude-haiku-5-5,claude-opus-5-5",7,0.2859,50,10,3012,199354,23206,5,42124,45935,3811,yes,8,8,
+20261016-065003-report,report,report on the current build,rupa-verify,2,"claude-haiku-5-5,claude-opus-5-5",6,0.2755,36,8,2958,153681,23176,4,42124,45905,3781,yes,8,8,
+20261016-065003-report,report,report on the current build,rupa-verify,3,"claude-haiku-5-5,claude-opus-5-5",7,0.2929,36,12,2924,244551,23172,6,42116,45901,3785,yes,8,8,
+20261016-072202-tight,tight,must cut; Rupa arms only,rupa,1,claude-opus-5-5,5,0.2702,41,8,3613,102557,22169,4,29198,32869,3671,yes,8,8,
+20261016-072202-tight,tight,must cut; Rupa arms only,rupa,2,claude-opus-5-5,7,0.343,59,12,5643,170267,24510,6,29204,35210,6006,yes,8,8,
+20261016-072202-tight,tight,must cut; Rupa arms only,rupa,3,claude-opus-5-5,7,0.3318,63,8,5759,102521,24515,4,29202,35215,6013,yes,8,8,
+20261016-072202-tight,tight,must cut; Rupa arms only,rupa-verify,1,claude-opus-5-5,8,0.347,64,10,5871,139400,25210,5,29202,35910,6708,yes,8,8,
+20261016-072202-tight,tight,must cut; Rupa arms only,rupa-verify,2,claude-opus-5-5,7,0.3675,74,12,6363,173660,25678,6,29202,36378,7176,yes,8,8,
+20261016-072202-tight,tight,must cut; Rupa arms only,rupa-verify,3,claude-opus-5-5,8,0.3597,69,10,6362,139791,25558,5,29206,36258,7052,yes,8,8,
+20261016-080149-wide,wide,"single run, before the overflow detail",rupa-verify,1,"claude-haiku-5-5,claude-opus-5-5",16,0.7044,147,24,11657,599759,43867,12,42272,66596,24324,yes,7,8,overflow
+20261016-084958-wide,wide,"single run, after the split rule",rupa-verify,1,claude-opus-5-5,8,0.3712,73,12,6280,176377,26289,6,29249,36989,7740,yes,8,8,
+20261016-085325-wide,wide,"all arms, before the wide-table rule",baseline,1,claude-opus-5-5,9,0.542,134,14,11912,225183,32332,7,29195,43032,13837,yes,5,8,text-color page-size overflow
+20261016-085325-wide,wide,"all arms, before the wide-table rule",baseline,2,claude-opus-5-5,12,0.6024,124,16,13248,269350,35433,8,29193,46133,16940,yes,6,8,text-color overflow
+20261016-085325-wide,wide,"all arms, before the wide-table rule",baseline,3,claude-opus-5-5,11,0.5363,103,14,11212,222964,33422,7,29195,44122,14927,yes,5,8,text-color page-size overflow
+20261016-085325-wide,wide,"all arms, before the wide-table rule",rupa,1,claude-opus-5-5,5,0.2987,46,8,4605,103658,23226,4,29245,33926,4681,yes,7,8,overflow
+20261016-085325-wide,wide,"all arms, before the wide-table rule",rupa,2,claude-opus-5-5,5,0.306,60,8,4861,103920,23495,4,29249,34195,4946,yes,7,8,overflow
+20261016-085325-wide,wide,"all arms, before the wide-table rule",rupa,3,claude-opus-5-5,5,0.3102,62,8,5045,103908,23567,4,29249,34267,5018,yes,7,8,overflow
+20261016-085325-wide,wide,"all arms, before the wide-table rule",rupa-pertype,1,claude-opus-5-5,12,0.4617,73,18,6711,292104,33621,9,29249,44321,15072,yes,8,8,
+20261016-085325-wide,wide,"all arms, before the wide-table rule",rupa-pertype,2,claude-opus-5-5,17,0.6409,115,22,11100,402055,42298,11,29247,52998,23751,yes,7,8,overflow
+20261016-085325-wide,wide,"all arms, before the wide-table rule",rupa-pertype,3,claude-opus-5-5,18,0.6562,130,24,10362,458791,44634,12,29247,55334,26087,yes,8,8,
+20261016-085325-wide,wide,"all arms, before the wide-table rule",rupa-verify,1,claude-opus-5-5,12,0.4696,106,22,8293,365627,28817,11,29247,39517,10270,yes,8,8,
+20261016-085325-wide,wide,"all arms, before the wide-table rule",rupa-verify,2,claude-opus-5-5,13,0.5756,107,22,10158,385362,36914,11,29253,47614,18361,yes,8,8,
+20261016-085325-wide,wide,"all arms, before the wide-table rule",rupa-verify,3,claude-opus-5-5,8,0.3651,72,14,5802,209578,25885,7,29247,36585,7338,yes,8,8,
+20261016-094105-wide,wide,"Rupa arms, after the wide-table rule",rupa,1,claude-opus-5-5,5,0.3136,57,8,5146,104180,23722,4,29249,34422,5173,yes,8,8,
+20261016-094105-wide,wide,"Rupa arms, after the wide-table rule",rupa,2,claude-opus-5-5,5,0.3163,52,8,5178,104516,23973,4,29247,34673,5426,yes,8,8,
+20261016-094105-wide,wide,"Rupa arms, after the wide-table rule",rupa,3,claude-opus-5-5,5,0.3207,57,8,5353,104700,24083,4,29247,34783,5536,yes,8,8,
+20261016-094105-wide,wide,"Rupa arms, after the wide-table rule",rupa-verify,1,claude-opus-5-5,6,0.327,55,10,5220,139869,24326,5,29247,35026,5779,yes,8,8,
+20261016-094105-wide,wide,"Rupa arms, after the wide-table rule",rupa-verify,2,claude-opus-5-5,6,0.3268,52,10,5176,141055,24375,5,29249,35075,5826,yes,8,8,
+20261016-094105-wide,wide,"Rupa arms, after the wide-table rule",rupa-verify,3,claude-opus-5-5,6,0.3225,52,10,5019,139868,24261,5,29249,34961,5712,yes,8,8,

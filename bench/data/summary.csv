@@ -1,0 +1,38 @@
+folder,task,build,used_in,arm,runs,median_turns,median_cost_usd,median_secs,median_output,median_cache_read,median_cache_write,median_context_added,pdfs_passing
+20261015-223853,report,"pilot, one run per arm",,baseline,1,15,0.5575,96,9261,564996,32381,13077,0
+20261015-223853,report,"pilot, one run per arm",,rupa,1,8,0.353,66,5108,244235,25230,5840,1
+20261015-223853,report,"pilot, one run per arm",,rupa-verify,1,16,0.6267,95,7336,589922,45217,24008,1
+20261015-230620,report,"first result, before page budgets",case study: first benchmark,baseline,3,9,0.4301,77,6968,299095,27691,8388,0
+20261015-230620,report,"first result, before page budgets",case study: first benchmark,rupa,3,10,0.3983,71,6353,296826,26460,7069,3
+20261015-230620,report,"first result, before page budgets",case study: first benchmark,rupa-flagged,3,13,0.4296,71,5920,438591,27903,8511,3
+20261015-230620,report,"first result, before page budgets",case study: first benchmark,rupa-verify,3,15,0.5445,89,6617,523338,38411,19021,3
+20261015-235429,report,page budgets and flagged-only sheets,case study: second result,baseline,3,10,0.4591,73,7151,351496,28437,9140,0
+20261015-235429,report,page budgets and flagged-only sheets,case study: second result,rupa,3,5,0.2658,35,2788,152505,22420,3026,3
+20261015-235429,report,page budgets and flagged-only sheets,case study: second result,rupa-pertype,3,9,0.3559,45,3711,247766,29008,9619,3
+20261015-235429,report,page budgets and flagged-only sheets,case study: second result,rupa-verify,3,6,0.2792,38,3127,153765,23218,3828,3
+20261016-000922-guide,guide,"first guide run, word-based cut hints",,baseline,3,20,0.8545,180,17670,786720,42977,23564,0
+20261016-000922-guide,guide,"first guide run, word-based cut hints",,rupa,3,14,0.4648,90,8238,348457,28764,9264,2
+20261016-000922-guide,guide,"first guide run, word-based cut hints",,rupa-pertype,3,17,0.5255,92,6464,312611,36896,17403,3
+20261016-000922-guide,guide,"first guide run, word-based cut hints",,rupa-verify,3,7,0.3495,64,4885,249016,25224,5723,3
+20261016-004331-guide,guide,with bundled fonts,,baseline,3,18,0.9423,219,20021,854510,47009,27603,0
+20261016-004331-guide,guide,with bundled fonts,,rupa,3,7,0.3944,68,6646,204375,26429,6930,2
+20261016-004331-guide,guide,with bundled fonts,,rupa-pertype,3,15,0.5248,105,8529,311164,36478,16984,3
+20261016-004331-guide,guide,with bundled fonts,,rupa-verify,3,12,0.4166,82,7127,206585,27985,8484,2
+20261016-062258-guide,guide,line-based cut hints,"README, cost analysis: guide",baseline,3,23,1.1941,252,25530,1051781,53716,34308,0
+20261016-062258-guide,guide,line-based cut hints,"README, cost analysis: guide",rupa,3,5,0.2828,43,3666,107903,23461,3960,3
+20261016-062258-guide,guide,line-based cut hints,"README, cost analysis: guide",rupa-pertype,3,15,0.4938,75,5306,359063,39453,19957,2
+20261016-062258-guide,guide,line-based cut hints,"README, cost analysis: guide",rupa-verify,3,6,0.3093,45,4164,155203,24352,4849,3
+20261016-065003-report,report,report on the current build,"README, cost analysis: report",baseline,3,13,0.5232,112,8518,505643,31524,12220,0
+20261016-065003-report,report,report on the current build,"README, cost analysis: report",rupa,3,5,0.2637,32,2674,152505,22374,2981,3
+20261016-065003-report,report,report on the current build,"README, cost analysis: report",rupa-pertype,3,9,0.3374,43,3023,246035,28438,9037,3
+20261016-065003-report,report,report on the current build,"README, cost analysis: report",rupa-verify,3,7,0.2859,36,2958,199354,23176,3785,3
+20261016-072202-tight,tight,must cut; Rupa arms only,build guide: tight task,rupa,3,7,0.3318,59,5643,102557,24510,6006,3
+20261016-072202-tight,tight,must cut; Rupa arms only,build guide: tight task,rupa-verify,3,8,0.3597,69,6362,139791,25558,7052,3
+20261016-080149-wide,wide,"single run, before the overflow detail",case study: 13 points over,rupa-verify,1,16,0.7044,147,11657,599759,43867,24324,0
+20261016-084958-wide,wide,"single run, after the split rule",,rupa-verify,1,8,0.3712,73,6280,176377,26289,7740,1
+20261016-085325-wide,wide,"all arms, before the wide-table rule","README, cost analysis: wide baseline",baseline,3,11,0.542,124,11912,225183,33422,14927,0
+20261016-085325-wide,wide,"all arms, before the wide-table rule","README, cost analysis: wide baseline",rupa,3,5,0.306,60,4861,103908,23495,4946,0
+20261016-085325-wide,wide,"all arms, before the wide-table rule","README, cost analysis: wide baseline",rupa-pertype,3,17,0.6409,115,10362,402055,42298,23751,2
+20261016-085325-wide,wide,"all arms, before the wide-table rule","README, cost analysis: wide baseline",rupa-verify,3,12,0.4696,106,8293,365627,28817,10270,3
+20261016-094105-wide,wide,"Rupa arms, after the wide-table rule","README, cost analysis: wide with Rupa",rupa,3,5,0.3163,57,5178,104516,23973,5426,3
+20261016-094105-wide,wide,"Rupa arms, after the wide-table rule","README, cost analysis: wide with Rupa",rupa-verify,3,6,0.3268,52,5176,139869,24326,5779,3
