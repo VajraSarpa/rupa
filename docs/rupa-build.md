@@ -431,7 +431,7 @@ Same task after the lines-based hint and the per-page line plan. Every run produ
 
 The line plan mostly removed cutting. 7 of the 9 Rupa runs fitted on their first render, all three render-only runs took exactly 5 turns, and two of the three shipped runs were one render plus a clean verify. Baseline was costlier than in either earlier guide run ($1.19 against $0.85 and $0.94). Agent runs vary, so the percentages are wider than the true gap; the shipped arm's own cost ($0.31) is the steadier number.
 
-Two runs still cut. One shipped run was asked to cut 4 lines, cut too little, was asked for 4 more and fitted: two rounds, with seven Edits in separate turns, so "all cuts in one turn" doesn't always hold. The skill now says how: rewrite the whole Markdown file with one Write, not a series of Edits, for budget cuts and verify fixes alike. That change hasn't been benchmarked yet. One per-type run fitted, then pushed itself back over the budget while fixing what it saw on the per-type sheets.
+Two runs still cut. One shipped run was asked to cut 4 lines, cut too little, was asked for 4 more and fitted: two rounds, with seven Edits in separate turns, so "all cuts in one turn" doesn't always hold. The skill now says how: rewrite the whole Markdown file with one Write, not a series of Edits, for budget cuts and verify fixes alike. The tight task below tests it. One per-type run fitted, then pushed itself back over the budget while fixing what it saw on the per-type sheets.
 
 The plan errs short. Most runs fitted only once Rupa dropped to compact type, so they weren't over-cut, but the Rupa guides still carry about 740 words against baseline's 1,260. Baseline gets its extra words by shrinking margins and type: every baseline PDF fails `rupa verify`'s `overflow` and `text-color` checks.
 
@@ -450,6 +450,18 @@ The 2-page report task again, with the bundled fonts, the line plan and the brea
 
 All nine Rupa runs fitted on their first render, so none cut anything, and every Rupa PDF passes `rupa verify` while every baseline PDF fails `text-color`. The shipped arm cost about the same as in the second result ($0.29 against $0.28); two of its runs spent one extra turn listing the folder to confirm `report.pdf` was there. Rupa's reports came in at about 720 words against baseline's 1,180, down from about 850 in the second result: the line plan makes Claude write to the theme's density rather than past it.
 
+### Tight task: cuts in one Write (2026-10-16)
+
+`TASK=tight`, the guide in two pages, so the run has to cut. Rupa arms only (`ARMS="rupa rupa-verify"`), three runs each, Opus 5.5, after the skill started telling Claude to cut by rewriting the whole file with one Write. Medians:
+
+| Arm | Turns | Cache reads | Cost |
+|---|---|---|---|
+| `rupa` | 7 | 102,557 | $0.33 |
+| `rupa-verify` (as shipped) | 8 | 139,791 | $0.36 |
+
+Five of the six runs went over the budget on the first render, asking for cuts of 7 to 31 lines. All five cut with a single Write of the whole file and fitted on the next render: one cut round each, with no Edits in any run. The sixth fitted at first. Every PDF passes `rupa verify` and keeps all four required parts, with policies of about 29 to 35 lines. A run that has to cut costs two turns (a Write and a render) on top of a run that fits at once, which is all a cut should cost.
+
+### How to read the results
 
 - Compare medians, not single runs. Agent runs vary.
 - Judge on turns and cost first. Output tokens are secondary.
