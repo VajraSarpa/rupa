@@ -2,10 +2,14 @@
 
 A theme CSS change that moves the layout fails here until `rupa refs` is re-run
 and the new PNGs are committed. The tolerance absorbs antialiasing differences
-between Pango builds (CI runs Ubuntu's), not layout shifts.
+between Pango builds (CI runs Ubuntu's), not layout shifts. With
+RUPA_GOLDEN_FAILURES set, a failing theme's PDF and pages are copied there.
 """
 
+import os
+import shutil
 from importlib import resources
+from pathlib import Path
 
 import pytest
 from PIL import Image, ImageChops
@@ -54,6 +58,9 @@ def test_sample_matches_reference_pages(sample_render):
             got = Image.open(tmp / "refs" / f"{kind}.png")
             assert got.size == want.size, f"{theme}/{kind}: page size changed"
             frac = changed_fraction(want, got)
+        if frac > MAX_CHANGED and os.environ.get("RUPA_GOLDEN_FAILURES"):
+            keep = Path(os.environ["RUPA_GOLDEN_FAILURES"]) / theme
+            shutil.copytree(tmp, keep, dirs_exist_ok=True)
         assert frac <= MAX_CHANGED, (
             f"{theme}/{kind}.png differs in {frac:.2%} of pixels; if the change "
             f"is intended, run `rupa refs --theme {theme}` and commit the PNGs"

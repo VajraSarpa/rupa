@@ -15,6 +15,15 @@ jobs:
       - run: uv sync
       - run: uvx ruff check src tests
       - run: uv run pytest -q
+        env:
+          RUPA_GOLDEN_FAILURES: out/golden-failures
+      - name: Upload golden-render failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-failures
+          path: out/golden-failures/
+          if-no-files-found: ignore
       - name: Smoke render
         run: |
           printf -- '---\ntitle: CI\n---\n\n## ok\n' | uv run rupa -o out/ci.pdf
