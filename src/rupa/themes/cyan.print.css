@@ -1,0 +1,38 @@
+/* cyan, PDF: white paper, solid black text, the deck's type and cyan accents.
+   Loaded after print.css. */
+:root {
+  --accent: #38bdf8;
+  --panel: #f5f9fc;
+  --rule: #d3dde8;
+  --code-bg: #f5f9fc;
+}
+@page {
+  @bottom-left { font: 400 7.5pt "JetBrains Mono", monospace; }
+  @bottom-right { font: 400 7.5pt "JetBrains Mono", monospace; }
+}
+/* Every glyph black, including what cyan.css colours on screen. */
+*, *::before, *::after, ::marker { color: #000000 !important; }
+.hl :is(.k, .kc, .kd, .kn, .kr, .nt, .c, .c1, .cm, .ch, .cs) { color: #000000 !important; }
+
+.cover { border-bottom: 2pt solid #38bdf8; padding-bottom: 14pt; margin-bottom: 20pt; }
+.subtitle { font-size: 15pt; font-weight: 700; }
+.byline, main h1::before { font-size: 7pt; }
+h2 { border-bottom: .75pt solid var(--rule); }
+blockquote { border-left: 2.5pt solid #38bdf8; }
+pre { border-radius: 8pt; }
+/* Table headers keep the body face: mono capitals are wider, and the
+   wide-table fit in print.css is measured on proportional type. */
+th { font-family: inherit; text-transform: none; letter-spacing: 0; font-size: 1em; }
+table { border-radius: 6pt; }
+
+/* Print spacing matches the default theme, so the same content fits the same
+   pages; the pill above each part title is the only extra height. */
+.cover { display: block; text-align: center; }
+.cover .byline { margin: 10pt auto 0; }
+.doc-title, .subtitle { max-width: none; }
+.subtitle { margin: 4pt 0 0; }
+main h1 { margin: 0 0 .8rem; }
+main h1::before { margin-bottom: 6pt; }
+h2 { margin: 2.75rem 0 .9rem; }
+h3 { margin: 2rem 0 .6rem; }
+pre, pre.hl { padding: .9rem 1rem; }

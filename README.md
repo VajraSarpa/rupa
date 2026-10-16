@@ -27,7 +27,7 @@ Claude writes content, Rupa applies a tested theme and prints one status line.
 | Path | What it is |
 |---|---|
 | `src/rupa/` | The CLI: `rupa` (render), `rupa verify` (check a PDF), `rupa refs` (rebuild reference pages) |
-| `src/rupa/themes/` | Theme CSS. PDF text is forced to solid black. `fonts/` bundles Inter and JetBrains Mono (SIL OFL 1.1), so a PDF looks the same on any machine |
+| `src/rupa/themes/` | Theme CSS: `default`, `cyan` (dark screen, light PDF) and `cyan-dark` (dark PDF), plus a print layer per theme. Light themes print solid black text. `fonts/` bundles Inter, Hanken Grotesk and JetBrains Mono (SIL OFL 1.1), so a PDF looks the same on any machine |
 | `src/rupa/references/` | Reference pages each theme is visually compared against |
 | `plugin/` | Claude Code plugin: one skill that renders, verifies and reviews |
 | `plugin/evals/` | `claude plugin eval` suite: does the skill trigger, render with rupa, and pass verify |
@@ -73,7 +73,7 @@ Needs Python 3.11+, [uv](https://docs.astral.sh/uv/), and Pango for WeasyPrint
 
 ```bash
 uv sync
-uv run pytest -q                   # 95 tests
+uv run pytest -q                   # 113 tests
 uvx ruff check src tests
 uv run rupa refs                   # after any theme change; commit the PNGs
 uv run python docs/build.py        # re-render the guide with Rupa

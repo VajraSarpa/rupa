@@ -49,7 +49,7 @@ DEFAULT_WANTS = {
     "theme": "default",
     "page_size": "letter",
     "max_pages": 100,
-    "text_color": "#000000",
+    "text_color": None,  # None: the theme's colours (THEME_TEXT_COLORS in render.py)
     "sparse_fill": 0.4,
     "near_empty_fill": 0.2,
     "checks": list(ALL_CHECKS),
@@ -127,7 +127,9 @@ def _validate(wants: dict) -> None:
     if not _is_int(wants["max_pages"]) or wants["max_pages"] < 1:
         raise WantsError("max_pages must be a whole number of at least 1")
     color = wants["text_color"]
-    if not (isinstance(color, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", color)):
+    if color is not None and not (
+        isinstance(color, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", color)
+    ):
         raise WantsError(f"text_color must be #RRGGBB, got {color!r}")
     for key in ("sparse_fill", "near_empty_fill"):
         if not _is_fraction(wants[key]):
@@ -200,7 +202,8 @@ class PageInfo:
 
     @property
     def starts_part(self) -> bool:
-        return bool(self.lines) and self.lines[0].size >= PART_HEADING_PT
+        # The first or second line: a theme may set a small label above a part title.
+        return any(ln.size >= PART_HEADING_PT for ln in self.lines[:2])
 
 
 def _hex_to_rgb(value: str) -> tuple[float, float, float]:
@@ -229,10 +232,18 @@ def _same_color(a, b, tol: float = 0.01) -> bool:
     return a is not None and all(abs(x - y) <= tol for x, y in zip(a, b))
 
 
-def read_pages(pdf_path: str | Path, wanted_color: str = "#000000") -> list[PageInfo]:
+def _text_colors(value) -> tuple[str, ...]:
+    """A wants text_color (one colour, several, or None) as a tuple of colours."""
+    if value is None:
+        return ("#000000",)
+    return (value,) if isinstance(value, str) else tuple(value)
+
+
+def read_pages(pdf_path: str | Path, wanted_color="#000000") -> list[PageInfo]:
+    """wanted_color: one #RRGGBB or several; any other text colour counts as off."""
     import pdfplumber
 
-    want = _hex_to_rgb(wanted_color)
+    want = [_hex_to_rgb(c) for c in _text_colors(wanted_color)]
     try:
         return _read_pages(pdfplumber, pdf_path, want)
     except Exception as exc:  # pdfminer raises many types on a damaged file
@@ -250,7 +261,7 @@ def _read_pages(pdfplumber, pdf_path, want) -> list[PageInfo]:
             for ch in page.chars:
                 rgb = _to_rgb(ch.get("non_stroking_color"))
                 seen.add(rgb)
-                if not _same_color(rgb, want):
+                if not any(_same_color(rgb, w) for w in want):
                     info.off_colors += 1
             info.colors = sorted(c for c in seen if c is not None)
             footer_y = info.height - FOOTER_CUTOFF * PT_PER_IN
@@ -343,7 +354,7 @@ def run_checks(pages: list[PageInfo], wants: dict) -> list[CheckResult]:
     add(
         "text-color",
         [p.number for p in pages if p.off_colors],
-        f"text not {wants['text_color']}",
+        f"text not {' or '.join(_text_colors(wants['text_color']))}",
     )
     w, h = PAGE_SIZES[wants["page_size"]]
     add(
@@ -562,10 +573,30 @@ class VerifyReport:
         return line
 
 
+def pdf_theme(pdf_path: str | Path) -> str | None:
+    """The theme Rupa rendered this PDF with (its keywords metadata), if known."""
+    import pdfplumber
+
+    from .render import THEMES
+
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            keywords = str(pdf.metadata.get("Keywords", ""))
+    except Exception:  # noqa: BLE001 - an unreadable PDF is reported by read_pages
+        return None
+    m = re.search(r"rupa-theme:([\w-]+)", keywords)
+    return m.group(1) if m and m.group(1) in THEMES else None
+
+
 def verify(
     pdf_path: str | Path, wants: dict, out_dir: str | Path, theme: str | None = None
 ) -> VerifyReport:
-    theme = theme or wants["theme"]
+    from .render import THEME_TEXT_COLORS
+
+    # --theme, else the theme Rupa recorded in the PDF, else the wants file's.
+    theme = theme or pdf_theme(pdf_path) or wants["theme"]
+    if not wants["text_color"]:
+        wants = {**wants, "text_color": THEME_TEXT_COLORS[theme]}
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     for old in out.glob("sheet-p*.png"):

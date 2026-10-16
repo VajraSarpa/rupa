@@ -1,9 +1,11 @@
 # What a finished PDF must satisfy. Every key is optional; omitted keys use
 # the defaults shown here. Unknown keys are an error.
-theme: default            # whose reference pages the sheets compare against
+theme: default            # reference pages to compare against, when neither
+                          # --theme nor the PDF (Rupa records it) names one
 page_size: letter         # letter | a4
 max_pages: 100
-text_color: "#000000"     # every character must be this color
+text_color: null          # every character must be this #RRGGBB; null uses the
+                          # theme's colours (black for light themes)
 sparse_fill: 0.4          # flag a page under 40% full, unless a part starts next
 near_empty_fill: 0.2      # flag a page under 20% full, always
 checks:                   # remove any you don't want

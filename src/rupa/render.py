@@ -21,6 +21,7 @@ TEMPLATE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="keywords" content="rupa-theme:{{ theme }}">
 <title>{{ title }}</title>
 <style>{{ css | safe }}</style>
 </head>
@@ -44,7 +45,16 @@ TEMPLATE = """<!doctype html>
 </html>
 """
 
-THEMES = ("default",)
+THEMES = ("default", "cyan", "cyan-dark")
+# A theme can share another's screen CSS and differ only in its print layer.
+THEME_BASE = {"cyan-dark": "cyan"}
+# The text colours verify accepts in a theme's PDFs. Light themes print solid
+# black; a dark theme prints its own ink, accent and secondary greys.
+THEME_TEXT_COLORS = {
+    "default": ("#000000",),
+    "cyan": ("#000000",),
+    "cyan-dark": ("#e6edf6", "#38bdf8", "#9fb0c8", "#6b7d98"),
+}
 
 # Fonts ship with Rupa so a PDF looks the same on every machine, whatever is
 # installed. Only the PDF target uses them; HTML keeps the CSS font stack.
@@ -56,6 +66,12 @@ FONT_FACES = (  # (family, file stem, weight, style)
     ("Inter", "Inter-SemiBold", 600, "normal"),
     ("Inter", "Inter-Bold", 700, "normal"),
     ("Inter", "Inter-BoldItalic", 700, "italic"),
+    ("Hanken Grotesk", "HankenGrotesk-Regular", 400, "normal"),
+    ("Hanken Grotesk", "HankenGrotesk-Italic", 400, "italic"),
+    ("Hanken Grotesk", "HankenGrotesk-Medium", 500, "normal"),
+    ("Hanken Grotesk", "HankenGrotesk-SemiBold", 600, "normal"),
+    ("Hanken Grotesk", "HankenGrotesk-Bold", 700, "normal"),
+    ("Hanken Grotesk", "HankenGrotesk-BoldItalic", 700, "italic"),
     ("JetBrains Mono", "JetBrainsMono-Regular", 400, "normal"),
     ("JetBrains Mono", "JetBrainsMono-Bold", 700, "normal"),
 )
@@ -77,12 +93,16 @@ def _theme_css(theme: str, target: str) -> str:
     if theme not in THEMES:
         raise RenderError(f"unknown theme '{theme}' (have: {', '.join(THEMES)})")
     pkg = resources.files("rupa") / "themes"
-    css = (pkg / f"{theme}.css").read_text(encoding="utf-8")
+    css = (pkg / f"{THEME_BASE.get(theme, theme)}.css").read_text(encoding="utf-8")
     css += "\n" + HtmlFormatter(style="default").get_style_defs(".hl")
     if target == "pdf":
-        # print.css goes last so it overrides Pygments' unscoped `pre` rule too
+        # print.css goes last so it overrides Pygments' unscoped `pre` rule too,
+        # then the theme's own print layer, if it has one.
         css = _font_faces() + "\n" + css
         css += "\n" + (pkg / "print.css").read_text(encoding="utf-8")
+        layer = pkg / f"{theme}.print.css"
+        if layer.is_file():
+            css += "\n" + layer.read_text(encoding="utf-8")
     return css
 
 
@@ -179,6 +199,7 @@ def to_html(
         body=embed_images(doc.body_html, base_dir) if base_dir else doc.body_html,
         css=_theme_css(theme, target) + extra_css,
         target=target,
+        theme=theme,
     )
 
 

@@ -86,9 +86,4 @@ def step_6(doc):
 def step_7(doc):
     """Stage 7 of the sample pipeline."""
     return transform(doc, stage=7)
-
-
-def step_8(doc):
-    """Stage 8 of the sample pipeline."""
-    return transform(doc, stage=8)
 ```

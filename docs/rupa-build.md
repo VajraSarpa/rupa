@@ -230,7 +230,11 @@ The cyan accent survives only on rules and borders, never on text. Syntax highli
 
 Code blocks use `white-space: pre-wrap` and nothing else. WeasyPrint treats `word-wrap: break-word` as permission to break anywhere, which split `solid` into `s` and `olid` in an earlier render of this document. The visual review caught it; the code checks couldn't.
 
-To add a theme, copy `default.css` to `newname.css`, change the variables at the top, add the name to `THEMES` in `render.py`, and run `rupa refs --theme newname` to build its reference pages.
+To add a theme, copy `default.css` to `newname.css`, change the variables at the top, add the name to `THEMES` and its PDF text colours to `THEME_TEXT_COLORS` in `render.py`, and run `rupa refs --theme newname` to build its reference pages. The golden-render test then covers it with no new test code.
+
+A theme can also carry a print layer, `newname.print.css`, appended after `print.css` for PDF only. Two themes use one: `cyan` and `cyan-dark`, built from the Cyan Signature system used for slide decks (deep navy, one cyan accent, Hanken Grotesk with JetBrains Mono labels, green-dot pill badges, rounded panels). They share `cyan.css` for screen through `THEME_BASE`. The `cyan` print layer turns the page white and every glyph black, keeping the type and cyan rules; `cyan-dark` keeps the navy page and prints in the deck's own ink, cyan and greys, which verify accepts because they're listed for it. Each render records its theme in the PDF's keywords, so `rupa verify` picks the right reference pages and colours without being told.
+
+WeasyPrint shaped the print layers. It paints a page background from the text area down, so a glow at the top edge got a hard line; the dark PDF keeps the gradient and drops the glow. It has no `fit-content` and centres flex items by shrinking them, so pills are `display: table` and the PDF cover is a centred block. The sample's code page was 97% full in the default theme, so the pill above each part title pushed it onto a fifth page; the sample now has seven functions, not eight, to leave every theme room.
 
 ## Verification
 

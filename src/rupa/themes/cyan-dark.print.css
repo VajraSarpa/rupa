@@ -1,0 +1,53 @@
+/* cyan-dark, PDF: the deck itself. Navy pages, light ink, cyan accent.
+   Loaded after print.css, so it restores the screen palette print.css resets.
+   Text uses only the colours in THEME_TEXT_COLORS["cyan-dark"]. */
+:root {
+  --ink: #e6edf6; --muted: #9fb0c8; --label: #6b7d98; --accent: #38bdf8;
+  --panel: rgba(22, 32, 50, 0.62); --rule: #2a3650; --code-bg: rgba(11, 17, 32, 0.72);
+}
+@page {
+  /* The deck's gradient without its glow: WeasyPrint paints page backgrounds
+     from the text area down, so a glow at the top edge gets a hard line. The
+     top margin's solid colour matches the gradient's start, so it's seamless. */
+  background: #0b1120 linear-gradient(#0b1120, #111a2b) no-repeat;
+  background-origin: border-box;
+  @bottom-left {
+    font: 400 7.5pt "JetBrains Mono", monospace;
+    color: #6b7d98;
+  }
+  @bottom-right {
+    font: 400 7.5pt "JetBrains Mono", monospace;
+    color: #6b7d98;
+  }
+}
+html, body { background: transparent; }
+
+/* Ink by default, then the accent and greys where the deck uses them. */
+/* html body * outranks print.css's forced-black element rules (p, li, ...);
+   its class rules (.subtitle, .toc a, .hl *) are matched one by one below. */
+html body *, html body *::before, html body *::after, ::marker, .toc a { color: #e6edf6 !important; }
+.subtitle, .byline, main h1::before, :is(h1, h2, h3) strong, a { color: #38bdf8 !important; }
+em, blockquote, blockquote *, .footnotes, .footnotes *, .toc li.l2, .toc li.l2 a { color: #9fb0c8 !important; }
+.toc h2, th, ::marker { color: #6b7d98 !important; }
+.hl * { color: #e6edf6 !important; }
+.hl :is(.k, .kc, .kd, .kn, .kr, .nt) { color: #38bdf8 !important; }
+.hl :is(.c, .c1, .cm, .ch, .cs) { color: #6b7d98 !important; }
+
+.subtitle { font-size: 15pt; font-weight: 700; }
+.byline, main h1::before { font-size: 7pt; }
+.cover { margin-bottom: 22pt; }
+pre { border-radius: 8pt; }
+th { font-family: inherit; text-transform: none; letter-spacing: 0; font-size: 1em; }
+table { border-radius: 6pt; }
+
+/* Print spacing matches the default theme, so the same content fits the same
+   pages; the pill above each part title is the only extra height. */
+.cover { display: block; text-align: center; }
+.cover .byline { margin: 10pt auto 0; }
+.doc-title, .subtitle { max-width: none; }
+.subtitle { margin: 4pt 0 0; }
+main h1 { margin: 0 0 .8rem; }
+main h1::before { margin-bottom: 6pt; }
+h2 { margin: 2.75rem 0 .9rem; }
+h3 { margin: 2rem 0 .6rem; }
+pre, pre.hl { padding: .9rem 1rem; }

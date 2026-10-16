@@ -9,6 +9,10 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
 
 1. Write the content as Markdown. Optional frontmatter keys: `title`,
    `subtitle`, `author`, `date`, `theme`, `toc` (true/false), `pages`.
+   Themes: `default`, `cyan` (dark navy page on screen, black-on-white
+   PDF), `cyan-dark` (dark PDF too). Use the one the user names; otherwise
+   leave `theme` out. In `cyan`, a `**bold**` phrase in a heading is the
+   cyan key phrase.
    No other keys. If the user asks for a page count, set `pages: N`: Rupa
    then fits the PDF to N pages itself (drops the contents list, tightens
    type). Plan about 30 lines per page: a line of prose is about 15 words,

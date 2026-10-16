@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="keywords" content="rupa-theme:default">
 <title>Rupa</title>
 <style>/* Rupa default theme: slate ink, one cyan accent. Screen first. */
 :root {
@@ -718,7 +719,9 @@ $<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </
 </code></pre>
 <p>The cyan accent survives only on rules and borders, never on text. Syntax highlighting is turned off in PDF for the same reason.</p>
 <p>Code blocks use <code>white-space: pre-wrap</code> and nothing else. WeasyPrint treats <code>word-wrap: break-word</code> as permission to break anywhere, which split <code>solid</code> into <code>s</code> and <code>olid</code> in an earlier render of this document. The visual review caught it; the code checks couldn't.</p>
-<p>To add a theme, copy <code>default.css</code> to <code>newname.css</code>, change the variables at the top, add the name to <code>THEMES</code> in <code>render.py</code>, and run <code>rupa refs --theme newname</code> to build its reference pages.</p>
+<p>To add a theme, copy <code>default.css</code> to <code>newname.css</code>, change the variables at the top, add the name to <code>THEMES</code> and its PDF text colours to <code>THEME_TEXT_COLORS</code> in <code>render.py</code>, and run <code>rupa refs --theme newname</code> to build its reference pages. The golden-render test then covers it with no new test code.</p>
+<p>A theme can also carry a print layer, <code>newname.print.css</code>, appended after <code>print.css</code> for PDF only. Two themes use one: <code>cyan</code> and <code>cyan-dark</code>, built from the Cyan Signature system used for slide decks (deep navy, one cyan accent, Hanken Grotesk with JetBrains Mono labels, green-dot pill badges, rounded panels). They share <code>cyan.css</code> for screen through <code>THEME_BASE</code>. The <code>cyan</code> print layer turns the page white and every glyph black, keeping the type and cyan rules; <code>cyan-dark</code> keeps the navy page and prints in the deck's own ink, cyan and greys, which verify accepts because they're listed for it. Each render records its theme in the PDF's keywords, so <code>rupa verify</code> picks the right reference pages and colours without being told.</p>
+<p>WeasyPrint shaped the print layers. It paints a page background from the text area down, so a glow at the top edge got a hard line; the dark PDF keeps the gradient and drops the glow. It has no <code>fit-content</code> and centres flex items by shrinking them, so pills are <code>display: table</code> and the PDF cover is a centred block. The sample's code page was 97% full in the default theme, so the pill above each part title pushed it onto a fifth page; the sample now has seven functions, not eight, to leave every theme room.</p>
 <h2 id="verification">Verification</h2>
 <p>Rendering proves the file exists. Verification checks that it's right, in two tiers.
 <strong>Tier 1: code checks.</strong> <code>rupa verify</code> reads the PDF with pdfplumber and checks what can be measured exactly. Each check is free, repeatable and reports page numbers.</p>
@@ -1752,6 +1755,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="s2">&lt;head&gt;</span>
 <span class="s2">&lt;meta charset="utf-8"&gt;</span>
 <span class="s2">&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;</span>
+<span class="s2">&lt;meta name="keywords" content="rupa-theme:{{ theme }}"&gt;</span>
 <span class="s2">&lt;title&gt;{{ title }}&lt;/title&gt;</span>
 <span class="s2">&lt;style&gt;{{ css | safe }}&lt;/style&gt;</span>
 <span class="s2">&lt;/head&gt;</span>
@@ -1775,7 +1779,16 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="s2">&lt;/html&gt;</span>
 <span class="s2">"""</span>
 
-<span class="n">THEMES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"default"</span><span class="p">,)</span>
+<span class="n">THEMES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"default"</span><span class="p">,</span> <span class="s2">"cyan"</span><span class="p">,</span> <span class="s2">"cyan-dark"</span><span class="p">)</span>
+<span class="c1"># A theme can share another's screen CSS and differ only in its print layer.</span>
+<span class="n">THEME_BASE</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"cyan-dark"</span><span class="p">:</span> <span class="s2">"cyan"</span><span class="p">}</span>
+<span class="c1"># The text colours verify accepts in a theme's PDFs. Light themes print solid</span>
+<span class="c1"># black; a dark theme prints its own ink, accent and secondary greys.</span>
+<span class="n">THEME_TEXT_COLORS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"default"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"#000000"</span><span class="p">,),</span>
+    <span class="s2">"cyan"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"#000000"</span><span class="p">,),</span>
+    <span class="s2">"cyan-dark"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"#e6edf6"</span><span class="p">,</span> <span class="s2">"#38bdf8"</span><span class="p">,</span> <span class="s2">"#9fb0c8"</span><span class="p">,</span> <span class="s2">"#6b7d98"</span><span class="p">),</span>
+<span class="p">}</span>
 
 <span class="c1"># Fonts ship with Rupa so a PDF looks the same on every machine, whatever is</span>
 <span class="c1"># installed. Only the PDF target uses them; HTML keeps the CSS font stack.</span>
@@ -1787,6 +1800,12 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="p">(</span><span class="s2">"Inter"</span><span class="p">,</span> <span class="s2">"Inter-SemiBold"</span><span class="p">,</span> <span class="mi">600</span><span class="p">,</span> <span class="s2">"normal"</span><span class="p">),</span>
     <span class="p">(</span><span class="s2">"Inter"</span><span class="p">,</span> <span class="s2">"Inter-Bold"</span><span class="p">,</span> <span class="mi">700</span><span class="p">,</span> <span class="s2">"normal"</span><span class="p">),</span>
     <span class="p">(</span><span class="s2">"Inter"</span><span class="p">,</span> <span class="s2">"Inter-BoldItalic"</span><span class="p">,</span> <span class="mi">700</span><span class="p">,</span> <span class="s2">"italic"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"Hanken Grotesk"</span><span class="p">,</span> <span class="s2">"HankenGrotesk-Regular"</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="s2">"normal"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"Hanken Grotesk"</span><span class="p">,</span> <span class="s2">"HankenGrotesk-Italic"</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="s2">"italic"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"Hanken Grotesk"</span><span class="p">,</span> <span class="s2">"HankenGrotesk-Medium"</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="s2">"normal"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"Hanken Grotesk"</span><span class="p">,</span> <span class="s2">"HankenGrotesk-SemiBold"</span><span class="p">,</span> <span class="mi">600</span><span class="p">,</span> <span class="s2">"normal"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"Hanken Grotesk"</span><span class="p">,</span> <span class="s2">"HankenGrotesk-Bold"</span><span class="p">,</span> <span class="mi">700</span><span class="p">,</span> <span class="s2">"normal"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"Hanken Grotesk"</span><span class="p">,</span> <span class="s2">"HankenGrotesk-BoldItalic"</span><span class="p">,</span> <span class="mi">700</span><span class="p">,</span> <span class="s2">"italic"</span><span class="p">),</span>
     <span class="p">(</span><span class="s2">"JetBrains Mono"</span><span class="p">,</span> <span class="s2">"JetBrainsMono-Regular"</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="s2">"normal"</span><span class="p">),</span>
     <span class="p">(</span><span class="s2">"JetBrains Mono"</span><span class="p">,</span> <span class="s2">"JetBrainsMono-Bold"</span><span class="p">,</span> <span class="mi">700</span><span class="p">,</span> <span class="s2">"normal"</span><span class="p">),</span>
 <span class="p">)</span>
@@ -1808,12 +1827,16 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="k">if</span> <span class="n">theme</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">THEMES</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">RenderError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown theme '</span><span class="si">{</span><span class="n">theme</span><span class="si">}</span><span class="s2">' (have: </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">THEMES</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
     <span class="n">pkg</span> <span class="o">=</span> <span class="n">resources</span><span class="o">.</span><span class="n">files</span><span class="p">(</span><span class="s2">"rupa"</span><span class="p">)</span> <span class="o">/</span> <span class="s2">"themes"</span>
-    <span class="n">css</span> <span class="o">=</span> <span class="p">(</span><span class="n">pkg</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">theme</span><span class="si">}</span><span class="s2">.css"</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+    <span class="n">css</span> <span class="o">=</span> <span class="p">(</span><span class="n">pkg</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">THEME_BASE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">theme</span><span class="p">,</span><span class="w"> </span><span class="n">theme</span><span class="p">)</span><span class="si">}</span><span class="s2">.css"</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
     <span class="n">css</span> <span class="o">+=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="n">HtmlFormatter</span><span class="p">(</span><span class="n">style</span><span class="o">=</span><span class="s2">"default"</span><span class="p">)</span><span class="o">.</span><span class="n">get_style_defs</span><span class="p">(</span><span class="s2">".hl"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="s2">"pdf"</span><span class="p">:</span>
-        <span class="c1"># print.css goes last so it overrides Pygments' unscoped `pre` rule too</span>
+        <span class="c1"># print.css goes last so it overrides Pygments' unscoped `pre` rule too,</span>
+        <span class="c1"># then the theme's own print layer, if it has one.</span>
         <span class="n">css</span> <span class="o">=</span> <span class="n">_font_faces</span><span class="p">()</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="n">css</span>
         <span class="n">css</span> <span class="o">+=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="p">(</span><span class="n">pkg</span> <span class="o">/</span> <span class="s2">"print.css"</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="n">layer</span> <span class="o">=</span> <span class="n">pkg</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">theme</span><span class="si">}</span><span class="s2">.print.css"</span>
+        <span class="k">if</span> <span class="n">layer</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="n">css</span> <span class="o">+=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="n">layer</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">css</span>
 
 
@@ -1910,6 +1933,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
         <span class="n">body</span><span class="o">=</span><span class="n">embed_images</span><span class="p">(</span><span class="n">doc</span><span class="o">.</span><span class="n">body_html</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">)</span> <span class="k">if</span> <span class="n">base_dir</span> <span class="k">else</span> <span class="n">doc</span><span class="o">.</span><span class="n">body_html</span><span class="p">,</span>
         <span class="n">css</span><span class="o">=</span><span class="n">_theme_css</span><span class="p">(</span><span class="n">theme</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span> <span class="o">+</span> <span class="n">extra_css</span><span class="p">,</span>
         <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+        <span class="n">theme</span><span class="o">=</span><span class="n">theme</span><span class="p">,</span>
     <span class="p">)</span>
 
 
@@ -2248,14 +2272,20 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="sd">  stdout -&gt; ONE status line (or one JSON object with --json). Never the document.</span>
 <span class="sd">  exit   -&gt; 0 ok, 2 usage, 3 bad input, 4 render failure,</span>
 <span class="sd">            5 verify checks failed, or a PDF still over its page budget</span>
+
+<span class="sd">Every run that exits non-zero or crashes is appended to a JSONL log,</span>
+<span class="sd">~/.rupa/log.jsonl by default. RUPA_LOG=&lt;path&gt; moves it; RUPA_LOG=off stops it.</span>
 <span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">traceback</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">UTC</span><span class="p">,</span> <span class="n">datetime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">importlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">resources</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
@@ -2460,13 +2490,76 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="k">return</span> <span class="n">EXIT_OK</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-    <span class="n">argv</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">if</span> <span class="n">argv</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">argv</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_Tee</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Pass writes through to a stream and keep a copy for the log."""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">stream</span><span class="p">,</span> <span class="p">[]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_log_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"RUPA_LOG"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"off"</span><span class="p">,</span> <span class="s2">"0"</span><span class="p">,</span> <span class="s2">"false"</span><span class="p">,</span> <span class="s2">"no"</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="n">value</span> <span class="k">else</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">".rupa"</span> <span class="o">/</span> <span class="s2">"log.jsonl"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_log</span><span class="p">(</span><span class="n">argv</span><span class="p">,</span> <span class="n">code</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">_Tee</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span> <span class="n">_Tee</span><span class="p">,</span> <span class="n">crash</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">_log_path</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">entry</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"time"</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">UTC</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(</span><span class="n">timespec</span><span class="o">=</span><span class="s2">"seconds"</span><span class="p">),</span>
+        <span class="s2">"version"</span><span class="p">:</span> <span class="n">__version__</span><span class="p">,</span>
+        <span class="s2">"cwd"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()),</span>
+        <span class="s2">"argv"</span><span class="p">:</span> <span class="n">argv</span><span class="p">,</span>
+        <span class="s2">"exit"</span><span class="p">:</span> <span class="n">code</span><span class="p">,</span>
+        <span class="s2">"stdout"</span><span class="p">:</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+        <span class="s2">"stderr"</span><span class="p">:</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">crash</span><span class="p">:</span>
+        <span class="n">entry</span><span class="p">[</span><span class="s2">"traceback"</span><span class="p">]</span> <span class="o">=</span> <span class="n">crash</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+        <span class="k">pass</span>  <span class="c1"># logging must never change what the CLI does</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_dispatch</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">argv</span> <span class="ow">and</span> <span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"verify"</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">verify_main</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
     <span class="k">if</span> <span class="n">argv</span> <span class="ow">and</span> <span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"refs"</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">refs_main</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
     <span class="k">return</span> <span class="n">render_main</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="n">argv</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">if</span> <span class="n">argv</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">argv</span><span class="p">)</span>
+    <span class="n">out</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">_Tee</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">),</span> <span class="n">_Tee</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">out</span><span class="p">,</span> <span class="n">err</span>
+    <span class="n">code</span><span class="p">,</span> <span class="n">crash</span> <span class="o">=</span> <span class="n">EXIT_OK</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">_dispatch</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">code</span>
+    <span class="k">except</span> <span class="ne">SystemExit</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># argparse usage errors, --help, --version</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">exc</span><span class="o">.</span><span class="n">code</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">exc</span><span class="o">.</span><span class="n">code</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">raise</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">code</span><span class="p">,</span> <span class="n">crash</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span>
+        <span class="k">raise</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">stream</span><span class="p">,</span> <span class="n">err</span><span class="o">.</span><span class="n">stream</span>
+        <span class="k">if</span> <span class="n">code</span><span class="p">:</span>
+            <span class="n">_log</span><span class="p">(</span><span class="n">argv</span><span class="p">,</span> <span class="n">code</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">crash</span><span class="p">)</span>
 
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
@@ -2691,6 +2784,49 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
         <span class="n">fonts</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">[</span><span class="s2">"fontname"</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"+"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">pdf</span><span class="o">.</span><span class="n">pages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">chars</span><span class="p">}</span>
     <span class="k">assert</span> <span class="nb">any</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"Inter"</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fonts</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">any</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"JetBrains"</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fonts</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_entries</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_success_is_not_logged</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="n">_rupa_log</span><span class="p">):</span>
+    <span class="n">code</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="p">[</span><span class="s2">"-o"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"o.html"</span><span class="p">)])</span>
+    <span class="k">assert</span> <span class="n">code</span> <span class="o">==</span> <span class="n">EXIT_OK</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_rupa_log</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_failure_is_logged</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="n">_rupa_log</span><span class="p">):</span>
+    <span class="n">argv</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"-o"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"o.html"</span><span class="p">)]</span>
+    <span class="n">code</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="n">argv</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">entry</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_entries</span><span class="p">(</span><span class="n">_rupa_log</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">code</span> <span class="o">==</span> <span class="n">EXIT_INPUT</span> <span class="ow">and</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"exit"</span><span class="p">]</span> <span class="o">==</span> <span class="n">EXIT_INPUT</span>
+    <span class="k">assert</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"argv"</span><span class="p">]</span> <span class="o">==</span> <span class="n">argv</span> <span class="ow">and</span> <span class="s2">"empty"</span> <span class="ow">in</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"stderr"</span><span class="p">]</span>
+    <span class="c1"># the contract is unchanged: the user still sees the same output</span>
+    <span class="k">assert</span> <span class="s2">"empty"</span> <span class="ow">in</span> <span class="n">err</span> <span class="ow">and</span> <span class="n">out</span> <span class="o">==</span> <span class="s2">""</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_usage_error_is_logged</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="n">_rupa_log</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="ne">SystemExit</span><span class="p">):</span>
+        <span class="n">run</span><span class="p">(</span><span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="p">[</span><span class="s2">"-o"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"o.html"</span><span class="p">),</span> <span class="s2">"--no-such-flag"</span><span class="p">])</span>
+    <span class="p">(</span><span class="n">entry</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_entries</span><span class="p">(</span><span class="n">_rupa_log</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"exit"</span><span class="p">]</span> <span class="o">==</span> <span class="n">EXIT_USAGE</span> <span class="ow">and</span> <span class="s2">"--no-such-flag"</span> <span class="ow">in</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"stderr"</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_crash_is_logged_with_traceback</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="n">_rupa_log</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">boom</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"kaboom"</span><span class="p">)</span>
+
+    <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setattr</span><span class="p">(</span><span class="s2">"rupa.cli.to_html"</span><span class="p">,</span> <span class="n">boom</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+        <span class="n">run</span><span class="p">(</span><span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="p">[</span><span class="s2">"-o"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"o.html"</span><span class="p">)])</span>
+    <span class="p">(</span><span class="n">entry</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_entries</span><span class="p">(</span><span class="n">_rupa_log</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"exit"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="s2">"kaboom"</span> <span class="ow">in</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"traceback"</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_log_off</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="n">_rupa_log</span><span class="p">):</span>
+    <span class="n">monkeypatch</span><span class="o">.</span><span class="n">setenv</span><span class="p">(</span><span class="s2">"RUPA_LOG"</span><span class="p">,</span> <span class="s2">"off"</span><span class="p">)</span>
+    <span class="n">run</span><span class="p">(</span><span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="p">[</span><span class="s2">"-o"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"o.html"</span><span class="p">)],</span> <span class="n">stdin</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">_rupa_log</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
 </code></pre>
 <p><strong>Checkpoint:</strong> <code>uv run pytest -q</code> shows 16 passed.</p>
 <h2 id="step-5-install-it-as-a-command">Step 5: Install it as a command</h2>
@@ -2764,6 +2900,10 @@ name: render
 
 <span class="k">1.</span> Write the content as Markdown. Optional frontmatter keys: <span class="sb">`title`</span>,
    <span class="sb">`subtitle`</span>, <span class="sb">`author`</span>, <span class="sb">`date`</span>, <span class="sb">`theme`</span>, <span class="sb">`toc`</span> (true/false), <span class="sb">`pages`</span>.
+   Themes: <span class="sb">`default`</span>, <span class="sb">`cyan`</span> (dark navy page on screen, black-on-white
+   PDF), <span class="sb">`cyan-dark`</span> (dark PDF too). Use the one the user names; otherwise
+   leave <span class="sb">`theme`</span> out. In <span class="sb">`cyan`</span>, a <span class="sb">`**bold**`</span> phrase in a heading is the
+   cyan key phrase.
    No other keys. If the user asks for a page count, set <span class="sb">`pages: N`</span>: Rupa
    then fits the PDF to N pages itself (drops the contents list, tightens
    type). Plan about 30 lines per page: a line of prose is about 15 words,
@@ -2894,7 +3034,7 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
     <span class="s2">"theme"</span><span class="p">:</span> <span class="s2">"default"</span><span class="p">,</span>
     <span class="s2">"page_size"</span><span class="p">:</span> <span class="s2">"letter"</span><span class="p">,</span>
     <span class="s2">"max_pages"</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
-    <span class="s2">"text_color"</span><span class="p">:</span> <span class="s2">"#000000"</span><span class="p">,</span>
+    <span class="s2">"text_color"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># None: the theme's colours (THEME_TEXT_COLORS in render.py)</span>
     <span class="s2">"sparse_fill"</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span>
     <span class="s2">"near_empty_fill"</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
     <span class="s2">"checks"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">ALL_CHECKS</span><span class="p">),</span>
@@ -2972,7 +3112,9 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_int</span><span class="p">(</span><span class="n">wants</span><span class="p">[</span><span class="s2">"max_pages"</span><span class="p">])</span> <span class="ow">or</span> <span class="n">wants</span><span class="p">[</span><span class="s2">"max_pages"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="s2">"max_pages must be a whole number of at least 1"</span><span class="p">)</span>
     <span class="n">color</span> <span class="o">=</span> <span class="n">wants</span><span class="p">[</span><span class="s2">"text_color"</span><span class="p">]</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">"#[0-9a-fA-F]</span><span class="si">{6}</span><span class="s2">"</span><span class="p">,</span> <span class="n">color</span><span class="p">)):</span>
+    <span class="k">if</span> <span class="n">color</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span>
+        <span class="nb">isinstance</span><span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">"#[0-9a-fA-F]</span><span class="si">{6}</span><span class="s2">"</span><span class="p">,</span> <span class="n">color</span><span class="p">)</span>
+    <span class="p">):</span>
         <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"text_color must be #RRGGBB, got </span><span class="si">{</span><span class="n">color</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"sparse_fill"</span><span class="p">,</span> <span class="s2">"near_empty_fill"</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_fraction</span><span class="p">(</span><span class="n">wants</span><span class="p">[</span><span class="n">key</span><span class="p">]):</span>
@@ -3045,7 +3187,8 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">starts_part</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;=</span> <span class="n">PART_HEADING_PT</span>
+        <span class="c1"># The first or second line: a theme may set a small label above a part title.</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">ln</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;=</span> <span class="n">PART_HEADING_PT</span> <span class="k">for</span> <span class="n">ln</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_hex_to_rgb</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
@@ -3074,10 +3217,18 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
     <span class="k">return</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">tol</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">read_pages</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">wanted_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"#000000"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">PageInfo</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_text_colors</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""A wants text_color (one colour, several, or None) as a tuple of colours."""</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s2">"#000000"</span><span class="p">,)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">value</span><span class="p">,)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">read_pages</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">wanted_color</span><span class="o">=</span><span class="s2">"#000000"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">PageInfo</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""wanted_color: one #RRGGBB or several; any other text colour counts as off."""</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pdfplumber</span>
 
-    <span class="n">want</span> <span class="o">=</span> <span class="n">_hex_to_rgb</span><span class="p">(</span><span class="n">wanted_color</span><span class="p">)</span>
+    <span class="n">want</span> <span class="o">=</span> <span class="p">[</span><span class="n">_hex_to_rgb</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">_text_colors</span><span class="p">(</span><span class="n">wanted_color</span><span class="p">)]</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_read_pages</span><span class="p">(</span><span class="n">pdfplumber</span><span class="p">,</span> <span class="n">pdf_path</span><span class="p">,</span> <span class="n">want</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># pdfminer raises many types on a damaged file</span>
@@ -3095,7 +3246,7 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
             <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">page</span><span class="o">.</span><span class="n">chars</span><span class="p">:</span>
                 <span class="n">rgb</span> <span class="o">=</span> <span class="n">_to_rgb</span><span class="p">(</span><span class="n">ch</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"non_stroking_color"</span><span class="p">))</span>
                 <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">rgb</span><span class="p">)</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">_same_color</span><span class="p">(</span><span class="n">rgb</span><span class="p">,</span> <span class="n">want</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">_same_color</span><span class="p">(</span><span class="n">rgb</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">want</span><span class="p">):</span>
                     <span class="n">info</span><span class="o">.</span><span class="n">off_colors</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="n">info</span><span class="o">.</span><span class="n">colors</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">seen</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">footer_y</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">height</span> <span class="o">-</span> <span class="n">FOOTER_CUTOFF</span> <span class="o">*</span> <span class="n">PT_PER_IN</span>
@@ -3188,7 +3339,7 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
     <span class="n">add</span><span class="p">(</span>
         <span class="s2">"text-color"</span><span class="p">,</span>
         <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">number</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pages</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">off_colors</span><span class="p">],</span>
-        <span class="sa">f</span><span class="s2">"text not </span><span class="si">{</span><span class="n">wants</span><span class="p">[</span><span class="s1">'text_color'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">"text not </span><span class="si">{</span><span class="s1">' or '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_text_colors</span><span class="p">(</span><span class="n">wants</span><span class="p">[</span><span class="s1">'text_color'</span><span class="p">]))</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">PAGE_SIZES</span><span class="p">[</span><span class="n">wants</span><span class="p">[</span><span class="s2">"page_size"</span><span class="p">]]</span>
     <span class="n">add</span><span class="p">(</span>
@@ -3407,10 +3558,30 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
         <span class="k">return</span> <span class="n">line</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">pdf_theme</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The theme Rupa rendered this PDF with (its keywords metadata), if known."""</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pdfplumber</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.render</span><span class="w"> </span><span class="kn">import</span> <span class="n">THEMES</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">pdfplumber</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">pdf</span><span class="p">:</span>
+            <span class="n">keywords</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pdf</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"Keywords"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - an unreadable PDF is reported by read_pages</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">"rupa-theme:([\w-]+)"</span><span class="p">,</span> <span class="n">keywords</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">m</span> <span class="ow">and</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="ow">in</span> <span class="n">THEMES</span> <span class="k">else</span> <span class="kc">None</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">verify</span><span class="p">(</span>
     <span class="n">pdf_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">wants</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">theme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VerifyReport</span><span class="p">:</span>
-    <span class="n">theme</span> <span class="o">=</span> <span class="n">theme</span> <span class="ow">or</span> <span class="n">wants</span><span class="p">[</span><span class="s2">"theme"</span><span class="p">]</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.render</span><span class="w"> </span><span class="kn">import</span> <span class="n">THEME_TEXT_COLORS</span>
+
+    <span class="c1"># --theme, else the theme Rupa recorded in the PDF, else the wants file's.</span>
+    <span class="n">theme</span> <span class="o">=</span> <span class="n">theme</span> <span class="ow">or</span> <span class="n">pdf_theme</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">)</span> <span class="ow">or</span> <span class="n">wants</span><span class="p">[</span><span class="s2">"theme"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">wants</span><span class="p">[</span><span class="s2">"text_color"</span><span class="p">]:</span>
+        <span class="n">wants</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">wants</span><span class="p">,</span> <span class="s2">"text_color"</span><span class="p">:</span> <span class="n">THEME_TEXT_COLORS</span><span class="p">[</span><span class="n">theme</span><span class="p">]}</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">out_dir</span><span class="p">)</span>
     <span class="n">out</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">old</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"sheet-p*.png"</span><span class="p">):</span>
@@ -3578,11 +3749,6 @@ Rupa separates content from form. Claude writes Markdown, and the renderer appli
 <span class="k">def</span><span class="w"> </span><span class="nf">step_7</span><span class="p">(</span><span class="n">doc</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Stage 7 of the sample pipeline."""</span>
     <span class="k">return</span> <span class="n">transform</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">step_8</span><span class="p">(</span><span class="n">doc</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Stage 8 of the sample pipeline."""</span>
-    <span class="k">return</span> <span class="n">transform</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
 <span class="sb">```</span>
 </code></pre>
 <p>Build the reference pages, and rebuild them whenever the theme changes:</p>
@@ -3592,10 +3758,12 @@ Rupa separates content from form. Claude writes Markdown, and the renderer appli
 <p>The wants file with every default spelled out, <code>wants.example.yaml</code>. A test keeps it in sync with the code:</p>
 <pre class="hl"><code class="language-yaml"><span class="c1"># What a finished PDF must satisfy. Every key is optional; omitted keys use</span>
 <span class="c1"># the defaults shown here. Unknown keys are an error.</span>
-<span class="nt">theme</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w">            </span><span class="c1"># whose reference pages the sheets compare against</span>
+<span class="nt">theme</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w">            </span><span class="c1"># reference pages to compare against, when neither</span>
+<span class="w">                          </span><span class="c1"># --theme nor the PDF (Rupa records it) names one</span>
 <span class="nt">page_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">letter</span><span class="w">         </span><span class="c1"># letter | a4</span>
 <span class="nt">max_pages</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
-<span class="nt">text_color</span><span class="p">:</span><span class="w"> </span><span class="s">"#000000"</span><span class="w">     </span><span class="c1"># every character must be this color</span>
+<span class="nt">text_color</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">          </span><span class="c1"># every character must be this #RRGGBB; null uses the</span>
+<span class="w">                          </span><span class="c1"># theme's colours (black for light themes)</span>
 <span class="nt">sparse_fill</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.4</span><span class="w">          </span><span class="c1"># flag a page under 40% full, unless a part starts next</span>
 <span class="nt">near_empty_fill</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2</span><span class="w">      </span><span class="c1"># flag a page under 20% full, always</span>
 <span class="nt">checks</span><span class="p">:</span><span class="w">                   </span><span class="c1"># remove any you don't want</span>
@@ -4028,6 +4196,7 @@ Rupa separates content from form. Claude writes Markdown, and the renderer appli
 mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">"</span><span class="nv">$RESULTS</span><span class="s2">"</span>
 cp<span class="w"> </span><span class="s2">"</span><span class="nv">$TASK_FILE</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$RESULTS</span><span class="s2">/task.txt"</span>
 <span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>rupa<span class="w"> </span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"bench: rupa is not on PATH"</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">RUPA_LOG</span><span class="o">=</span>off<span class="w">  </span><span class="c1"># keep benchmark runs out of the real-use failure log</span>
 
 <span class="c1"># Variant arms use a copy of the plugin with an edited skill.</span>
 <span class="c1"># Copy only what loads, not evals/ and its results.</span>
