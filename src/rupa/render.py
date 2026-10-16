@@ -74,10 +74,11 @@ def _theme_css(theme: str, target: str) -> str:
         raise RenderError(f"unknown theme '{theme}' (have: {', '.join(THEMES)})")
     pkg = resources.files("rupa") / "themes"
     css = (pkg / f"{theme}.css").read_text(encoding="utf-8")
+    css += "\n" + HtmlFormatter(style="default").get_style_defs(".hl")
     if target == "pdf":
+        # print.css goes last so it overrides Pygments' unscoped `pre` rule too
         css = _font_faces() + "\n" + css
         css += "\n" + (pkg / "print.css").read_text(encoding="utf-8")
-    css += "\n" + HtmlFormatter(style="default").get_style_defs(".hl")
     return css
 
 
@@ -99,7 +100,7 @@ p, ul, ol { margin: 0 0 .65rem; }
 li { margin: .1rem 0; }
 table { margin: 0 0 .8rem; font-size: 8.75pt; }
 th, td { padding: .3rem .5rem; }
-pre { padding: .6rem .8rem; }
+pre { padding: .6rem .8rem; line-height: 13.12pt; }
 """,
     ),
     (
@@ -114,8 +115,7 @@ p, ul, ol { margin: 0 0 .45rem; }
 li { margin: 0; }
 table { margin: 0 0 .6rem; font-size: 8.25pt; }
 th, td { padding: .2rem .4rem; }
-pre { padding: .45rem .6rem; }
-pre code { font-size: 7.8pt; }
+pre { padding: .45rem .6rem; font-size: 7.8pt; line-height: 12.15pt; }
 """,
     ),
 )

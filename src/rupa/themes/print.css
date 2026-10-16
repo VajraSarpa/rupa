@@ -50,7 +50,11 @@ main h1 { break-before: page; margin-top: 0; }
 blockquote, tr { break-inside: avoid; }
 thead { display: table-header-group; }
 pre { break-inside: auto; white-space: pre-wrap; orphans: 3; widows: 3; } /* wrap at spaces, never mid-token; no 1-2 line fragments across a page break */
-pre code { font-size: 8.3pt; }
+/* pre carries the code font and a fixed line height, so each line box is
+   exactly that tall; with Inter as the block's strut, the height came from
+   mixing two fonts' metrics and differed between Pango builds. */
+pre { font: 8.3pt/13.875pt "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+pre code { font-size: 1em; line-height: inherit; }
 p:has(+ pre), p:has(+ table) { break-after: avoid; } /* a lead-in ("Run this:") moves with its block, and so does the heading above it */
 :is(h2, h3) + :is(ul, ol) > li:first-child { break-after: avoid; } /* a heading never ends a page with one list item */
 table { display: table; font-size: 9pt; }
