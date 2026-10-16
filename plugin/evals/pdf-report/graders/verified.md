@@ -1,6 +1,6 @@
 ---
-type: tool_order
-before: { tool: Bash, input_match: '\brupa\b[^"]*-o[^"]*\.pdf' }
-after: { tool: Bash, input_match: '\brupa verify\b' }
+type: regex
+target: trace
+pattern: 'verify: \d+/\d+ checks pass'
 arm: with-only
 ---
