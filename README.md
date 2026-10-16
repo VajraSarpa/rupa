@@ -37,7 +37,8 @@ Details, caveats and projections at volume are in
 ![Rupa architecture: Claude writes Markdown through the rupa:render skill; the rupa CLI parses, renders and verifies](docs/rupa-architecture.svg)
 
 1. **Claude writes Markdown** with a little frontmatter: title, subtitle,
-   author, date, theme, contents and an optional page budget.
+   author, date, theme, contents and an optional page budget. The contents
+   list is on by default only from three sections up.
 2. **`rupa` renders it** through a theme into HTML or PDF, offline. Given a
    page budget, it tightens type and spacing to fit, and if that isn't
    enough, it says how many lines to cut.
@@ -54,11 +55,13 @@ WeasyPrint (`sudo apt install libpango-1.0-0 libpangoft2-1.0-0` on Debian or
 Ubuntu, `sudo dnf install pango` on Fedora, `brew install pango` on macOS).
 
 ```bash
-uv tool install git+https://github.com/VajraSarpa/rupa     # puts rupa on PATH
+uv tool install git+https://github.com/VajraSarpa/rupa@v0.1.0   # puts rupa on PATH
 claude plugin marketplace add VajraSarpa/rupa
 claude plugin install rupa@rupa                            # the Claude Code plugin
 ```
 
+The plugin checks at the start of each session that `rupa` is installed and
+at least the version its skill expects, and prints the install command if not.
 Then ask Claude Code for a PDF or an HTML page. The `rupa:render` skill takes
 it from there.
 
@@ -178,7 +181,7 @@ The plugin and its evals depend on this.
 
 ```bash
 uv sync
-uv run pytest -q                   # 113 tests
+uv run pytest -q                   # 117 tests
 uvx ruff check src tests
 uv run rupa refs --theme <name>    # after any theme change; commit the PNGs
 uv run python docs/build.py        # re-render the guide with Rupa

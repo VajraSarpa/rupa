@@ -328,10 +328,14 @@ def test_cli_verify_exit_codes(real_pdf, tmp_path, capsys):
     assert main(["verify", str(real_pdf), "--out", str(tmp_path / "a")]) == EXIT_OK
     assert capsys.readouterr().out.startswith("verify: ")
 
+    two_pages = tmp_path / "toc.pdf"  # cover + TOC page break makes 2 pages
+    two_pages.write_bytes(
+        to_pdf(parse(DOC.replace("title: Verify me", "title: Verify me\ntoc: true")))[0]
+    )
     strict = tmp_path / "wants.yaml"
-    strict.write_text("max_pages: 1\n")  # cover + TOC page break makes 2 pages
+    strict.write_text("max_pages: 1\n")
     code = main(
-        ["verify", str(real_pdf), "--wants", str(strict), "--out", str(tmp_path / "b")]
+        ["verify", str(two_pages), "--wants", str(strict), "--out", str(tmp_path / "b")]
     )
     assert code == EXIT_CHECKS
     assert "FAIL max-pages" in capsys.readouterr().out
