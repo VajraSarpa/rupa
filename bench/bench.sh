@@ -21,8 +21,10 @@ mkdir -p "$RESULTS"
 command -v rupa >/dev/null || { echo "bench: rupa is not on PATH" >&2; exit 2; }
 
 # The render-only arm uses a copy of the plugin whose skill stops before "## Verify".
+# Copy only what loads, not evals/ and its results.
 NOVERIFY="$RESULTS/plugin-noverify"
-cp -r "$ROOT/plugin" "$NOVERIFY"
+mkdir -p "$NOVERIFY"
+cp -r "$ROOT/plugin/.claude-plugin" "$ROOT/plugin/hooks" "$ROOT/plugin/skills" "$NOVERIFY/"
 awk '/^## Verify/ {skip=1} /^Do not add styling/ {skip=0} !skip' \
   "$ROOT/plugin/skills/render/SKILL.md" > "$NOVERIFY/skills/render/SKILL.md"
 
@@ -32,7 +34,7 @@ run_arm() {  # $1 = arm name, remaining args = extra claude flags
     local work; work="$(mktemp -d)"
     echo "bench: $arm run $i" >&2
     ( cd "$work" && claude -p "$TASK" --output-format json --allowedTools "$TOOLS" \
-        "${MODEL_FLAG[@]}" "$@" ) > "$RESULTS/$arm-$i.json" 2> "$RESULTS/$arm-$i.err" || true
+        ${MODEL_FLAG[@]+"${MODEL_FLAG[@]}"} "$@" ) > "$RESULTS/$arm-$i.json" 2> "$RESULTS/$arm-$i.err" || true
     if [[ -s "$work/report.pdf" ]]; then
       cp "$work/report.pdf" "$RESULTS/$arm-$i.pdf"
     fi
