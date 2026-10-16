@@ -1024,6 +1024,52 @@ $<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </
 </table>
 <p>Every Rupa run set <code>pages: 2</code> and fitted on its first render, so none cut content or measured pages. The shipped arm is one render plus one <code>verify</code> that came back clean, with no sheets to open. Per-type sampling costs about three extra turns for sheets on a PDF that has nothing wrong with it, which confirms flagged as the default. The Rupa runs were also tighter: the slowest shipped run took 6 turns, against 20 before.</p>
 <p>One caveat: the Rupa reports are shorter. Median text was about 850 words against about 1,180 for baseline, because baseline packs the page with smaller margins and type, and Rupa keeps the theme's margins. Some of the saving is less writing (median output 3,100 tokens against 7,150). For a fixed page count that's a fair trade, but it is a difference in the product as well as in cost.</p>
+<h3 id="harder-task-2026-10-16">Harder task (2026-10-16)</h3>
+<p><code>TASK=guide</code>: a 3-page IAM Identity Center guide with a five-column table, a CLI example, a JSON policy of at least 25 lines and a numbered checklist. Three runs per arm, Opus 5.5. Every run produced a 3-page PDF with all four required parts. Medians:</p>
+<table>
+<thead>
+<tr>
+<th>Arm</th>
+<th>Turns</th>
+<th>Cache reads</th>
+<th>Cost</th>
+<th>vs baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>baseline</code></td>
+<td>20</td>
+<td>786,720</td>
+<td>$0.85</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>rupa</code></td>
+<td>14</td>
+<td>348,457</td>
+<td>$0.47</td>
+<td>turns −30%, cost −46%</td>
+</tr>
+<tr>
+<td><code>rupa-pertype</code></td>
+<td>17</td>
+<td>312,611</td>
+<td>$0.53</td>
+<td>turns −15%, cost −38%</td>
+</tr>
+<tr>
+<td><code>rupa-verify</code> (as shipped)</td>
+<td>7</td>
+<td>249,016</td>
+<td>$0.35</td>
+<td>turns −65%, cost −59%</td>
+</tr>
+</tbody>
+</table>
+<p>The gap widens with layout work. Baseline built the PDF with reportlab or Chrome, then went round after round adjusting page breaks and spacing and checking page images, writing 17,700 output tokens per run. The Rupa arms wrote less than half that.</p>
+<p>The Rupa runs still spent turns cutting. The first draft was always over 3 pages at the tightest type, and the &quot;cut about N words&quot; estimate ran low: most runs took two to four cut rounds. Rupa counted the words on the overflow pages, but here the overflow was mostly the JSON policy, which has one or two words a line, so &quot;cut 34 words&quot; meant about fifteen lines of space. The estimate now measures the height used past the budget and converts it to prose words at tight type, plus 10%. On a guide-like sample it asked for 177 words, and one cut of that size fitted. The three-arm medians above predate this fix. The render-only arm happens to be slower than the shipped arm here (14 turns against 7); with three runs that's noise from how many cut rounds each run needed.</p>
+<p>Rupa's guides again carry fewer words (about 750 against 1,300), for the same reason as before.</p>
 <h3 id="how-to-read-the-results">How to read the results</h3>
 <ul>
 <li>Compare medians, not single runs. Agent runs vary.</li>
@@ -1594,18 +1640,36 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span>
     <span class="n">pages</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>  <span class="c1"># fit steps applied, in order; empty if none were needed</span>
-    <span class="n">cut_words</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># words past the budget at the last step; 0 when it fits</span>
+    <span class="n">cut_words</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># prose words to cut to fit, at the last step; 0 when it fits</span>
+
+
+<span class="c1"># Prose at the tightest fit step holds about 1.47 words per point of page</span>
+<span class="c1"># height, paragraph gaps included (measured on a full page of body text).</span>
+<span class="n">TIGHT_WORDS_PER_PT</span> <span class="o">=</span> <span class="mf">1.47</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_words_after</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">budget</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Prose words that would fill the space used past the budget.</span>
+
+<span class="sd">    Measured as height rather than counted, because overflow is often code</span>
+<span class="sd">    or a table, which take far more room per word than prose.</span>
+<span class="sd">    """</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pdfplumber</span>
 
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.verify</span><span class="w"> </span><span class="kn">import</span> <span class="n">FOOTER_CUTOFF</span><span class="p">,</span> <span class="n">MARGIN_TOP</span><span class="p">,</span> <span class="n">PT_PER_IN</span>
+
+    <span class="n">used</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="k">with</span> <span class="n">pdfplumber</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">data</span><span class="p">))</span> <span class="k">as</span> <span class="n">pdf</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span>
-            <span class="nb">len</span><span class="p">((</span><span class="n">page</span><span class="o">.</span><span class="n">extract_text</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="k">for</span> <span class="n">page</span> <span class="ow">in</span> <span class="n">pdf</span><span class="o">.</span><span class="n">pages</span><span class="p">[</span><span class="n">budget</span><span class="p">:]</span>
-        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">page</span> <span class="ow">in</span> <span class="n">pdf</span><span class="o">.</span><span class="n">pages</span><span class="p">[</span><span class="n">budget</span><span class="p">:]:</span>
+            <span class="n">footer</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">height</span> <span class="o">-</span> <span class="n">FOOTER_CUTOFF</span> <span class="o">*</span> <span class="n">PT_PER_IN</span>
+            <span class="n">body</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="p">[</span><span class="s2">"bottom"</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">page</span><span class="o">.</span><span class="n">chars</span> <span class="k">if</span> <span class="n">c</span><span class="p">[</span><span class="s2">"bottom"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">footer</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">body</span><span class="p">:</span>
+                <span class="n">used</span> <span class="o">+=</span> <span class="nb">max</span><span class="p">(</span><span class="n">body</span><span class="p">)</span> <span class="o">-</span> <span class="n">MARGIN_TOP</span> <span class="o">*</span> <span class="n">PT_PER_IN</span>
+    <span class="c1"># 10% over, since blocks that can't split (rows, short code) break late.</span>
+    <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">used</span> <span class="o">*</span> <span class="n">TIGHT_WORDS_PER_PT</span> <span class="o">*</span> <span class="mf">1.1</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">fit_pdf</span><span class="p">(</span>
@@ -1617,8 +1681,8 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="w">    </span><span class="sd">"""Render a PDF, tightening it step by step until it fits `budget` pages.</span>
 
 <span class="sd">    Content is never cut. If the tightest step is still over, the result</span>
-<span class="sd">    says roughly how many words to cut (the words on the pages past the</span>
-<span class="sd">    budget).</span>
+<span class="sd">    says roughly how many words of prose to cut to free the space used past</span>
+<span class="sd">    the budget.</span>
 <span class="sd">    """</span>
     <span class="n">data</span><span class="p">,</span> <span class="n">pages</span> <span class="o">=</span> <span class="n">to_pdf</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">theme</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">budget</span> <span class="ow">or</span> <span class="n">pages</span> <span class="o">&lt;=</span> <span class="n">budget</span><span class="p">:</span>
@@ -1817,7 +1881,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 
 <span class="nt">blockquote</span><span class="o">,</span><span class="w"> </span><span class="nt">tr</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">break-inside</span><span class="p">:</span><span class="w"> </span><span class="kc">avoid</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 <span class="nt">thead</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">display</span><span class="p">:</span><span class="w"> </span><span class="kc">table-header-group</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="nt">pre</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">break-inside</span><span class="p">:</span><span class="w"> </span><span class="kc">auto</span><span class="p">;</span><span class="w"> </span><span class="k">white-space</span><span class="p">:</span><span class="w"> </span><span class="kc">pre-wrap</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* wrap at spaces, never mid-token */</span>
+<span class="nt">pre</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">break-inside</span><span class="p">:</span><span class="w"> </span><span class="kc">auto</span><span class="p">;</span><span class="w"> </span><span class="k">white-space</span><span class="p">:</span><span class="w"> </span><span class="kc">pre-wrap</span><span class="p">;</span><span class="w"> </span><span class="k">orphans</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="k">widows</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="c">/* wrap at spaces, never mid-token; no 1-2 line fragments across a page break */</span>
 <span class="nt">pre</span><span class="w"> </span><span class="nt">code</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">font-size</span><span class="p">:</span><span class="w"> </span><span class="mf">8.3</span><span class="kt">pt</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 <span class="nt">table</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">display</span><span class="p">:</span><span class="w"> </span><span class="kc">table</span><span class="p">;</span><span class="w"> </span><span class="k">font-size</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="kt">pt</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 </code></pre>
@@ -2229,6 +2293,23 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="n">target</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"o.pdf"</span>
     <span class="n">code</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="p">[</span><span class="s2">"-o"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">target</span><span class="p">),</span> <span class="s2">"--json"</span><span class="p">])</span>
     <span class="k">assert</span> <span class="n">code</span> <span class="o">==</span> <span class="n">EXIT_OK</span> <span class="ow">and</span> <span class="s2">"fit"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_cut_estimate_counts_space_not_words_for_code</span><span class="p">():</span>
+    <span class="c1"># A JSON block has one or two words a line, so the words past the budget</span>
+    <span class="c1"># undercount the space to free. The estimate must cover the lines.</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pdfplumber</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">rupa.document</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">rupa.render</span><span class="w"> </span><span class="kn">import</span> <span class="n">fit_pdf</span>
+
+    <span class="n">code</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s1">'  "key</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">": "value",'</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">150</span><span class="p">))</span>
+    <span class="n">fit</span> <span class="o">=</span> <span class="n">fit_pdf</span><span class="p">(</span><span class="n">parse</span><span class="p">(</span><span class="sa">f</span><span class="s2">"# T</span><span class="se">\n\n</span><span class="s2">```json</span><span class="se">\n{{\n</span><span class="si">{</span><span class="n">code</span><span class="si">}</span><span class="se">\n}}\n</span><span class="s2">```</span><span class="se">\n</span><span class="s2">"</span><span class="p">),</span> <span class="n">budget</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">pdfplumber</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">data</span><span class="p">))</span> <span class="k">as</span> <span class="n">pdf</span><span class="p">:</span>
+        <span class="n">words_past</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">((</span><span class="n">p</span><span class="o">.</span><span class="n">extract_text</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pdf</span><span class="o">.</span><span class="n">pages</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="k">assert</span> <span class="n">fit</span><span class="o">.</span><span class="n">cut_words</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">words_past</span>
 </code></pre>
 <p><strong>Checkpoint:</strong> <code>uv run pytest -q</code> shows 16 passed.</p>
 <h2 id="step-5-install-it-as-a-command">Step 5: Install it as a command</h2>
@@ -3408,18 +3489,24 @@ Rupa separates content from form. Claude writes Markdown, and the renderer appli
 <span class="c1">#</span>
 <span class="c1"># Usage: bench/bench.sh [runs]        default 1 run per arm (a pilot)</span>
 <span class="c1">#        MODEL=claude-sonnet-5-5 bench/bench.sh 3</span>
+<span class="c1">#        TASK=guide bench/bench.sh 3    prompt from bench/tasks/&lt;TASK&gt;.txt</span>
+<span class="c1">#                                        (default: report, a 2-page prose report)</span>
 <span class="c1"># Each run starts in a fresh empty directory, so no arm can see this repo.</span>
 <span class="nb">set</span><span class="w"> </span>-euo<span class="w"> </span>pipefail
 
 <span class="nv">RUNS</span><span class="o">=</span><span class="s2">"</span><span class="si">${</span><span class="nv">1</span><span class="k">:-</span><span class="nv">1</span><span class="si">}</span><span class="s2">"</span>
 <span class="nv">ROOT</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="k">$(</span>dirname<span class="w"> </span><span class="s2">"</span><span class="nv">$0</span><span class="s2">"</span><span class="k">)</span><span class="s2">/.."</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">pwd</span><span class="k">)</span><span class="s2">"</span>
-<span class="nv">RESULTS</span><span class="o">=</span><span class="s2">"</span><span class="nv">$ROOT</span><span class="s2">/bench/results/</span><span class="k">$(</span>date<span class="w"> </span>+%Y%m%d-%H%M%S<span class="k">)</span><span class="s2">"</span>
-<span class="nv">TASK</span><span class="o">=</span><span class="s1">'Write a 2-page PDF report on the AWS Well-Architected security pillar, saved as report.pdf in the current directory.'</span>
+<span class="nv">TASK_NAME</span><span class="o">=</span><span class="s2">"</span><span class="si">${</span><span class="nv">TASK</span><span class="k">:-</span><span class="nv">report</span><span class="si">}</span><span class="s2">"</span>
+<span class="nv">TASK_FILE</span><span class="o">=</span><span class="s2">"</span><span class="nv">$ROOT</span><span class="s2">/bench/tasks/</span><span class="nv">$TASK_NAME</span><span class="s2">.txt"</span>
+<span class="o">[[</span><span class="w"> </span>-f<span class="w"> </span><span class="s2">"</span><span class="nv">$TASK_FILE</span><span class="s2">"</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"bench: no task </span><span class="nv">$TASK_FILE</span><span class="s2">"</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+<span class="nv">TASK_PROMPT</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s2">"</span><span class="nv">$TASK_FILE</span><span class="s2">"</span><span class="k">)</span><span class="s2">"</span>
+<span class="nv">RESULTS</span><span class="o">=</span><span class="s2">"</span><span class="nv">$ROOT</span><span class="s2">/bench/results/</span><span class="k">$(</span>date<span class="w"> </span>+%Y%m%d-%H%M%S<span class="k">)</span><span class="s2">-</span><span class="nv">$TASK_NAME</span><span class="s2">"</span>
 <span class="nv">TOOLS</span><span class="o">=</span><span class="s2">"Bash Write Read Edit Skill"</span>
 <span class="nv">MODEL_FLAG</span><span class="o">=()</span>
 <span class="o">[[</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">MODEL</span><span class="k">:-</span><span class="si">}</span><span class="s2">"</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nv">MODEL_FLAG</span><span class="o">=(</span>--model<span class="w"> </span><span class="s2">"</span><span class="nv">$MODEL</span><span class="s2">"</span><span class="o">)</span>
 
 mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">"</span><span class="nv">$RESULTS</span><span class="s2">"</span>
+cp<span class="w"> </span><span class="s2">"</span><span class="nv">$TASK_FILE</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$RESULTS</span><span class="s2">/task.txt"</span>
 <span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>rupa<span class="w"> </span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"bench: rupa is not on PATH"</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
 
 <span class="c1"># Variant arms use a copy of the plugin with an edited skill.</span>
@@ -3449,7 +3536,7 @@ run_arm<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 <span class="w">  </span><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="k">$(</span>seq<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="s2">"</span><span class="nv">$RUNS</span><span class="s2">"</span><span class="k">)</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
 <span class="w">    </span><span class="nb">local</span><span class="w"> </span>work<span class="p">;</span><span class="w"> </span><span class="nv">work</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>mktemp<span class="w"> </span>-d<span class="k">)</span><span class="s2">"</span>
 <span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"bench: </span><span class="nv">$arm</span><span class="s2"> run </span><span class="nv">$i</span><span class="s2">"</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
-<span class="w">    </span><span class="o">(</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$work</span><span class="s2">"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>claude<span class="w"> </span>-p<span class="w"> </span><span class="s2">"</span><span class="nv">$TASK</span><span class="s2">"</span><span class="w"> </span>--output-format<span class="w"> </span>json<span class="w"> </span>--allowedTools<span class="w"> </span><span class="s2">"</span><span class="nv">$TOOLS</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="o">(</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$work</span><span class="s2">"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>claude<span class="w"> </span>-p<span class="w"> </span><span class="s2">"</span><span class="nv">$TASK_PROMPT</span><span class="s2">"</span><span class="w"> </span>--output-format<span class="w"> </span>json<span class="w"> </span>--allowedTools<span class="w"> </span><span class="s2">"</span><span class="nv">$TOOLS</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">        </span><span class="si">${</span><span class="nv">MODEL_FLAG</span><span class="p">[@]+</span><span class="s2">"</span><span class="si">${</span><span class="nv">MODEL_FLAG</span><span class="p">[@]</span><span class="si">}</span><span class="s2">"</span><span class="si">}</span><span class="w"> </span><span class="s2">"</span><span class="nv">$@</span><span class="s2">"</span><span class="w"> </span><span class="o">)</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$RESULTS</span><span class="s2">/</span><span class="nv">$arm</span><span class="s2">-</span><span class="nv">$i</span><span class="s2">.json"</span><span class="w"> </span><span class="m">2</span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$RESULTS</span><span class="s2">/</span><span class="nv">$arm</span><span class="s2">-</span><span class="nv">$i</span><span class="s2">.err"</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span>-s<span class="w"> </span><span class="s2">"</span><span class="nv">$work</span><span class="s2">/report.pdf"</span><span class="w"> </span><span class="o">]]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
 <span class="w">      </span>cp<span class="w"> </span><span class="s2">"</span><span class="nv">$work</span><span class="s2">/report.pdf"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$RESULTS</span><span class="s2">/</span><span class="nv">$arm</span><span class="s2">-</span><span class="nv">$i</span><span class="s2">.pdf"</span>
@@ -3579,6 +3666,7 @@ cat<span class="w"> </span><span class="s">&lt;&lt;JSON</span>
 <pre class="hl"><code class="language-bash">chmod<span class="w"> </span>+x<span class="w"> </span>bench/bench.sh
 bench/bench.sh
 </code></pre>
+<p>Prompts live in <code>bench/tasks/</code>, one file per task, and <code>TASK=&lt;name&gt;</code> picks one (default <code>report</code>, the two-page prose report). <code>guide</code> is a harder three-page task with a five-column table, a CLI example and a 25-line JSON policy, closer to where hand-written HTML has to work for its layout. Each results folder is named after its task and keeps a copy of the prompt in <code>task.txt</code>.</p>
 <p>If all four arms behaved, run three per arm on a pinned model:</p>
 <pre class="hl"><code class="language-bash"><span class="nv">MODEL</span><span class="o">=</span>claude-sonnet-5-5<span class="w"> </span>bench/bench.sh<span class="w"> </span><span class="m">3</span>
 </code></pre>
@@ -3586,7 +3674,7 @@ bench/bench.sh
 <h2 id="step-10-what-to-build-next">Step 10: What to build next</h2>
 <p>In rough order of value:</p>
 <ol>
-<li><strong>A harder benchmark task</strong> (tables, code, a wide table that must be split), where hand-written HTML should struggle more than it did on a two-page prose report.</li>
+<li><strong>Re-run <code>TASK=guide</code></strong> to confirm the height-based cut estimate brings the cut rounds down to one. Then a harder benchmark task (tables, code, a wide table that must be split), where hand-written HTML should struggle more than it did on a two-page prose report.</li>
 <li><strong>A second theme</strong>, such as your dark slate and cyan look for screen HTML, with its own reference pages and a test that renders and verifies every theme.</li>
 <li><strong>A golden-render test in CI</strong> that verifies the sample document against its own references, so a CSS change that breaks the look fails the build.</li>
 <li><strong>Callouts</strong> (note, warning) through a small markdown-it plugin, so Claude never needs raw HTML for them.</li>

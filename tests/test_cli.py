@@ -173,3 +173,20 @@ def test_no_budget_leaves_render_alone(tmp_path, monkeypatch, capsys):
     target = tmp_path / "o.pdf"
     code, out, _ = run(monkeypatch, capsys, ["-o", str(target), "--json"])
     assert code == EXIT_OK and "fit" not in json.loads(out)
+
+
+def test_cut_estimate_counts_space_not_words_for_code():
+    # A JSON block has one or two words a line, so the words past the budget
+    # undercount the space to free. The estimate must cover the lines.
+    import io
+
+    import pdfplumber
+
+    from rupa.document import parse
+    from rupa.render import fit_pdf
+
+    code = "\n".join(f'  "key{i}": "value",' for i in range(150))
+    fit = fit_pdf(parse(f"# T\n\n```json\n{{\n{code}\n}}\n```\n"), budget=1)
+    with pdfplumber.open(io.BytesIO(fit.data)) as pdf:
+        words_past = sum(len((p.extract_text() or "").split()) for p in pdf.pages[1:])
+    assert fit.cut_words > 3 * words_past

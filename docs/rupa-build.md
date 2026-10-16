@@ -383,6 +383,23 @@ Every Rupa run set `pages: 2` and fitted on its first render, so none cut conten
 
 One caveat: the Rupa reports are shorter. Median text was about 850 words against about 1,180 for baseline, because baseline packs the page with smaller margins and type, and Rupa keeps the theme's margins. Some of the saving is less writing (median output 3,100 tokens against 7,150). For a fixed page count that's a fair trade, but it is a difference in the product as well as in cost.
 
+### Harder task (2026-10-16)
+
+`TASK=guide`: a 3-page IAM Identity Center guide with a five-column table, a CLI example, a JSON policy of at least 25 lines and a numbered checklist. Three runs per arm, Opus 5.5. Every run produced a 3-page PDF with all four required parts. Medians:
+
+| Arm | Turns | Cache reads | Cost | vs baseline |
+|---|---|---|---|---|
+| `baseline` | 20 | 786,720 | $0.85 | — |
+| `rupa` | 14 | 348,457 | $0.47 | turns −30%, cost −46% |
+| `rupa-pertype` | 17 | 312,611 | $0.53 | turns −15%, cost −38% |
+| `rupa-verify` (as shipped) | 7 | 249,016 | $0.35 | turns −65%, cost −59% |
+
+The gap widens with layout work. Baseline built the PDF with reportlab or Chrome, then went round after round adjusting page breaks and spacing and checking page images, writing 17,700 output tokens per run. The Rupa arms wrote less than half that.
+
+The Rupa runs still spent turns cutting. The first draft was always over 3 pages at the tightest type, and the "cut about N words" estimate ran low: most runs took two to four cut rounds. Rupa counted the words on the overflow pages, but here the overflow was mostly the JSON policy, which has one or two words a line, so "cut 34 words" meant about fifteen lines of space. The estimate now measures the height used past the budget and converts it to prose words at tight type, plus 10%. On a guide-like sample it asked for 177 words, and one cut of that size fitted. The three-arm medians above predate this fix. The render-only arm happens to be slower than the shipped arm here (14 turns against 7); with three runs that's noise from how many cut rounds each run needed.
+
+Rupa's guides again carry fewer words (about 750 against 1,300), for the same reason as before.
+
 ### How to read the results
 
 - Compare medians, not single runs. Agent runs vary.
@@ -662,7 +679,7 @@ Record the medians in your README with the date, model and task. If a Rupa arm i
 
 In rough order of value:
 
-1. **A harder benchmark task** (tables, code, a wide table that must be split), where hand-written HTML should struggle more than it did on a two-page prose report.
+1. **Re-run `TASK=guide`** to confirm the height-based cut estimate brings the cut rounds down to one. Then a harder benchmark task (tables, code, a wide table that must be split), where hand-written HTML should struggle more than it did on a two-page prose report.
 2. **A second theme**, such as your dark slate and cyan look for screen HTML, with its own reference pages and a test that renders and verifies every theme.
 3. **A golden-render test in CI** that verifies the sample document against its own references, so a CSS change that breaks the look fails the build.
 4. **Callouts** (note, warning) through a small markdown-it plugin, so Claude never needs raw HTML for them.

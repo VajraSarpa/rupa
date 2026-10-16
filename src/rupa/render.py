@@ -172,18 +172,36 @@ class Fit:
     data: bytes
     pages: int
     steps: list[str]  # fit steps applied, in order; empty if none were needed
-    cut_words: int  # words past the budget at the last step; 0 when it fits
+    cut_words: int  # prose words to cut to fit, at the last step; 0 when it fits
+
+
+# Prose at the tightest fit step holds about 1.47 words per point of page
+# height, paragraph gaps included (measured on a full page of body text).
+TIGHT_WORDS_PER_PT = 1.47
 
 
 def _words_after(data: bytes, budget: int) -> int:
+    """Prose words that would fill the space used past the budget.
+
+    Measured as height rather than counted, because overflow is often code
+    or a table, which take far more room per word than prose.
+    """
     import io
+    import math
 
     import pdfplumber
 
+    from .verify import FOOTER_CUTOFF, MARGIN_TOP, PT_PER_IN
+
+    used = 0.0
     with pdfplumber.open(io.BytesIO(data)) as pdf:
-        return sum(
-            len((page.extract_text() or "").split()) for page in pdf.pages[budget:]
-        )
+        for page in pdf.pages[budget:]:
+            footer = page.height - FOOTER_CUTOFF * PT_PER_IN
+            body = [c["bottom"] for c in page.chars if c["bottom"] < footer]
+            if body:
+                used += max(body) - MARGIN_TOP * PT_PER_IN
+    # 10% over, since blocks that can't split (rows, short code) break late.
+    return math.ceil(used * TIGHT_WORDS_PER_PT * 1.1)
 
 
 def fit_pdf(
@@ -195,8 +213,8 @@ def fit_pdf(
     """Render a PDF, tightening it step by step until it fits `budget` pages.
 
     Content is never cut. If the tightest step is still over, the result
-    says roughly how many words to cut (the words on the pages past the
-    budget).
+    says roughly how many words of prose to cut to free the space used past
+    the budget.
     """
     data, pages = to_pdf(doc, theme, base_dir)
     if not budget or pages <= budget:
