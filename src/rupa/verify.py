@@ -318,6 +318,9 @@ def run_checks(pages: list[PageInfo], wants: dict) -> list[CheckResult]:
     for p in pages:
         if p.lines:
             tail = p.lines[-1]
+            # A title-only document ends on its own title: nothing follows it.
+            if p.number == 1 and tail is p.lines[0]:
+                continue
             if tail.bold and not tail.mono and tail.size >= HEADING_PT:
                 stranded.append(p.number)
     add("heading-at-bottom", stranded, "heading is the last line on the page")
@@ -446,7 +449,11 @@ class VerifyReport:
         if fails:
             line += f" (FAIL {'; '.join(fails)})"
         if self.sheets:
-            line += f"; {len(self.sheets)} sheets for visual review in {Path(self.manifest).parent}/"
+            n = len(self.sheets)
+            line += (
+                f"; {n} sheet{'s' if n != 1 else ''} for visual review"
+                f" in {Path(self.manifest).parent}/"
+            )
         return line
 
 

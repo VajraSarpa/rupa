@@ -118,6 +118,20 @@ def test_stranded_heading_fails():
     assert failing(run_checks(pages, load_wants(None))) == {"heading-at-bottom": [2]}
 
 
+def test_title_only_document_is_not_a_stranded_heading():
+    pages = [page(1, lines=[body_line(70, size=26, bold=True)])]
+    assert failing(run_checks(pages, load_wants(None))) == {}
+
+
+def test_title_only_render_passes_verify(tmp_path):
+    data, _ = to_pdf(parse("# Hello\n"))
+    pdf = tmp_path / "hello.pdf"
+    pdf.write_bytes(data)
+    report = verify(pdf, load_wants(None), tmp_path / "v")
+    assert report.ok, report.summary()
+    assert "1 sheet for visual review" in report.summary()
+
+
 def test_bold_code_at_bottom_is_not_a_heading():
     lines = [body_line(70), body_line(690, size=12, bold=True, mono=True)]
     pages = [page(1), page(2, lines=lines), page(3)]
