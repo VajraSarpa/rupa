@@ -9,6 +9,9 @@ Markdown; Rupa turns it into a themed HTML page or PDF, checks the PDF with
 code, and shows Claude page images only when something looks wrong. *Rūpa*
 is Sanskrit for "form".
 
+**Read the story:** [the case study](docs/dist/Rupa-Case-Study.pdf) covers why Rupa
+exists, how it was measured, and what the measurements forced me to fix.
+
 ## Results
 
 Claude Code with the plugin, against Claude Code on its own, on three real
