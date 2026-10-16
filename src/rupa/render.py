@@ -84,10 +84,11 @@ def to_pdf(doc: Document, theme: str = "default") -> tuple[bytes, int]:
     # Local files and data: URIs only. A remote URL fails the render instead of
     # silently fetching from the network.
     fetcher = URLFetcher(allowed_protocols={"file", "data"}, fail_on_errors=True)
+    html = to_html(doc, theme, target="pdf")
     try:
-        rendered = HTML(
-            string=to_html(doc, theme, target="pdf"), url_fetcher=fetcher
-        ).render()
+        rendered = HTML(string=html, url_fetcher=fetcher).render()
+        return rendered.write_pdf(), len(rendered.pages)
     except FatalURLFetchingError as exc:  # subclasses BaseException, not Exception
         raise RenderError(f"blocked or missing resource: {exc}") from exc
-    return rendered.write_pdf(), len(rendered.pages)
+    except Exception as exc:  # keep the exit-4 contract for any WeasyPrint failure
+        raise RenderError(f"PDF render failed: {exc}") from exc

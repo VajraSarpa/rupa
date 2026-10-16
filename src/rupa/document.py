@@ -63,6 +63,17 @@ def _build_parser() -> MarkdownIt:
     return md
 
 
+def _plain_text(inline) -> str:
+    """Heading text without Markdown syntax: `**Big** `Plan`` -> 'Big Plan'."""
+    parts = []
+    for child in inline.children or []:
+        if child.type in ("text", "code_inline"):
+            parts.append(child.content)
+        elif child.type in ("softbreak", "hardbreak"):
+            parts.append(" ")
+    return "".join(parts).strip()
+
+
 def parse(text: str) -> Document:
     if not text.strip():
         raise InputError("empty input: nothing to render")
@@ -82,19 +93,32 @@ def parse(text: str) -> Document:
                 raise InputError("frontmatter must be a YAML mapping")
             unknown = set(loaded) - ALLOWED_META
             if unknown:
-                raise InputError(f"unknown frontmatter keys: {sorted(unknown)}")
+                raise InputError(
+                    f"unknown frontmatter keys: {sorted(map(str, unknown))}"
+                )
             meta = loaded
         elif tok.type == "heading_open":
-            inline = tokens[i + 1]
             headings.append(
                 Heading(
                     level=int(tok.tag[1]),
-                    text=inline.content,
+                    text=_plain_text(tokens[i + 1]),
                     anchor=tok.attrs.get("id", ""),
                 )
             )
 
+    doc = Document(meta=meta, body_html="", headings=headings)
+    # The cover already shows the title, so a leading H1 that repeats it is
+    # dropped from the body. Any other leading H1 is a real part and stays.
+    first = next((i for i, t in enumerate(tokens) if t.type != "front_matter"), None)
+    if (
+        first is not None
+        and tokens[first].type == "heading_open"
+        and tokens[first].tag == "h1"
+        and _plain_text(tokens[first + 1]) == doc.title
+    ):
+        del tokens[first : first + 3]
+
     body = md.renderer.render(tokens, md.options, {})
     # Fenced code gets Pygments spans; mark the block for theme CSS.
-    body = re.sub(r"<pre><code", '<pre class="hl"><code', body)
-    return Document(meta=meta, body_html=body, headings=headings)
+    doc.body_html = re.sub(r"<pre><code", '<pre class="hl"><code', body)
+    return doc

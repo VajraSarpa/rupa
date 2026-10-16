@@ -58,6 +58,14 @@ def test_wants_file_overrides_and_merges_vision(tmp_path):
         ("checks: [nope]\n", "unknown checks"),
         ("page_size: a5\n", "page_size"),
         ("vision:\n  model: big\n", "unknown vision keys"),
+        ('text_color: "#GGG"\n', "text_color"),
+        ('text_color: "#GGGGGG"\n', "text_color"),
+        ('max_pages: "10"\n', "max_pages"),
+        ("checks: null\n", "checks must be a list"),
+        ("sparse_fill: 2\n", "sparse_fill"),
+        ("theme: ../../etc\n", "theme must be one of"),
+        ("vision: 5\n", "vision must be a YAML mapping"),
+        ("vision:\n  resolution: 5000\n", "vision.resolution"),
     ],
 )
 def test_bad_wants_are_rejected(tmp_path, body, message):

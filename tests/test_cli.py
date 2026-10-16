@@ -66,3 +66,30 @@ def test_to_flag_overrides_extension(tmp_path, monkeypatch, capsys):
     target = tmp_path / "report.out"
     code, _, _ = run(monkeypatch, capsys, ["-o", str(target), "--to", "pdf"])
     assert code == EXIT_OK and target.read_bytes()[:5] == b"%PDF-"
+
+
+def test_any_weasyprint_failure_is_a_render_error(tmp_path, monkeypatch, capsys):
+    def boom(self, *a, **kw):
+        raise RuntimeError("layout exploded")
+
+    monkeypatch.setattr("weasyprint.HTML.render", boom)
+    code, _, err = run(monkeypatch, capsys, ["-o", str(tmp_path / "o.pdf")])
+    assert code == EXIT_RENDER and "layout exploded" in err
+
+
+def test_verify_on_a_non_pdf_is_bad_input(tmp_path, capsys):
+    bad = tmp_path / "notes.pdf"
+    bad.write_text("not a pdf")
+    code = main(["verify", str(bad)])
+    _, err = capsys.readouterr()
+    assert code == EXIT_INPUT and err.startswith("rupa: error: cannot read PDF")
+    assert err.count("\n") == 1
+
+
+def test_verify_bad_wants_value_is_bad_input(tmp_path, capsys):
+    pdf = tmp_path / "x.pdf"
+    pdf.write_bytes(b"%PDF-1.4")
+    wants = tmp_path / "wants.yaml"
+    wants.write_text('text_color: "#GGG"\n')
+    code = main(["verify", str(pdf), "--wants", str(wants)])
+    assert code == EXIT_INPUT and "text_color" in capsys.readouterr().err

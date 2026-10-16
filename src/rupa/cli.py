@@ -22,7 +22,7 @@ from pathlib import Path
 
 from . import __version__
 from .document import InputError, parse
-from .render import RenderError, to_html, to_pdf
+from .render import THEMES, RenderError, to_html, to_pdf
 
 EXIT_OK, EXIT_USAGE, EXIT_INPUT, EXIT_RENDER, EXIT_CHECKS = 0, 2, 3, 4, 5
 FORMATS = ("html", "pdf")
@@ -105,12 +105,16 @@ def render_main(argv: list[str]) -> int:
 
 
 def verify_main(argv: list[str]) -> int:
-    from .verify import EXIT_CHECKS_FAILED, WantsError, load_wants, verify
+    from .verify import EXIT_CHECKS_FAILED, PdfError, WantsError, load_wants, verify
 
     p = argparse.ArgumentParser(prog="rupa verify", description="Check a rendered PDF.")
     p.add_argument("pdf")
     p.add_argument("--wants", help="wants.yaml (default: built-in rules)")
-    p.add_argument("--theme", help="theme whose reference pages to compare against")
+    p.add_argument(
+        "--theme",
+        choices=THEMES,
+        help="theme whose reference pages to compare against",
+    )
     p.add_argument(
         "--out", help="directory for sheets and verify.json (default: <pdf>.verify/)"
     )
@@ -126,7 +130,11 @@ def verify_main(argv: list[str]) -> int:
         _err(args, str(exc))
         return EXIT_INPUT
     out = Path(args.out) if args.out else pdf.with_suffix(".verify")
-    report = verify(pdf, wants, out, theme=args.theme)
+    try:
+        report = verify(pdf, wants, out, theme=args.theme)
+    except PdfError as exc:
+        _err(args, str(exc))
+        return EXIT_INPUT
     if args.json:
         print(Path(report.manifest).read_text())
     else:

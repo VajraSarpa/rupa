@@ -63,7 +63,6 @@ body {
 }
 .toc li.l2 { list-style: none; }
 .toc a:hover { color: var(--accent); }
-main > h1:first-child { display: none; } /* the cover already shows the title */
 
 /* Headings and body */
 h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }

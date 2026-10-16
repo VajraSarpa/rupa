@@ -58,3 +58,24 @@ def test_raw_html_is_escaped():
 def test_non_mapping_frontmatter_is_rejected():
     with pytest.raises(InputError, match="mapping"):
         parse("---\n- a\n- b\n---\n\ntext")
+
+
+def test_leading_h1_matching_the_title_is_dropped_from_the_body():
+    doc = parse("---\ntitle: Report\n---\n\n# Report\n\ntext\n")
+    assert "<h1" not in doc.body_html
+
+
+def test_leading_h1_that_is_not_the_title_stays():
+    doc = parse("---\ntitle: Report\n---\n\n# Background\n\ntext\n")
+    assert '<h1 id="background">Background</h1>' in doc.body_html
+
+
+def test_heading_text_has_no_markdown_syntax():
+    doc = parse("# The **Big** `Plan`\n\ntext\n")
+    assert doc.title == "The Big Plan"
+    assert "<h1" not in doc.body_html  # it is the title, so the cover shows it
+
+
+def test_unknown_keys_of_mixed_types_are_rejected_cleanly():
+    with pytest.raises(InputError, match="unknown frontmatter"):
+        parse("---\n1: x\nfoo: y\n---\n\ntext")

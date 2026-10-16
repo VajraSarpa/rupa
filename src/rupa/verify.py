@@ -11,6 +11,7 @@ Two tiers:
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict, dataclass, field
 from importlib import resources
 from pathlib import Path
@@ -64,6 +65,10 @@ class WantsError(ValueError):
     """Raised for an unreadable or invalid wants file."""
 
 
+class PdfError(ValueError):
+    """Raised when the file given to verify cannot be read as a PDF."""
+
+
 # ---------------------------------------------------------------- wants
 
 
@@ -81,19 +86,63 @@ def load_wants(path: str | None) -> dict:
     if unknown:
         raise WantsError(f"unknown wants keys: {sorted(unknown)}")
     vision = given.pop("vision", {}) or {}
+    if not isinstance(vision, dict):
+        raise WantsError("vision must be a YAML mapping")
     unknown_v = set(vision) - set(DEFAULT_WANTS["vision"])
     if unknown_v:
         raise WantsError(f"unknown vision keys: {sorted(unknown_v)}")
     wants.update(given)
     wants["vision"].update(vision)
+    _validate(wants)
+    return wants
+
+
+def _is_int(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _is_fraction(value) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and (0 <= value <= 1)
+    )
+
+
+def _is_str_list(value) -> bool:
+    return isinstance(value, list) and all(isinstance(v, str) for v in value)
+
+
+def _validate(wants: dict) -> None:
+    """Reject bad values here, so verify() never fails halfway with a traceback."""
+    from .render import THEMES
+
+    vision = wants["vision"]
+    if wants["theme"] not in THEMES:
+        raise WantsError(f"theme must be one of {list(THEMES)}")
+    if wants["page_size"] not in PAGE_SIZES:
+        raise WantsError(f"page_size must be one of {sorted(PAGE_SIZES)}")
+    if not _is_int(wants["max_pages"]) or wants["max_pages"] < 1:
+        raise WantsError("max_pages must be a whole number of at least 1")
+    color = wants["text_color"]
+    if not (isinstance(color, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", color)):
+        raise WantsError(f"text_color must be #RRGGBB, got {color!r}")
+    for key in ("sparse_fill", "near_empty_fill"):
+        if not _is_fraction(wants[key]):
+            raise WantsError(f"{key} must be a number from 0 to 1")
+    if not _is_str_list(wants["checks"]):
+        raise WantsError("checks must be a list of check names")
     bad = set(wants["checks"]) - set(ALL_CHECKS)
     if bad:
         raise WantsError(f"unknown checks: {sorted(bad)}")
-    if wants["page_size"] not in PAGE_SIZES:
-        raise WantsError(f"page_size must be one of {sorted(PAGE_SIZES)}")
-    if wants["vision"]["sample"] not in ("per-type", "all", "none"):
+    if vision["sample"] not in ("per-type", "all", "none"):
         raise WantsError("vision.sample must be per-type, all or none")
-    return wants
+    if not _is_int(vision["max_sheets"]) or vision["max_sheets"] < 0:
+        raise WantsError("vision.max_sheets must be a whole number of at least 0")
+    if not _is_int(vision["resolution"]) or not 30 <= vision["resolution"] <= 300:
+        raise WantsError("vision.resolution must be a whole number from 30 to 300")
+    if not _is_str_list(vision["rubric"]):
+        raise WantsError("vision.rubric must be a list of strings")
 
 
 # ---------------------------------------------------------------- page model
@@ -180,6 +229,13 @@ def read_pages(pdf_path: str | Path, wanted_color: str = "#000000") -> list[Page
     import pdfplumber
 
     want = _hex_to_rgb(wanted_color)
+    try:
+        return _read_pages(pdfplumber, pdf_path, want)
+    except Exception as exc:  # pdfminer raises many types on a damaged file
+        raise PdfError(f"cannot read PDF {pdf_path}: {exc}") from exc
+
+
+def _read_pages(pdfplumber, pdf_path, want) -> list[PageInfo]:
     pages: list[PageInfo] = []
     with pdfplumber.open(pdf_path) as pdf:
         for i, page in enumerate(pdf.pages, start=1):
