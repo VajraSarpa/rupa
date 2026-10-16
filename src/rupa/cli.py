@@ -23,7 +23,14 @@ from pathlib import Path
 
 from . import __version__
 from .document import InputError, parse
-from .render import THEMES, RenderError, fit_pdf, to_html, to_pdf
+from .render import (
+    PROSE_WORDS_PER_LINE,
+    THEMES,
+    RenderError,
+    fit_pdf,
+    to_html,
+    to_pdf,
+)
 
 EXIT_OK, EXIT_USAGE, EXIT_INPUT, EXIT_RENDER, EXIT_CHECKS = 0, 2, 3, 4, 5
 FORMATS = ("html", "pdf")
@@ -98,7 +105,7 @@ def render_main(argv: list[str]) -> int:
         _err(args, str(exc))
         return EXIT_RENDER
 
-    over = bool(fit and fit.cut_words)
+    over = bool(fit and fit.cut_lines)
     if args.json:
         status = {
             "ok": not over,
@@ -108,7 +115,7 @@ def render_main(argv: list[str]) -> int:
             "bytes": len(data),
         }
         if fit and budget:
-            status.update(budget=budget, fit=fit.steps, cut_words=fit.cut_words)
+            status.update(budget=budget, fit=fit.steps, cut_lines=fit.cut_lines)
         print(json.dumps(status))
     else:
         extra = f", {pages} page{'s' if pages != 1 else ''}" if pages else ""
@@ -118,7 +125,9 @@ def render_main(argv: list[str]) -> int:
         if over:
             line += (
                 f"; over the {budget}-page budget at the tightest type:"
-                f" cut about {fit.cut_words} words and render again"
+                f" cut about {fit.cut_lines} lines (a line of prose is about"
+                f" {PROSE_WORDS_PER_LINE} words; a code line or table row is"
+                " one line) and render again"
             )
         print(line)
     return EXIT_CHECKS if over else EXIT_OK

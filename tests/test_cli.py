@@ -146,7 +146,7 @@ def test_page_budget_fits_by_tightening(tmp_path, monkeypatch, capsys):
     )
     status = json.loads(out)
     assert code == EXIT_OK and status["ok"]
-    assert status["pages"] <= 3 and status["fit"] and status["cut_words"] == 0
+    assert status["pages"] <= 3 and status["fit"] and status["cut_lines"] == 0
 
 
 def test_page_budget_over_says_how_much_to_cut(tmp_path, monkeypatch, capsys):
@@ -155,7 +155,7 @@ def test_page_budget_over_says_how_much_to_cut(tmp_path, monkeypatch, capsys):
         monkeypatch, capsys, ["-o", str(target)], stdin=LONG.format(budget=1)
     )
     assert code == 5 and target.exists()  # the file is still written
-    assert "over the 1-page budget" in out and "cut about" in out
+    assert "over the 1-page budget" in out and "lines" in out
 
 
 def test_pages_flag_overrides_frontmatter(tmp_path, monkeypatch, capsys):
@@ -175,9 +175,9 @@ def test_no_budget_leaves_render_alone(tmp_path, monkeypatch, capsys):
     assert code == EXIT_OK and "fit" not in json.loads(out)
 
 
-def test_cut_estimate_counts_space_not_words_for_code():
-    # A JSON block has one or two words a line, so the words past the budget
-    # undercount the space to free. The estimate must cover the lines.
+def test_cut_estimate_counts_lines_of_code():
+    # A JSON block has one or two words a line, so a word count of the
+    # overflow says far too little. The estimate must cover the lines.
     import io
 
     import pdfplumber
@@ -188,8 +188,10 @@ def test_cut_estimate_counts_space_not_words_for_code():
     code = "\n".join(f'  "key{i}": "value",' for i in range(150))
     fit = fit_pdf(parse(f"# T\n\n```json\n{{\n{code}\n}}\n```\n"), budget=1)
     with pdfplumber.open(io.BytesIO(fit.data)) as pdf:
-        words_past = sum(len((p.extract_text() or "").split()) for p in pdf.pages[1:])
-    assert fit.cut_words > 3 * words_past
+        lines_past = sum(
+            len((p.extract_text() or "").splitlines()) - 1 for p in pdf.pages[1:]
+        )  # less the footer line
+    assert lines_past <= fit.cut_lines <= lines_past * 1.3
 
 
 def test_pdf_embeds_bundled_fonts():

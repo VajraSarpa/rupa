@@ -11,7 +11,8 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
    `subtitle`, `author`, `date`, `theme`, `toc` (true/false), `pages`.
    No other keys. If the user asks for a page count, set `pages: N`: Rupa
    then fits the PDF to N pages itself (drops the contents list, tightens
-   type). Write to about 450 words per page.
+   type). Plan about 30 lines per page: a line of prose is about 15 words,
+   and each code line, table row, list item and heading is one line.
 2. Use `#` for parts, `##` for sections, `###` for subsections.
    Fenced code blocks take a language tag. Images are relative paths to
    files next to the Markdown file (or `data:image` URIs), never URLs.
@@ -24,8 +25,9 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
 4. Read only the one-line status. Do not open or print the output file.
 5. On a non-zero exit, fix the Markdown: `3` bad input and `4` render
    failure explain themselves on stderr; `5` means the PDF is still over
-   `pages` and the status line says about how many words to cut. Cut that
-   many in one edit and render again. Do not measure pages yourself.
+   `pages` and the status line says about how many lines to cut. Cut that
+   many, all in one turn (rewrite the file or send every edit together),
+   and render again. Do not measure pages yourself.
 
 ## Verify (PDF)
 

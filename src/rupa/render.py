@@ -196,19 +196,22 @@ class Fit:
     data: bytes
     pages: int
     steps: list[str]  # fit steps applied, in order; empty if none were needed
-    cut_words: int  # prose words to cut to fit, at the last step; 0 when it fits
+    cut_lines: int  # lines to cut to fit, at the last step; 0 when it fits
 
 
-# Prose at the tightest fit step holds about 1.49 words per point of page
-# height, paragraph gaps included (measured on a full page of body text).
-TIGHT_WORDS_PER_PT = 1.49
+# At the tightest fit step a line takes about 12.4pt of page height, paragraph
+# gaps included, and a line of prose holds about 18 words (measured on full
+# pages of body text and of code).
+TIGHT_LINE_PT = 12.4
+PROSE_WORDS_PER_LINE = 18
 
 
-def _words_after(data: bytes, budget: int) -> int:
-    """Prose words that would fill the space used past the budget.
+def _lines_after(data: bytes, budget: int) -> int:
+    """Lines of content to cut so the space used past the budget fits.
 
-    Measured as height rather than counted, because overflow is often code
-    or a table, which take far more room per word than prose.
+    Counted in lines, not words: overflow is often code or a table, where a
+    line holds one or two words, so a word count asks for far too little
+    there and far too much when prose is cut instead.
     """
     import io
     import math
@@ -225,7 +228,7 @@ def _words_after(data: bytes, budget: int) -> int:
             if body:
                 used += max(body) - MARGIN_TOP * PT_PER_IN
     # 10% over, since blocks that can't split (rows, short code) break late.
-    return math.ceil(used * TIGHT_WORDS_PER_PT * 1.1)
+    return math.ceil(used / TIGHT_LINE_PT * 1.1)
 
 
 def fit_pdf(
@@ -237,8 +240,8 @@ def fit_pdf(
     """Render a PDF, tightening it step by step until it fits `budget` pages.
 
     Content is never cut. If the tightest step is still over, the result
-    says roughly how many words of prose to cut to free the space used past
-    the budget.
+    says roughly how many lines to cut to free the space used past the
+    budget.
     """
     data, pages = to_pdf(doc, theme, base_dir)
     if not budget or pages <= budget:
@@ -257,4 +260,4 @@ def fit_pdf(
         data, pages = to_pdf(doc, theme, base_dir, extra_css=css, toc_on=toc_on)
         if pages <= budget:
             return Fit(data, pages, applied, 0)
-    return Fit(data, pages, applied, _words_after(data, budget))
+    return Fit(data, pages, applied, _lines_after(data, budget))
