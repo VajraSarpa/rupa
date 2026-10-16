@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="keywords" content="rupa-theme:default">
 <title>What Rupa Costs</title>
 <style>/* Rupa default theme: slate ink, one cyan accent. Screen first. */
 :root {
@@ -224,7 +225,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <main>
 
 <h2 id="summary">Summary</h2>
-<p>On three real document tasks, Claude Code with the Rupa plugin produced each PDF for <strong>$0.29 to $0.33</strong>, against <strong>$0.52 to $1.19</strong> for Claude Code on its own: 40% to 74% cheaper, and 2.4 to 5.6 times faster. Every Rupa PDF passed <code>rupa verify</code>; no baseline PDF did. The harder the layout, the bigger the saving.</p>
+<p>On three real document tasks, Claude Code with the Rupa plugin produced each PDF for <strong>$0.29 to $0.33</strong>, against <strong>$0.52 to $1.19</strong> for Claude Code on its own: 40% to 74% cheaper, and 2.4 to 5.6 times faster. Each document also added 61% to 86% less to Claude's context window. Every Rupa PDF passed <code>rupa verify</code>; no baseline PDF did. The harder the layout, the bigger the saving.</p>
 <p>Claude in the chat app was not measured. It builds a PDF the way Claude Code does without the plugin, by writing layout code, so expect baseline-like usage. It is billed by plan rather than per token, and Rupa doesn't run there today.</p>
 <h2 id="how-it-was-measured">How it was measured</h2>
 <p>Each run gave <code>claude -p</code> the same prompt in a fresh, empty folder, three times per arm, on Claude Opus 5.5, 15 to 16 October 2026. Costs are what Claude Code reported, at API list prices.</p>
@@ -322,6 +323,45 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <li><strong>Fewer output tokens.</strong> Claude writes Markdown, not markup: 3,000 to 5,200 output tokens per Rupa run against 8,500 to 25,500 for Claude Code.</li>
 <li><strong>Fewer turns.</strong> Every turn re-reads the whole conversation. Claude Code spends turns fixing its own layout; Rupa's page budget and verify checks settle most of that in one render.</li>
 </ul>
+<h2 id="the-context-window">The context window</h2>
+<p>Rupa also leaves more room in the conversation. Measured from each run's transcript, here is the context a document added (the largest context in the run minus the session's starting context):</p>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Claude Code</th>
+<th>Rupa</th>
+<th>Less</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Two-page report</td>
+<td>12,220 tokens</td>
+<td>3,785 tokens</td>
+<td>69%</td>
+</tr>
+<tr>
+<td>Three-page guide</td>
+<td>34,308 tokens</td>
+<td>4,849 tokens</td>
+<td>86%</td>
+</tr>
+<tr>
+<td>Wide table</td>
+<td>14,927 tokens</td>
+<td>5,779 tokens</td>
+<td>61%</td>
+</tr>
+<tr>
+<td>Average of the three</td>
+<td>20,485 tokens</td>
+<td>4,804 tokens</td>
+<td>77%</td>
+</tr>
+</tbody>
+</table>
+<p>That context stays for the rest of the session: every later turn re-reads it, and a full window gets compacted sooner. Five guides in one session would add about 172,000 tokens without Rupa, 17% of Opus 5.5's million-token window, and about 24,000 with it, 2.4%. The reason is the same as for cost: Rupa returns one status line instead of the document, and Claude doesn't write or re-read markup.</p>
 <h2 id="on-a-cheaper-model">On a cheaper model</h2>
 <p>Priced at Claude Sonnet 5.5 rates ($2 input, $10 output, $4 cache write, $0.20 cache read), the same token counts would cost about $0.16 to $0.18 per Rupa document and $0.29 to $0.70 per Claude Code document. The saving keeps its shape. This is arithmetic, not a measurement: Sonnet may take a different number of turns.</p>
 <h2 id="on-a-subscription">On a subscription</h2>

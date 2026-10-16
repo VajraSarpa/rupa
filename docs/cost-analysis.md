@@ -9,7 +9,7 @@ pages: 3
 
 ## Summary
 
-On three real document tasks, Claude Code with the Rupa plugin produced each PDF for **$0.29 to $0.33**, against **$0.52 to $1.19** for Claude Code on its own: 40% to 74% cheaper, and 2.4 to 5.6 times faster. Every Rupa PDF passed `rupa verify`; no baseline PDF did. The harder the layout, the bigger the saving.
+On three real document tasks, Claude Code with the Rupa plugin produced each PDF for **$0.29 to $0.33**, against **$0.52 to $1.19** for Claude Code on its own: 40% to 74% cheaper, and 2.4 to 5.6 times faster. Each document also added 61% to 86% less to Claude's context window. Every Rupa PDF passed `rupa verify`; no baseline PDF did. The harder the layout, the bigger the saving.
 
 Claude in the chat app was not measured. It builds a PDF the way Claude Code does without the plugin, by writing layout code, so expect baseline-like usage. It is billed by plan rather than per token, and Rupa doesn't run there today.
 
@@ -46,6 +46,19 @@ Runs vary. Baseline guide runs cost between $0.85 and $1.28 across separate days
 - **A floor of about $0.19.** Starting a session writes the system prompt, tools and skill to cache, roughly 23,000 tokens. That is most of a Rupa run, and it is why Rupa's cost barely moves between tasks.
 - **Fewer output tokens.** Claude writes Markdown, not markup: 3,000 to 5,200 output tokens per Rupa run against 8,500 to 25,500 for Claude Code.
 - **Fewer turns.** Every turn re-reads the whole conversation. Claude Code spends turns fixing its own layout; Rupa's page budget and verify checks settle most of that in one render.
+
+## The context window
+
+Rupa also leaves more room in the conversation. Measured from each run's transcript, here is the context a document added (the largest context in the run minus the session's starting context):
+
+| Task | Claude Code | Rupa | Less |
+|---|---|---|---|
+| Two-page report | 12,220 tokens | 3,785 tokens | 69% |
+| Three-page guide | 34,308 tokens | 4,849 tokens | 86% |
+| Wide table | 14,927 tokens | 5,779 tokens | 61% |
+| Average of the three | 20,485 tokens | 4,804 tokens | 77% |
+
+That context stays for the rest of the session: every later turn re-reads it, and a full window gets compacted sooner. Five guides in one session would add about 172,000 tokens without Rupa, 17% of Opus 5.5's million-token window, and about 24,000 with it, 2.4%. The reason is the same as for cost: Rupa returns one status line instead of the document, and Claude doesn't write or re-read markup.
 
 ## On a cheaper model
 
