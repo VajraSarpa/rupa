@@ -478,8 +478,12 @@ Five of the six runs went over the budget on the first render, asking for cuts o
 
 Every Rupa first draft overflowed, by 31 to 85pt. Of the six runs that verified, two split the table on the first fix round and two shortened cells first and split on the second. Two only shortened: one fitted, and a per-type run stayed 25pt over and shipped with the failure reported. The runs that shortened first read "a table … across eleven columns" as forbidding a split. Every fix round was a Python rewrite of the Markdown rather than the one Write the skill asks for, which cost nothing extra here.
 
-This is the one task where baseline did well. It never clipped the table: two runs put it on a landscape page and one fitted it on portrait with half-inch margins, at 7.4pt and 6.6pt type (one header broke mid-word). Rupa can't change orientation or shrink one table, so it restructures instead and keeps 9.8pt type. That costs fix rounds: the shipped arm saved only 13% on cost and took one more turn. The render-only arm is cheapest but shipped every table overflowing, so on this task verify is what makes the output correct. A theme option for wide tables (smaller type, or a landscape page) would cut the fix rounds.
+This is the one task where baseline did well. It never clipped the table: two runs put it on a landscape page and one fitted it on portrait with half-inch margins, at 7.4pt and 6.6pt type (one header broke mid-word). Rupa can't change orientation or shrink one table, so it restructures instead and keeps 9.8pt type. That costs fix rounds: the shipped arm saved only 13% on cost and took one more turn. The render-only arm is cheapest but shipped every table overflowing, so on this task verify is what makes the output correct. A theme option for wide tables would cut the fix rounds; the next build adds one.
 
+
+### Wide tables in smaller type (2026-10-16)
+
+`print.css` now sets a table of 9 or more columns in 8pt type, 11 or more in 7.5pt, with tighter cell padding; the old padding alone took about 160pt of an 11-column table's 497pt. The skill tells Claude that about 11 short columns fit and to write two tables beyond that. Re-rendered with the new rule, all nine Rupa first drafts from the full wide run fit, where all nine had overflowed. One draft still fails verify on a separate problem: a 180-character `--query` in a code block, which Rupa wraps only at spaces so a command is never silently broken.
 
 ### How to read the results
 

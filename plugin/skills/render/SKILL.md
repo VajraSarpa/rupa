@@ -16,6 +16,9 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
 2. Use `#` for parts, `##` for sections, `###` for subsections.
    Fenced code blocks take a language tag. Images are relative paths to
    files next to the Markdown file (or `data:image` URIs), never URLs.
+   A PDF table fits about 11 short columns (Rupa sets 9 or more in smaller
+   type). For more, or for long cell text, write two tables that each
+   repeat the first column.
 3. Render with one command, using the extension the user asked for:
 
    ```bash
@@ -42,10 +45,9 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
    sheet: `p<N> <kind>: PASS` or `p<N> <kind>: FAIL <rubric item> - <what>`.
 4. Fix failures in the Markdown only: shorten a long code line, move or
    trim content around an awkward break. If `overflow` names a table, split
-   it into two tables that each repeat the first column, about eight
-   columns at most in each. Shortening cell text rarely closes the gap. Make each
-   round's fixes with one Write of the whole file, then render and verify
-   again. Stop after two fix rounds.
+   it into two tables that each repeat the first column. Shortening cell
+   text rarely closes the gap. Make each round's fixes with one Write of
+   the whole file, then render and verify again. Stop after two fix rounds.
 5. If a failure can only be fixed in the theme (CSS), do not edit CSS.
    Report it to the user as a theme issue.
 6. Tell the user the final check line and your per-sheet verdicts in a few

@@ -58,3 +58,9 @@ pre code { font-size: 1em; line-height: inherit; }
 p:has(+ pre), p:has(+ table) { break-after: avoid; } /* a lead-in ("Run this:") moves with its block, and so does the heading above it */
 :is(h2, h3) + :is(ul, ol) > li:first-child { break-after: avoid; } /* a heading never ends a page with one list item */
 table { display: table; font-size: 9pt; }
+/* Wide tables get smaller type and tighter cells, so up to about 11 columns
+   fit the text width instead of running into the margin. Specific enough to
+   beat the fit steps' table and cell rules. */
+table:has(th:nth-child(9)) { font-size: 8pt; }
+table:has(th:nth-child(11)) { font-size: 7.5pt; }
+table:has(th:nth-child(9)) :is(th, td) { padding: .25rem .3rem; }

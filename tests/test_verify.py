@@ -204,15 +204,28 @@ def test_overflow_names_what_runs_over_and_by_how_much():
     assert "p4 table by 20pt" in detail
 
 
-def test_eleven_column_table_overflows_as_a_table(tmp_path):
-    cols = [f"Column {i}" for i in range(11)]
-    row = ["m7i.2xlarge", "General purpose", "Up to 12.5 Gbps"] + ["0.4032"] * 8
-    md = "## Wide\n\n| " + " | ".join(cols) + " |\n|" + "---|" * 11 + "\n"
+def wide_table_pdf(tmp_path, ncols: int):
+    cols = [f"Column {i}" for i in range(ncols)]
+    row = ["m7i.2xlarge", "General purpose", "Up to 12.5 Gbps"]
+    row += ["0.4032"] * (ncols - 3)
+    md = "## Wide\n\n| " + " | ".join(cols) + " |\n|" + "---|" * ncols + "\n"
     md += ("| " + " | ".join(row) + " |\n") * 6
     data, _ = to_pdf(parse(md), "default")
-    pdf = tmp_path / "wide.pdf"
+    pdf = tmp_path / f"wide-{ncols}.pdf"
     pdf.write_bytes(data)
-    detail = overflow_detail(run_checks(read_pages(pdf), load_wants(None)))
+    return pdf
+
+
+def test_eleven_column_table_fits_in_smaller_type(tmp_path):
+    pages = read_pages(wide_table_pdf(tmp_path, 11))
+    assert "overflow" not in failing(run_checks(pages, load_wants(None)))
+    sizes = {round(ln.size, 1) for ln in pages[0].lines if ln.text.startswith("m7i")}
+    assert sizes == {7.5}
+
+
+def test_too_wide_a_table_overflows_as_a_table(tmp_path):
+    pages = read_pages(wide_table_pdf(tmp_path, 16))
+    detail = overflow_detail(run_checks(pages, load_wants(None)))
     assert re.search(r"p1 table by \d+pt", detail), detail
 
 
