@@ -372,15 +372,34 @@ def run_checks(pages: list[PageInfo], wants: dict) -> list[CheckResult]:
         f"under {wants['sparse_fill']:.0%} full with no part break after",
     )
 
+    def is_heading(ln: Line) -> bool:
+        return ln.bold and not ln.mono and ln.size >= HEADING_PT
+
     stranded = []
     # The last page is exempt: nothing follows its final line, so no page break
     # separated a heading from its content (this also covers a title-only doc).
-    for p in pages[:-1]:
-        if p.lines:
-            tail = p.lines[-1]
-            if tail.bold and not tail.mono and tail.size >= HEADING_PT:
-                stranded.append(p.number)
-    add("heading-at-bottom", stranded, "heading is the last line on the page")
+    for idx, p in enumerate(pages[:-1]):
+        if not p.lines:
+            continue
+        if is_heading(p.lines[-1]):
+            stranded.append(p.number)
+            continue
+        # A heading and a one-line lead-in ("Run this:") whose block moved to
+        # the next page. A complete one-line section before a new heading is fine.
+        nxt = pages[idx + 1].lines
+        if (
+            len(p.lines) >= 2
+            and is_heading(head := p.lines[-2])
+            and p.lines[-1].top - head.bottom < 2 * head.size  # directly under it
+            and nxt
+            and not is_heading(nxt[0])
+        ):
+            stranded.append(p.number)
+    add(
+        "heading-at-bottom",
+        stranded,
+        "heading is the last line, or a heading and one line end the page",
+    )
 
     overflow = []
     for p in pages:

@@ -126,6 +126,20 @@ def test_stranded_heading_fails():
     assert failing(run_checks(pages, load_wants(None))) == {"heading-at-bottom": [2]}
 
 
+def test_heading_and_lead_in_before_moved_block_fails():
+    lines = [body_line(70), body_line(670, size=15, bold=True), body_line(690)]
+    nxt = [body_line(70, mono=True), body_line(700)]
+    pages = [page(1), page(2, lines=lines), page(3, lines=nxt)]
+    assert failing(run_checks(pages, load_wants(None))) == {"heading-at-bottom": [2]}
+
+
+def test_one_line_section_before_next_heading_passes():
+    lines = [body_line(70), body_line(670, size=15, bold=True), body_line(690)]
+    nxt = [body_line(70, size=15, bold=True), body_line(700)]
+    pages = [page(1), page(2, lines=lines), page(3, lines=nxt)]
+    assert failing(run_checks(pages, load_wants(None))) == {}
+
+
 def test_title_only_document_is_not_a_stranded_heading():
     pages = [page(1, lines=[body_line(70, size=26, bold=True)])]
     assert failing(run_checks(pages, load_wants(None))) == {}

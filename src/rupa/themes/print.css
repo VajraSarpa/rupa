@@ -51,4 +51,5 @@ blockquote, tr { break-inside: avoid; }
 thead { display: table-header-group; }
 pre { break-inside: auto; white-space: pre-wrap; orphans: 3; widows: 3; } /* wrap at spaces, never mid-token; no 1-2 line fragments across a page break */
 pre code { font-size: 8.3pt; }
+p:has(+ pre), p:has(+ table) { break-after: avoid; } /* a lead-in ("Run this:") moves with its block, and so does the heading above it */
 table { display: table; font-size: 9pt; }
