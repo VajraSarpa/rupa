@@ -61,6 +61,11 @@ def _render_parser() -> argparse.ArgumentParser:
         type=int,
         help="PDF page budget; tighten type to fit (default: frontmatter 'pages')",
     )
+    p.add_argument(
+        "--force",
+        action="store_true",
+        help="with --to, replace an existing output that isn't .html or .pdf",
+    )
     p.add_argument("--json", action="store_true", help="print a JSON status object")
     p.add_argument("--version", action="version", version=f"rupa {__version__}")
     return p
@@ -80,13 +85,20 @@ def render_main(argv: list[str]) -> int:
     if fmt not in FORMATS:
         _err(args, f"cannot infer format from '{out.name}'; use --to")
         return EXIT_USAGE
+    # --to lets -o name any file, so only an .html or .pdf is replaced unasked.
+    if out.exists() and out.suffix.lower() not in (".html", ".pdf") and not args.force:
+        _err(args, f"{out} exists and isn't .html or .pdf; use --force to replace it")
+        return EXIT_USAGE
 
     try:
-        text = (
-            sys.stdin.read()
+        # Bytes, decoded here: without a UTF-8 locale, text-mode stdin would
+        # let bad bytes through as surrogates that fail later in the render.
+        raw = (
+            sys.stdin.buffer.read()
             if args.input == "-"
-            else Path(args.input).read_text(encoding="utf-8")
+            else Path(args.input).read_bytes()
         )
+        text = raw.decode("utf-8")
         doc = parse(text)
     except (InputError, OSError, UnicodeDecodeError) as exc:
         _err(args, str(exc))

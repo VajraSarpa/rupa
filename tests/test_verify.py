@@ -373,3 +373,34 @@ def test_references_refuse_a_spilling_sample(tmp_path):
     pdf.write_bytes(data)
     with pytest.raises(ValueError):
         build_references(pdf, tmp_path / "refs")
+
+
+def _blank_pdf(path, *sizes):
+    import pypdfium2 as pdfium
+
+    pdf = pdfium.PdfDocument.new()
+    for w, h in sizes:
+        pdf.new_page(w, h)
+    pdf.save(str(path))
+    return path
+
+
+def test_a_pdf_with_no_pages_is_bad_input(tmp_path, capsys):
+    # With no pages every check loops over nothing, which used to read 8/8 pass.
+    pdf = _blank_pdf(tmp_path / "empty.pdf")
+    assert main(["verify", str(pdf)]) == EXIT_INPUT
+    assert "no pages" in capsys.readouterr().err
+
+
+def test_a_zero_size_page_is_bad_input(tmp_path, capsys):
+    pdf = _blank_pdf(tmp_path / "zero.pdf", (0, 0))
+    assert main(["verify", str(pdf), "--sample", "all"]) == EXIT_INPUT
+    assert "no size" in capsys.readouterr().err
+
+
+def test_sheet_size_is_capped_on_a_huge_page(tmp_path):
+    from rupa.verify import MAX_SHEET_PX, render_page_png
+
+    pdf = _blank_pdf(tmp_path / "big.pdf", (2000, 2000))  # ~28 in square
+    img = render_page_png(pdf, 1, 300)  # uncapped this is 8333 px a side
+    assert max(img.size) <= MAX_SHEET_PX

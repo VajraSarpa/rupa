@@ -106,7 +106,9 @@ def parse(text: str) -> Document:
         if tok.type == "front_matter":
             try:
                 loaded = yaml.safe_load(tok.content) or {}
-            except yaml.YAMLError as exc:
+            # An impossible date (2026-02-30) raises ValueError, and deeply
+            # nested YAML RecursionError; both are bad input, not a crash.
+            except (yaml.YAMLError, ValueError, OverflowError, RecursionError) as exc:
                 raise InputError(f"bad frontmatter: {exc}") from exc
             if not isinstance(loaded, dict):
                 raise InputError("frontmatter must be a YAML mapping")

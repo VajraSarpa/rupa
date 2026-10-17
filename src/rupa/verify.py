@@ -193,6 +193,8 @@ class PageInfo:
         if not self.lines:
             return 0.0
         span = self.body_bottom - self.body_top
+        if span <= 0:  # a page too small to have a body box
+            return 0.0
         return max(0.0, min(1.0, (self.content_bottom - self.body_top) / span))
 
     @property
@@ -493,15 +495,21 @@ def _label(img, text: str):
     return out
 
 
+# A sheet's rendered page is at most this many pixels on its long side, so an
+# oversized page can't exhaust memory. Letter at 300 dpi is 3300.
+MAX_SHEET_PX = 3300
+
+
 def render_page_png(pdf_path: str | Path, number: int, resolution: int):
     import pdfplumber
 
     with pdfplumber.open(pdf_path) as pdf:
-        return (
-            pdf.pages[number - 1]
-            .to_image(resolution=resolution)
-            .original.convert("RGB")
-        )
+        page = pdf.pages[number - 1]
+        long_side = max(float(page.width), float(page.height))
+        if min(float(page.width), float(page.height)) <= 0:
+            raise PdfError(f"page {number} has no size ({page.width}x{page.height}pt)")
+        resolution = min(resolution, MAX_SHEET_PX * PT_PER_IN / long_side)
+        return page.to_image(resolution=resolution).original.convert("RGB")
 
 
 def make_sheet(
@@ -602,6 +610,8 @@ def verify(
     for old in out.glob("sheet-p*.png"):
         old.unlink()
     pages = read_pages(pdf_path, wants["text_color"])
+    if not pages:  # every check loops over pages, so none would all "pass"
+        raise PdfError(f"{pdf_path} has no pages")
     results = run_checks(pages, wants)
     flags_by_page: dict[int, list[str]] = {}
     for r in results:
@@ -610,7 +620,14 @@ def verify(
     sheets = []
     for p in sample_pages(pages, results, wants):
         flags = flags_by_page.get(p.number, [])
-        path = make_sheet(pdf_path, p, flags, theme, wants["vision"]["resolution"], out)
+        try:
+            path = make_sheet(
+                pdf_path, p, flags, theme, wants["vision"]["resolution"], out
+            )
+        except PdfError:
+            raise
+        except Exception as exc:  # pdfium and Pillow raise many types
+            raise PdfError(f"cannot make the sheet for page {p.number}: {exc}") from exc
         sheets.append(
             {"path": str(path), "page": p.number, "kind": p.kind, "flags": flags}
         )

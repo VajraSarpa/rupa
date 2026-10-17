@@ -113,3 +113,15 @@ def test_strikethrough_task_lists_and_footnotes_render():
     assert html.count('type="checkbox"') == 2 and 'checked="checked"' in html
     assert 'class="footnotes"' in html and "[^1]" not in html
     assert "&lt;b&gt;note&lt;/b&gt;" in html  # raw HTML stays escaped in a footnote
+
+
+@pytest.mark.parametrize(
+    "front",
+    ["date: 2026-02-30", "title: " + "[" * 3000],
+    ids=["impossible-date", "deep-nesting"],
+)
+def test_frontmatter_that_crashes_yaml_is_bad_input(front):
+    # ValueError (impossible date) and RecursionError (deep nesting) used to
+    # escape as tracebacks with exit 1.
+    with pytest.raises(InputError, match="bad frontmatter"):
+        parse(f"---\n{front}\n---\n\nBody.\n")

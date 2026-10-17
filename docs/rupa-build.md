@@ -151,7 +151,7 @@ Rupa has one contract, and the plugin, tests and benchmark all depend on it.
 | Channel | Carries |
 |---|---|
 | stdin or file argument | Markdown with optional YAML frontmatter |
-| `-o PATH` | The rendered file. Format comes from the extension, or `--to html` / `--to pdf` |
+| `-o PATH` | The rendered file. Format comes from the extension, or `--to html` / `--to pdf`. With `--to`, an existing file that isn't `.html` or `.pdf` is replaced only with `--force` |
 | stdout | One status line, or one JSON object with `--json`. Never the document |
 | stderr | One error line on failure |
 | exit code | `0` ok, `2` usage, `3` bad input, `4` render failure, `5` verify checks failed or a PDF still over its page budget |
@@ -211,7 +211,7 @@ Body conventions:
 - Fenced code blocks take a language tag for highlighting.
 - Tables use GitHub pipe syntax. `~~strikethrough~~`, task lists (`- [ ]`, `- [x]`) and footnotes (`[^1]`) work too; in a PDF the footnotes are collected at the end.
 - Raw HTML is escaped and shown as text.
-- Images must be relative paths next to the Markdown file, or `data:image` URIs. A URL or absolute path is bad input (exit code 3); a missing file, or one outside the Markdown file's folder, fails the render (exit code 4). HTML output embeds each image as a data URI, so the file can be sent on its own.
+- Images must be relative paths next to the Markdown file, or `data:image` URIs. A URL or absolute path is bad input (exit code 3); a missing file, a hidden one, one outside the Markdown file's folder, or one that doesn't decode as a PNG, JPEG, GIF, WebP or SVG image fails the render (exit code 4). HTML output embeds each image as a data URI, so the file can be sent on its own.
 
 ## Themes
 

@@ -9,7 +9,8 @@ DOC = "---\ntitle: T\n---\n\n## A\n\nBody text.\n"
 
 
 def run(monkeypatch, capsys, argv, stdin=DOC):
-    monkeypatch.setattr("sys.stdin", io.StringIO(stdin))
+    raw = stdin if isinstance(stdin, bytes) else stdin.encode()
+    monkeypatch.setattr("sys.stdin", io.TextIOWrapper(io.BytesIO(raw)))
     code = main(argv)
     out, err = capsys.readouterr()
     return code, out, err
@@ -259,3 +260,88 @@ def test_log_off(tmp_path, monkeypatch, capsys, _rupa_log):
     monkeypatch.setenv("RUPA_LOG", "off")
     run(monkeypatch, capsys, ["-o", str(tmp_path / "o.html")], stdin="")
     assert not _rupa_log.exists()
+
+
+def test_to_does_not_replace_a_file_that_isnt_html_or_pdf(
+    tmp_path, monkeypatch, capsys
+):
+    target = tmp_path / "notes.txt"
+    target.write_text("keep me")
+    code, _, err = run(monkeypatch, capsys, ["-o", str(target), "--to", "html"])
+    assert code == EXIT_USAGE and "--force" in err
+    assert target.read_text() == "keep me"
+    code, _, _ = run(
+        monkeypatch, capsys, ["-o", str(target), "--to", "html", "--force"]
+    )
+    assert code == EXIT_OK and target.read_text().startswith("<!doctype html>")
+
+
+def test_existing_html_and_pdf_are_still_replaced(tmp_path, monkeypatch, capsys):
+    for name in ("o.html", "o.pdf"):
+        target = tmp_path / name
+        target.write_text("old")
+        code, _, _ = run(monkeypatch, capsys, ["-o", str(target)])
+        assert code == EXIT_OK and target.read_bytes() != b"old"
+
+
+def _doc_with(tmp_path, name, data, src=None):
+    (tmp_path / "doc").mkdir(exist_ok=True)
+    (tmp_path / "doc" / name).write_bytes(data)
+    md = tmp_path / "doc" / "t.md"
+    md.write_text(f"## x\n\n![f]({src or name})\n")
+    return str(md)
+
+
+@pytest.mark.parametrize("ext", ["pdf", "html"])
+@pytest.mark.parametrize("name", [".env", "notes.txt", "fake.png", ".hidden/fig.png"])
+def test_files_that_arent_real_visible_images_are_refused(tmp_path, capsys, ext, name):
+    from PIL import Image
+
+    secret = b"API_KEY=sk-not-for-the-page"
+    if name.startswith(".hidden"):
+        (tmp_path / "doc" / ".hidden").mkdir(parents=True)
+        Image.new("RGB", (4, 4)).save(tmp_path / "doc" / name)
+        md = _doc_with(tmp_path, "unused.txt", b"", src=name)
+    else:
+        md = _doc_with(tmp_path, name, secret)
+    target = tmp_path / f"o.{ext}"
+    assert main([md, "-o", str(target)]) == EXIT_RENDER
+    err = capsys.readouterr().err
+    assert "blocked" in err or "cannot be decoded" in err
+    assert not target.exists()
+
+
+@pytest.mark.parametrize("ext", ["pdf", "html"])
+def test_an_image_that_wont_decode_fails_the_render(tmp_path, capsys, ext):
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.effect_noise((200, 200), 64).save(buf, "PNG")
+    data = buf.getvalue()
+    md = _doc_with(tmp_path, "cut.png", data[: len(data) // 2])  # truncated
+    code = main([md, "-o", str(tmp_path / f"o.{ext}")])
+    assert code == EXIT_RENDER and "cut.png" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("ext", ["pdf", "html"])
+def test_svg_images_still_render(tmp_path, capsys, ext):
+    svg = b'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="red"/></svg>'
+    target = tmp_path / f"o.{ext}"
+    assert main([_doc_with(tmp_path, "fig.svg", svg), "-o", str(target)]) == EXIT_OK
+    if ext == "html":
+        assert "data:image/svg+xml;base64," in target.read_text()
+
+
+def test_non_utf8_stdin_is_bad_input_without_a_utf8_locale(
+    tmp_path, monkeypatch, capsys
+):
+    # Under the C locale Python decodes stdin with surrogateescape, so bad
+    # bytes used to slip through and crash the render (exit 1 or 4).
+    stdin = io.TextIOWrapper(
+        io.BytesIO(b"## caf\xe9\n"), encoding="utf-8", errors="surrogateescape"
+    )
+    monkeypatch.setattr("sys.stdin", stdin)
+    for ext in ("html", "pdf"):
+        stdin.seek(0)
+        assert main(["-o", str(tmp_path / f"o.{ext}")]) == EXIT_INPUT
+        assert "utf-8" in capsys.readouterr().err

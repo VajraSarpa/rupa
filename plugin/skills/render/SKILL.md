@@ -20,7 +20,8 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
 2. Use `##` for sections and `###` for subsections. Use `#` parts only in
    a long document (about 8 pages or more): each part starts a new page.
    Fenced code blocks take a language tag. Images are relative paths to
-   files next to the Markdown file (or `data:image` URIs), never URLs.
+   PNG, JPEG, GIF, WebP or SVG files next to the Markdown file (or
+   `data:image` URIs), never URLs.
    A PDF table fits about 11 short columns (Rupa sets 9 or more in smaller
    type). For more, or for long cell text, write two tables that each
    repeat the first column.

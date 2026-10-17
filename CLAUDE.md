@@ -10,7 +10,7 @@ skill makes Claude use it instead of hand-writing markup.
 
 ```bash
 uv sync                                   # needs Pango for WeasyPrint (see README)
-uv run pytest -q                          # 113 tests
+uv run pytest -q                          # 133 tests
 uv run pytest tests/test_verify.py::test_stranded_heading_fails   # one test
 uvx ruff check src tests                  # CI runs this too
 echo "# Hello" | uv run rupa -o out/hello.pdf && uv run rupa verify out/hello.pdf
@@ -46,10 +46,13 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
 - **Images:** `document.py` rejects any image that isn't a relative path or a
   `data:image` URI (exit 3), so neither HTML nor PDF ever fetches from the
   network. Relative paths resolve against the input file's folder (cwd for
-  stdin). For PDF the WeasyPrint fetcher refuses files outside it; for HTML
-  `embed_images` inlines each file as a data URI under the same rule, so an
-  HTML file stands alone. A missing or refused file fails the render (exit 4)
-  rather than vanishing.
+  stdin). `render.load_image` reads every image for both formats: only
+  files inside that folder, never hidden ones, with an image extension, and
+  only if the bytes decode (PNG, JPEG, GIF, WebP via Pillow, or SVG). Both
+  HTML and PDF then get each image inlined as a data URI, so an HTML file
+  stands alone and WeasyPrint never swaps a bad image for its alt text. A
+  missing, refused or undecodable file fails the render (exit 4) rather than
+  vanishing or leaking into the page.
 - **Markdown:** CommonMark plus tables, strikethrough, task lists and
   footnotes (endnotes in PDF). Verify can't see unconverted syntax, so a
   feature Claude writes naturally should be enabled here, not banned.

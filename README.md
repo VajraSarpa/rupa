@@ -87,7 +87,8 @@ rupa verify report.pdf
 
 Supported Markdown: CommonMark, tables, strikethrough, task lists, footnotes
 and fenced code with syntax highlighting. Raw HTML is escaped, and images
-must be files next to the Markdown (HTML output embeds them).
+must be PNG, JPEG, GIF, WebP or SVG files next to the Markdown (HTML output
+embeds them).
 
 ## Themes
 
@@ -178,7 +179,7 @@ The plugin and its evals depend on this.
 
 ```bash
 uv sync
-uv run pytest -q                   # 113 tests
+uv run pytest -q                   # 133 tests
 uvx ruff check src tests
 uv run rupa refs --theme <name>    # after any theme change; commit the PNGs
 uv run python docs/build.py        # re-render the guide with Rupa

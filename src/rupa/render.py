@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import base64
 import html as html_lib
-import mimetypes
 import re
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote, unquote_to_bytes, urlparse
 
 from jinja2 import Environment, select_autoescape
 from pygments.formatters import HtmlFormatter
@@ -146,28 +145,106 @@ pre { padding: .45rem .6rem; font-size: 7.8pt; line-height: 12.15pt; }
 
 
 _IMG_SRC = re.compile(r'(<img src=")([^"]+)(")')
+# Raster images by the format Pillow detects from the bytes, not the name.
+RASTER_MIME = {
+    "PNG": "image/png",
+    "JPEG": "image/jpeg",
+    "GIF": "image/gif",
+    "WEBP": "image/webp",
+}
+IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")
+
+
+def _decoded_mime(data: bytes, name: str) -> str:
+    """The image's MIME type, once its bytes are known to decode as an image.
+
+    A file that only claims to be an image (a renamed .env, a truncated PNG)
+    fails here, so it is neither embedded in HTML nor dropped from a PDF.
+    """
+    if name.lower().endswith(".svg"):
+        import xml.etree.ElementTree as ET
+
+        try:
+            root = ET.fromstring(data)
+        except ET.ParseError as exc:
+            raise RenderError(f"image {name} is not valid SVG: {exc}") from exc
+        if root.tag not in ("svg", "{http://www.w3.org/2000/svg}svg"):
+            raise RenderError(f"image {name} is not an SVG image")
+        return "image/svg+xml"
+
+    import io
+    import warnings
+
+    from PIL import Image, ImageFile
+
+    # Importing WeasyPrint turns this on for the whole process, which would
+    # let half a file through as an image.
+    truncated_ok, ImageFile.LOAD_TRUNCATED_IMAGES = (
+        ImageFile.LOAD_TRUNCATED_IMAGES,
+        False,
+    )
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(io.BytesIO(data)) as img:
+                fmt = img.format
+                img.load()
+    except Exception as exc:  # Pillow raises many types on bad data
+        raise RenderError(f"image {name} cannot be decoded: {exc}") from exc
+    finally:
+        ImageFile.LOAD_TRUNCATED_IMAGES = truncated_ok
+    if fmt not in RASTER_MIME:
+        raise RenderError(f"image {name} is {fmt}; use PNG, JPEG, GIF, WebP or SVG")
+    return RASTER_MIME[fmt]
+
+
+def load_image(src: str, base_dir: str | Path) -> tuple[bytes, str]:
+    """Read one image the document names: (bytes, MIME type).
+
+    A data: URI is decoded; a relative path must be an image file inside
+    base_dir, not hidden (no part of it starts with '.'). Anything missing,
+    refused or undecodable raises RenderError, so the render fails instead
+    of leaving a broken image or embedding a file that isn't one.
+    """
+    if src.startswith("data:"):
+        header, _, payload = src.partition(",")
+        try:
+            data = (
+                base64.b64decode(payload, validate=True)
+                if header.endswith(";base64")
+                else unquote_to_bytes(payload)
+            )
+        except ValueError as exc:
+            raise RenderError(f"image data URI cannot be decoded: {exc}") from exc
+        return data, _decoded_mime(data, "data URI")
+
+    base = Path(base_dir).resolve()
+    path = (base / unquote(src)).resolve()
+    if not path.is_relative_to(base):
+        raise RenderError(f"blocked or missing resource: {path} is outside {base}")
+    if any(part.startswith(".") for part in path.relative_to(base).parts):
+        raise RenderError(f"blocked resource: {path} is a hidden file")
+    if path.suffix.lower() not in IMAGE_SUFFIXES:
+        raise RenderError(
+            f"blocked resource: {path.name} is not an image"
+            f" ({', '.join(IMAGE_SUFFIXES)})"
+        )
+    try:
+        data = path.read_bytes()
+    except OSError as exc:
+        raise RenderError(f"blocked or missing resource: {path}") from exc
+    return data, _decoded_mime(data, path.name)
 
 
 def embed_images(body: str, base_dir: str | Path) -> str:
-    """Inline relative image files as data: URIs, so an HTML file stands alone.
+    """Inline every image as a data: URI, so the page needs no other file.
 
-    Same rule as the PDF fetcher: only files inside base_dir, and a missing
-    or refused file fails the render instead of leaving a broken image.
+    Each one goes through load_image first: only real images, only from
+    inside base_dir.
     """
-    base = Path(base_dir).resolve()
 
     def inline(m: re.Match) -> str:
-        src = html_lib.unescape(m.group(2))
-        if src.startswith("data:"):
-            return m.group(0)
-        path = (base / unquote(src)).resolve()
-        if not path.is_relative_to(base):
-            raise RenderError(f"blocked or missing resource: {path} is outside {base}")
-        try:
-            data = path.read_bytes()
-        except OSError as exc:
-            raise RenderError(f"blocked or missing resource: {path}") from exc
-        mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        data, mime = load_image(html_lib.unescape(m.group(2)), base_dir)
         uri = f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"
         return m.group(1) + uri + m.group(3)
 
@@ -233,9 +310,12 @@ def to_pdf(
 
     # Files under base, Rupa's own fonts, and data: URIs only. Anything else,
     # or a missing file, fails the render instead of fetching from the
-    # network or vanishing.
+    # network or vanishing. Images arrive already checked and inlined, since
+    # WeasyPrint swaps an image it can't decode for its alt text.
     fetcher = ContainedFetcher(allowed_protocols={"file", "data"}, fail_on_errors=True)
-    html = to_html(doc, theme, target="pdf", extra_css=extra_css, toc_on=toc_on)
+    html = to_html(
+        doc, theme, target="pdf", extra_css=extra_css, toc_on=toc_on, base_dir=base
+    )
     try:
         rendered = HTML(
             string=html, base_url=f"{base.as_uri()}/", url_fetcher=fetcher
