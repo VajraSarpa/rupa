@@ -4,6 +4,9 @@
   rupa verify PDF [--wants F]    check a rendered PDF, write review sheets
   rupa refs [--theme T]          rebuild a theme's reference pages
 
+A Markdown file named verify or refs is read as the subcommand; write
+./verify to render it.
+
 Contract:
   stdin  -> Markdown with optional YAML frontmatter
   file   -> the rendered output (format from -o extension or --to)
@@ -44,7 +47,9 @@ FORMATS = ("html", "pdf")
 
 def _render_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="rupa", description="Render Markdown to HTML or PDF."
+        prog="rupa",
+        description="Render Markdown to HTML or PDF.",
+        epilog="To render a file named verify or refs, write ./verify or ./refs.",
     )
     p.add_argument(
         "input", nargs="?", default="-", help="Markdown file, or - for stdin (default)"
@@ -72,6 +77,7 @@ def _render_parser() -> argparse.ArgumentParser:
 
 
 def _err(args, msg: str) -> None:
+    msg = " ".join(msg.split())  # the contract is one line on stderr
     if getattr(args, "json", False):
         print(json.dumps({"ok": False, "error": msg}))
     else:
@@ -182,7 +188,7 @@ def verify_main(argv: list[str]) -> int:
     pdf = Path(args.pdf)
     if not pdf.is_file():
         _err(args, f"no such file: {pdf}")
-        return EXIT_USAGE
+        return EXIT_INPUT
     try:
         wants = load_wants(args.wants)
     except WantsError as exc:

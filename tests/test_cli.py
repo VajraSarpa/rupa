@@ -345,3 +345,42 @@ def test_non_utf8_stdin_is_bad_input_without_a_utf8_locale(
         stdin.seek(0)
         assert main(["-o", str(tmp_path / f"o.{ext}")]) == EXIT_INPUT
         assert "utf-8" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "stdin, needle",
+    [
+        ("---\ntitle: [a, b\nfoo: : :\n---\n# x\n", "bad frontmatter: line 2"),
+        ("---\ntheme: " + "x" * 300 + "\n---\n# x\n", "unknown theme"),
+        ("---\n" + "k" * 300 + ": 1\n---\n# x\n", "unknown frontmatter keys"),
+        ("![a](http://" + "x" * 300 + ".png)\n", "must be a relative path"),
+    ],
+)
+def test_errors_are_one_short_line(tmp_path, monkeypatch, capsys, stdin, needle):
+    code, _, err = run(monkeypatch, capsys, ["-o", str(tmp_path / "o.pdf")], stdin)
+    assert code != EXIT_OK and needle in err
+    assert err.count("\n") == 1 and len(err) < 200
+
+
+def test_bad_wants_yaml_is_one_line(tmp_path, monkeypatch, capsys):
+    pdf = tmp_path / "x.pdf"
+    run(monkeypatch, capsys, ["-o", str(pdf)])
+    wants = tmp_path / "wants.yaml"
+    wants.write_text("checks: [a, b\nfoo: : :\n")
+    code = main(["verify", str(pdf), "--wants", str(wants)])
+    err = capsys.readouterr().err
+    assert code == EXIT_INPUT and "bad wants file: line 2" in err
+    assert err.count("\n") == 1
+
+
+def test_verify_missing_pdf_is_bad_input(tmp_path, capsys):
+    assert main(["verify", str(tmp_path / "nope.pdf")]) == EXIT_INPUT
+    assert "no such file" in capsys.readouterr().err
+
+
+def test_file_named_verify_renders_with_dot_slash(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "verify").write_text(DOC)
+    code = main(["./verify", "-o", "out.html"])
+    capsys.readouterr()
+    assert code == EXIT_OK and (tmp_path / "out.html").is_file()

@@ -105,9 +105,7 @@ def test_pages_is_allowed():
 
 
 def test_strikethrough_task_lists_and_footnotes_render():
-    doc = parse(
-        "- [x] done\n- [ ] todo\n\n~~old~~ new.[^1]\n\n[^1]: A <b>note</b>.\n"
-    )
+    doc = parse("- [x] done\n- [ ] todo\n\n~~old~~ new.[^1]\n\n[^1]: A <b>note</b>.\n")
     html = doc.body_html
     assert "<s>old</s>" in html
     assert html.count('type="checkbox"') == 2 and 'checked="checked"' in html

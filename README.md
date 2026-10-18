@@ -159,6 +159,8 @@ The plugin and its evals depend on this.
   document.
 - **Exit codes:** `0` ok, `2` usage, `3` bad input, `4` render failure, `5`
   verify checks failed or a PDF still over its page budget.
+- **Subcommands:** `rupa verify` and `rupa refs`. To render a Markdown file
+  named `verify` or `refs`, write `./verify`.
 - **Failure log:** every run that exits non-zero or crashes is appended to
   `~/.rupa/log.jsonl` (time, arguments, exit code, output, traceback if any).
   `RUPA_LOG=<path>` moves it; `RUPA_LOG=off` stops it.

@@ -163,6 +163,8 @@ Two subcommands follow the same rules:
 | `rupa verify OUT.pdf [--wants F]` | Runs the checks, writes sheets and `verify.json` | One line: checks passed, failures, sheet count |
 | `rupa refs [--theme T]` | Rebuilds a theme's reference pages from the bundled sample | One line: which sample page became each reference |
 
+A Markdown file named `verify` or `refs` is read as the subcommand; write `./verify` to render it.
+
 Example:
 
 ```bash

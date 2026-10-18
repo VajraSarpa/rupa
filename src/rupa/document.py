@@ -27,6 +27,22 @@ class InputError(ValueError):
     """Raised when the input cannot be turned into a Document."""
 
 
+def clip(value: object, limit: int = 80) -> str:
+    """A value short enough to quote in a one-line error message."""
+    text = " ".join(str(value).split())
+    return text if len(text) <= limit else text[: limit - 3] + "..."
+
+
+def yaml_problem(exc: Exception) -> str:
+    # PyYAML's own message spans several lines with a source excerpt; keep
+    # the problem and where it is.
+    if isinstance(exc, yaml.MarkedYAMLError) and exc.problem:
+        mark = exc.problem_mark
+        where = f"line {mark.line + 1}, column {mark.column + 1}: " if mark else ""
+        return where + exc.problem
+    return clip(exc)
+
+
 @dataclass
 class Heading:
     level: int
@@ -79,7 +95,9 @@ def _check_image(src: str) -> None:
     if src.startswith("data:image/"):
         return
     if _SCHEME.match(src) or src.startswith(("/", "\\")):
-        raise InputError(f"image '{src}' must be a relative path or a data:image URI")
+        raise InputError(
+            f"image '{clip(src)}' must be a relative path or a data:image URI"
+        )
 
 
 def _plain_text(inline) -> str:
@@ -109,13 +127,13 @@ def parse(text: str) -> Document:
             # An impossible date (2026-02-30) raises ValueError, and deeply
             # nested YAML RecursionError; both are bad input, not a crash.
             except (yaml.YAMLError, ValueError, OverflowError, RecursionError) as exc:
-                raise InputError(f"bad frontmatter: {exc}") from exc
+                raise InputError(f"bad frontmatter: {yaml_problem(exc)}") from exc
             if not isinstance(loaded, dict):
                 raise InputError("frontmatter must be a YAML mapping")
             unknown = set(loaded) - ALLOWED_META
             if unknown:
                 raise InputError(
-                    f"unknown frontmatter keys: {sorted(map(str, unknown))}"
+                    f"unknown frontmatter keys: {clip(sorted(map(str, unknown)))}"
                 )
             pages = loaded.get("pages")
             if pages is not None and (

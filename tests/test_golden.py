@@ -52,7 +52,9 @@ def test_sample_matches_reference_pages(sample_render):
     build_references(pdf, tmp / "refs")
     for kind in KINDS:
         ref = reference_path(theme, kind)
-        assert ref is not None, f"{theme} has no {kind}.png; run `rupa refs --theme {theme}`"
+        assert ref is not None, (
+            f"{theme} has no {kind}.png; run `rupa refs --theme {theme}`"
+        )
         with resources.as_file(ref) as path:
             want = Image.open(path)
             got = Image.open(tmp / "refs" / f"{kind}.png")

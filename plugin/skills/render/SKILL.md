@@ -34,9 +34,10 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
 4. Read only the one-line status. Do not open or print the output file.
 5. On a non-zero exit, fix the Markdown: `3` bad input and `4` render
    failure explain themselves on stderr; `5` means the PDF is still over
-   `pages` and the status line says about how many lines to cut. Cut that
-   many by rewriting the whole Markdown file with one Write, not a series
-   of Edits, then render again. Do not measure pages yourself.
+   `pages` and the status line says about how many lines to cut, counted
+   at the tightest type (about 18 words of prose a line). Cut that many
+   by rewriting the whole Markdown file with one Write, not a series of
+   Edits, then render again. Do not measure pages yourself.
 
 ## Verify (PDF)
 

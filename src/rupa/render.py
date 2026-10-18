@@ -13,7 +13,7 @@ from urllib.parse import unquote, unquote_to_bytes, urlparse
 from jinja2 import Environment, select_autoescape
 from pygments.formatters import HtmlFormatter
 
-from .document import Document
+from .document import Document, clip
 
 TEMPLATE = """<!doctype html>
 <html lang="en">
@@ -90,7 +90,7 @@ class RenderError(RuntimeError):
 
 def _theme_css(theme: str, target: str) -> str:
     if theme not in THEMES:
-        raise RenderError(f"unknown theme '{theme}' (have: {', '.join(THEMES)})")
+        raise RenderError(f"unknown theme '{clip(theme)}' (have: {', '.join(THEMES)})")
     pkg = resources.files("rupa") / "themes"
     css = (pkg / f"{THEME_BASE.get(theme, theme)}.css").read_text(encoding="utf-8")
     css += "\n" + HtmlFormatter(style="default").get_style_defs(".hl")

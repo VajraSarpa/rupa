@@ -640,6 +640,7 @@ stdout: one status line          exit code: 0 / 2 / 3 / 4 / 5
 </tr>
 </tbody>
 </table>
+<p>A Markdown file named <code>verify</code> or <code>refs</code> is read as the subcommand; write <code>./verify</code> to render it.</p>
 <p>Example:</p>
 <pre class="hl"><code class="language-bash">$<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </span>-o<span class="w"> </span>out/notes.pdf
 rupa:<span class="w"> </span>wrote<span class="w"> </span>out/notes.pdf<span class="w"> </span><span class="o">(</span>pdf,<span class="w"> </span><span class="m">3</span><span class="w"> </span>pages,<span class="w"> </span><span class="m">48</span>,211<span class="w"> </span>bytes<span class="o">)</span>
@@ -1485,6 +1486,22 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="w">    </span><span class="sd">"""Raised when the input cannot be turned into a Document."""</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">clip</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A value short enough to quote in a one-line error message."""</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">text</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">limit</span> <span class="k">else</span> <span class="n">text</span><span class="p">[:</span> <span class="n">limit</span> <span class="o">-</span> <span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"..."</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">yaml_problem</span><span class="p">(</span><span class="n">exc</span><span class="p">:</span> <span class="ne">Exception</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="c1"># PyYAML's own message spans several lines with a source excerpt; keep</span>
+    <span class="c1"># the problem and where it is.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="n">yaml</span><span class="o">.</span><span class="n">MarkedYAMLError</span><span class="p">)</span> <span class="ow">and</span> <span class="n">exc</span><span class="o">.</span><span class="n">problem</span><span class="p">:</span>
+        <span class="n">mark</span> <span class="o">=</span> <span class="n">exc</span><span class="o">.</span><span class="n">problem_mark</span>
+        <span class="n">where</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"line </span><span class="si">{</span><span class="n">mark</span><span class="o">.</span><span class="n">line</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">, column </span><span class="si">{</span><span class="n">mark</span><span class="o">.</span><span class="n">column</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">: "</span> <span class="k">if</span> <span class="n">mark</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="k">return</span> <span class="n">where</span> <span class="o">+</span> <span class="n">exc</span><span class="o">.</span><span class="n">problem</span>
+    <span class="k">return</span> <span class="n">clip</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
+
+
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Heading</span><span class="p">:</span>
     <span class="n">level</span><span class="p">:</span> <span class="nb">int</span>
@@ -1537,7 +1554,9 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="k">if</span> <span class="n">src</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"data:image/"</span><span class="p">):</span>
         <span class="k">return</span>
     <span class="k">if</span> <span class="n">_SCHEME</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="ow">or</span> <span class="n">src</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">"/"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">"</span><span class="p">)):</span>
-        <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"image '</span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2">' must be a relative path or a data:image URI"</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"image '</span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="n">src</span><span class="p">)</span><span class="si">}</span><span class="s2">' must be a relative path or a data:image URI"</span>
+        <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_plain_text</span><span class="p">(</span><span class="n">inline</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -1567,13 +1586,13 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
             <span class="c1"># An impossible date (2026-02-30) raises ValueError, and deeply</span>
             <span class="c1"># nested YAML RecursionError; both are bad input, not a crash.</span>
             <span class="k">except</span> <span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">YAMLError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">OverflowError</span><span class="p">,</span> <span class="ne">RecursionError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"bad frontmatter: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+                <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"bad frontmatter: </span><span class="si">{</span><span class="n">yaml_problem</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loaded</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span><span class="s2">"frontmatter must be a YAML mapping"</span><span class="p">)</span>
             <span class="n">unknown</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">loaded</span><span class="p">)</span> <span class="o">-</span> <span class="n">ALLOWED_META</span>
             <span class="k">if</span> <span class="n">unknown</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"unknown frontmatter keys: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">unknown</span><span class="p">))</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="sa">f</span><span class="s2">"unknown frontmatter keys: </span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">unknown</span><span class="p">)))</span><span class="si">}</span><span class="s2">"</span>
                 <span class="p">)</span>
             <span class="n">pages</span> <span class="o">=</span> <span class="n">loaded</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"pages"</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">pages</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
@@ -1720,9 +1739,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">test_strikethrough_task_lists_and_footnotes_render</span><span class="p">():</span>
-    <span class="n">doc</span> <span class="o">=</span> <span class="n">parse</span><span class="p">(</span>
-        <span class="s2">"- [x] done</span><span class="se">\n</span><span class="s2">- [ ] todo</span><span class="se">\n\n</span><span class="s2">~~old~~ new.[^1]</span><span class="se">\n\n</span><span class="s2">[^1]: A &lt;b&gt;note&lt;/b&gt;.</span><span class="se">\n</span><span class="s2">"</span>
-    <span class="p">)</span>
+    <span class="n">doc</span> <span class="o">=</span> <span class="n">parse</span><span class="p">(</span><span class="s2">"- [x] done</span><span class="se">\n</span><span class="s2">- [ ] todo</span><span class="se">\n\n</span><span class="s2">~~old~~ new.[^1]</span><span class="se">\n\n</span><span class="s2">[^1]: A &lt;b&gt;note&lt;/b&gt;.</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
     <span class="n">html</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">body_html</span>
     <span class="k">assert</span> <span class="s2">"&lt;s&gt;old&lt;/s&gt;"</span> <span class="ow">in</span> <span class="n">html</span>
     <span class="k">assert</span> <span class="n">html</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">'type="checkbox"'</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="s1">'checked="checked"'</span> <span class="ow">in</span> <span class="n">html</span>
@@ -1761,7 +1778,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="kn">from</span><span class="w"> </span><span class="nn">jinja2</span><span class="w"> </span><span class="kn">import</span> <span class="n">Environment</span><span class="p">,</span> <span class="n">select_autoescape</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pygments.formatters</span><span class="w"> </span><span class="kn">import</span> <span class="n">HtmlFormatter</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.document</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.document</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span><span class="p">,</span> <span class="n">clip</span>
 
 <span class="n">TEMPLATE</span> <span class="o">=</span> <span class="s2">"""&lt;!doctype html&gt;</span>
 <span class="s2">&lt;html lang="en"&gt;</span>
@@ -1838,7 +1855,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_theme_css</span><span class="p">(</span><span class="n">theme</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">theme</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">THEMES</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">RenderError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown theme '</span><span class="si">{</span><span class="n">theme</span><span class="si">}</span><span class="s2">' (have: </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">THEMES</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">RenderError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown theme '</span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="n">theme</span><span class="p">)</span><span class="si">}</span><span class="s2">' (have: </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">THEMES</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
     <span class="n">pkg</span> <span class="o">=</span> <span class="n">resources</span><span class="o">.</span><span class="n">files</span><span class="p">(</span><span class="s2">"rupa"</span><span class="p">)</span> <span class="o">/</span> <span class="s2">"themes"</span>
     <span class="n">css</span> <span class="o">=</span> <span class="p">(</span><span class="n">pkg</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">THEME_BASE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">theme</span><span class="p">,</span><span class="w"> </span><span class="n">theme</span><span class="p">)</span><span class="si">}</span><span class="s2">.css"</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
     <span class="n">css</span> <span class="o">+=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="n">HtmlFormatter</span><span class="p">(</span><span class="n">style</span><span class="o">=</span><span class="s2">"default"</span><span class="p">)</span><span class="o">.</span><span class="n">get_style_defs</span><span class="p">(</span><span class="s2">".hl"</span><span class="p">)</span>
@@ -2360,6 +2377,9 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="sd">  rupa verify PDF [--wants F]    check a rendered PDF, write review sheets</span>
 <span class="sd">  rupa refs [--theme T]          rebuild a theme's reference pages</span>
 
+<span class="sd">A Markdown file named verify or refs is read as the subcommand; write</span>
+<span class="sd">./verify to render it.</span>
+
 <span class="sd">Contract:</span>
 <span class="sd">  stdin  -&gt; Markdown with optional YAML frontmatter</span>
 <span class="sd">  file   -&gt; the rendered output (format from -o extension or --to)</span>
@@ -2400,7 +2420,9 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_render_parser</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
-        <span class="n">prog</span><span class="o">=</span><span class="s2">"rupa"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Render Markdown to HTML or PDF."</span>
+        <span class="n">prog</span><span class="o">=</span><span class="s2">"rupa"</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"Render Markdown to HTML or PDF."</span><span class="p">,</span>
+        <span class="n">epilog</span><span class="o">=</span><span class="s2">"To render a file named verify or refs, write ./verify or ./refs."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"input"</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s2">"?"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"-"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Markdown file, or - for stdin (default)"</span>
@@ -2428,6 +2450,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_err</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>  <span class="c1"># the contract is one line on stderr</span>
     <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"json"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"ok"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">"error"</span><span class="p">:</span> <span class="n">msg</span><span class="p">}))</span>
     <span class="k">else</span><span class="p">:</span>
@@ -2538,7 +2561,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="n">pdf</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">pdf</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">pdf</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
         <span class="n">_err</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"no such file: </span><span class="si">{</span><span class="n">pdf</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">EXIT_USAGE</span>
+        <span class="k">return</span> <span class="n">EXIT_INPUT</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">wants</span> <span class="o">=</span> <span class="n">load_wants</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">wants</span><span class="p">)</span>
     <span class="k">except</span> <span class="n">WantsError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
@@ -3019,6 +3042,45 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
         <span class="n">stdin</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">main</span><span class="p">([</span><span class="s2">"-o"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"o.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">"</span><span class="p">)])</span> <span class="o">==</span> <span class="n">EXIT_INPUT</span>
         <span class="k">assert</span> <span class="s2">"utf-8"</span> <span class="ow">in</span> <span class="n">capsys</span><span class="o">.</span><span class="n">readouterr</span><span class="p">()</span><span class="o">.</span><span class="n">err</span>
+
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
+    <span class="s2">"stdin, needle"</span><span class="p">,</span>
+    <span class="p">[</span>
+        <span class="p">(</span><span class="s2">"---</span><span class="se">\n</span><span class="s2">title: [a, b</span><span class="se">\n</span><span class="s2">foo: : :</span><span class="se">\n</span><span class="s2">---</span><span class="se">\n</span><span class="s2"># x</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"bad frontmatter: line 2"</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"---</span><span class="se">\n</span><span class="s2">theme: "</span> <span class="o">+</span> <span class="s2">"x"</span> <span class="o">*</span> <span class="mi">300</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">---</span><span class="se">\n</span><span class="s2"># x</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"unknown theme"</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"---</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"k"</span> <span class="o">*</span> <span class="mi">300</span> <span class="o">+</span> <span class="s2">": 1</span><span class="se">\n</span><span class="s2">---</span><span class="se">\n</span><span class="s2"># x</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"unknown frontmatter keys"</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"![a](http://"</span> <span class="o">+</span> <span class="s2">"x"</span> <span class="o">*</span> <span class="mi">300</span> <span class="o">+</span> <span class="s2">".png)</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"must be a relative path"</span><span class="p">),</span>
+    <span class="p">],</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_errors_are_one_short_line</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="n">stdin</span><span class="p">,</span> <span class="n">needle</span><span class="p">):</span>
+    <span class="n">code</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="p">[</span><span class="s2">"-o"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"o.pdf"</span><span class="p">)],</span> <span class="n">stdin</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">code</span> <span class="o">!=</span> <span class="n">EXIT_OK</span> <span class="ow">and</span> <span class="n">needle</span> <span class="ow">in</span> <span class="n">err</span>
+    <span class="k">assert</span> <span class="n">err</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">err</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">200</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_bad_wants_yaml_is_one_line</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">):</span>
+    <span class="n">pdf</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"x.pdf"</span>
+    <span class="n">run</span><span class="p">(</span><span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">,</span> <span class="p">[</span><span class="s2">"-o"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">pdf</span><span class="p">)])</span>
+    <span class="n">wants</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"wants.yaml"</span>
+    <span class="n">wants</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"checks: [a, b</span><span class="se">\n</span><span class="s2">foo: : :</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="n">main</span><span class="p">([</span><span class="s2">"verify"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">pdf</span><span class="p">),</span> <span class="s2">"--wants"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">wants</span><span class="p">)])</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="n">capsys</span><span class="o">.</span><span class="n">readouterr</span><span class="p">()</span><span class="o">.</span><span class="n">err</span>
+    <span class="k">assert</span> <span class="n">code</span> <span class="o">==</span> <span class="n">EXIT_INPUT</span> <span class="ow">and</span> <span class="s2">"bad wants file: line 2"</span> <span class="ow">in</span> <span class="n">err</span>
+    <span class="k">assert</span> <span class="n">err</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_verify_missing_pdf_is_bad_input</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">capsys</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">main</span><span class="p">([</span><span class="s2">"verify"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"nope.pdf"</span><span class="p">)])</span> <span class="o">==</span> <span class="n">EXIT_INPUT</span>
+    <span class="k">assert</span> <span class="s2">"no such file"</span> <span class="ow">in</span> <span class="n">capsys</span><span class="o">.</span><span class="n">readouterr</span><span class="p">()</span><span class="o">.</span><span class="n">err</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_file_named_verify_renders_with_dot_slash</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">monkeypatch</span><span class="p">,</span> <span class="n">capsys</span><span class="p">):</span>
+    <span class="n">monkeypatch</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"verify"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">DOC</span><span class="p">)</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="n">main</span><span class="p">([</span><span class="s2">"./verify"</span><span class="p">,</span> <span class="s2">"-o"</span><span class="p">,</span> <span class="s2">"out.html"</span><span class="p">])</span>
+    <span class="n">capsys</span><span class="o">.</span><span class="n">readouterr</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">code</span> <span class="o">==</span> <span class="n">EXIT_OK</span> <span class="ow">and</span> <span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"out.html"</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
 </code></pre>
 <p><strong>Checkpoint:</strong> <code>uv run pytest -q</code> shows 16 passed.</p>
 <h2 id="step-5-install-it-as-a-command">Step 5: Install it as a command</h2>
@@ -3052,6 +3114,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">astral-sh/setup-uv@v6</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv sync</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uvx ruff check src tests</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uvx ruff format --check src tests</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv run pytest -q</span>
 <span class="w">        </span><span class="nt">env</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">RUPA_GOLDEN_FAILURES</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">out/golden-failures</span>
@@ -3117,9 +3180,10 @@ name: render
 <span class="k">4.</span> Read only the one-line status. Do not open or print the output file.
 <span class="k">5.</span> On a non-zero exit, fix the Markdown: <span class="sb">`3`</span> bad input and <span class="sb">`4`</span> render
    failure explain themselves on stderr; <span class="sb">`5`</span> means the PDF is still over
-   <span class="sb">`pages`</span> and the status line says about how many lines to cut. Cut that
-   many by rewriting the whole Markdown file with one Write, not a series
-   of Edits, then render again. Do not measure pages yourself.
+   <span class="sb">`pages`</span> and the status line says about how many lines to cut, counted
+   at the tightest type (about 18 words of prose a line). Cut that many
+   by rewriting the whole Markdown file with one Write, not a series of
+   Edits, then render again. Do not measure pages yourself.
 
 <span class="gu">## Verify (PDF)</span>
 
@@ -3197,6 +3261,8 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">.document</span><span class="w"> </span><span class="kn">import</span> <span class="n">clip</span><span class="p">,</span> <span class="n">yaml_problem</span>
+
 <span class="n">PT_PER_IN</span> <span class="o">=</span> <span class="mi">72</span>
 <span class="n">PAGE_SIZES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"letter"</span><span class="p">:</span> <span class="p">(</span><span class="mi">612</span><span class="p">,</span> <span class="mi">792</span><span class="p">),</span> <span class="s2">"a4"</span><span class="p">:</span> <span class="p">(</span><span class="mi">595</span><span class="p">,</span> <span class="mi">842</span><span class="p">)}</span>
 <span class="c1"># Body box from print.css (@page margins). Footer sits below BODY_BOTTOM.</span>
@@ -3258,19 +3324,21 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
         <span class="k">return</span> <span class="n">wants</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">given</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">))</span> <span class="ow">or</span> <span class="p">{}</span>
-    <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="n">yaml</span><span class="o">.</span><span class="n">YAMLError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"cannot read wants file: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+    <span class="k">except</span> <span class="n">yaml</span><span class="o">.</span><span class="n">YAMLError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"bad wants file: </span><span class="si">{</span><span class="n">yaml_problem</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">given</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="s2">"wants file must be a YAML mapping"</span><span class="p">)</span>
     <span class="n">unknown</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">given</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">DEFAULT_WANTS</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">unknown</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown wants keys: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unknown</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown wants keys: </span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">unknown</span><span class="p">)))</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="n">vision</span> <span class="o">=</span> <span class="n">given</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"vision"</span><span class="p">,</span> <span class="p">{})</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vision</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="s2">"vision must be a YAML mapping"</span><span class="p">)</span>
     <span class="n">unknown_v</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">vision</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">DEFAULT_WANTS</span><span class="p">[</span><span class="s2">"vision"</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">unknown_v</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown vision keys: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unknown_v</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown vision keys: </span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">unknown_v</span><span class="p">)))</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="n">wants</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">given</span><span class="p">)</span>
     <span class="n">wants</span><span class="p">[</span><span class="s2">"vision"</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">vision</span><span class="p">)</span>
     <span class="n">_validate</span><span class="p">(</span><span class="n">wants</span><span class="p">)</span>
@@ -3619,6 +3687,7 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_overflow_kind</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">PageInfo</span><span class="p">,</span> <span class="n">bad</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Line</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Name what runs over, so the fix is clear: a table, code, or text."""</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">in_table</span><span class="p">(</span><span class="n">ln</span><span class="p">:</span> <span class="n">Line</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="n">mid</span> <span class="o">=</span> <span class="p">(</span><span class="n">ln</span><span class="o">.</span><span class="n">top</span> <span class="o">+</span> <span class="n">ln</span><span class="o">.</span><span class="n">bottom</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
         <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">top</span> <span class="o">&lt;=</span> <span class="n">mid</span> <span class="o">&lt;=</span> <span class="n">bottom</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">bottom</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">)</span>

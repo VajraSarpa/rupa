@@ -19,6 +19,8 @@ from pathlib import Path
 
 import yaml
 
+from .document import clip, yaml_problem
+
 PT_PER_IN = 72
 PAGE_SIZES = {"letter": (612, 792), "a4": (595, 842)}
 # Body box from print.css (@page margins). Footer sits below BODY_BOTTOM.
@@ -80,19 +82,21 @@ def load_wants(path: str | None) -> dict:
         return wants
     try:
         given = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
-    except (OSError, yaml.YAMLError) as exc:
+    except OSError as exc:
         raise WantsError(f"cannot read wants file: {exc}") from exc
+    except yaml.YAMLError as exc:
+        raise WantsError(f"bad wants file: {yaml_problem(exc)}") from exc
     if not isinstance(given, dict):
         raise WantsError("wants file must be a YAML mapping")
     unknown = set(given) - set(DEFAULT_WANTS)
     if unknown:
-        raise WantsError(f"unknown wants keys: {sorted(unknown)}")
+        raise WantsError(f"unknown wants keys: {clip(sorted(map(str, unknown)))}")
     vision = given.pop("vision", {}) or {}
     if not isinstance(vision, dict):
         raise WantsError("vision must be a YAML mapping")
     unknown_v = set(vision) - set(DEFAULT_WANTS["vision"])
     if unknown_v:
-        raise WantsError(f"unknown vision keys: {sorted(unknown_v)}")
+        raise WantsError(f"unknown vision keys: {clip(sorted(map(str, unknown_v)))}")
     wants.update(given)
     wants["vision"].update(vision)
     _validate(wants)
@@ -441,6 +445,7 @@ def run_checks(pages: list[PageInfo], wants: dict) -> list[CheckResult]:
 
 def _overflow_kind(p: PageInfo, bad: list[Line]) -> str:
     """Name what runs over, so the fix is clear: a table, code, or text."""
+
     def in_table(ln: Line) -> bool:
         mid = (ln.top + ln.bottom) / 2
         return any(top <= mid <= bottom for _, top, _, bottom in p.tables)

@@ -10,9 +10,10 @@ skill makes Claude use it instead of hand-writing markup.
 
 ```bash
 uv sync                                   # needs Pango for WeasyPrint (see README)
-uv run pytest -q                          # 133 tests
+uv run pytest -q                          # 140 tests
 uv run pytest tests/test_verify.py::test_stranded_heading_fails   # one test
 uvx ruff check src tests                  # CI runs this too
+uvx ruff format --check src tests         # and this
 echo "# Hello" | uv run rupa -o out/hello.pdf && uv run rupa verify out/hello.pdf
 uv run rupa refs                          # after any theme CSS change; commit the PNGs
 uv run python docs/build.py               # re-render docs/dist/ with Rupa itself
@@ -35,7 +36,7 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
 - **`document.py`** parses Markdown into a `Document` (meta, body HTML,
   headings). This is the contract boundary: Claude supplies content only.
   Frontmatter keys are restricted to `ALLOWED_META` (title, subtitle, author,
-  date, theme, toc); anything else is an `InputError`. Raw HTML is escaped
+  date, theme, toc, pages); anything else is an `InputError`. Raw HTML is escaped
   (`html=False`), never passed through.
 - **`render.py`** owns all styling: a Jinja template plus `themes/<name>.css`
   (or the one `THEME_BASE` names, so `cyan-dark` shares `cyan.css`), with
@@ -74,8 +75,10 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
 ### CLI contract (don't break it; the plugin and evals depend on it)
 
 - stdout is exactly one status line (or one JSON object with `--json`),
-  never the document.
-- Exit codes: `0` ok, `2` usage, `3` bad input, `4` render failure,
+  never the document. Errors are one line on stderr; quoted values are
+  clipped at 80 characters (`document.clip`).
+- Exit codes: `0` ok, `2` usage, `3` bad input (including a missing PDF
+  to verify), `4` render failure,
   `5` verify checks failed, or a PDF still over its `pages` budget.
 - Any non-zero exit or crash is appended to `~/.rupa/log.jsonl` (`RUPA_LOG`
   moves or disables it). Tests point it at a tmp file via `tests/conftest.py`;
