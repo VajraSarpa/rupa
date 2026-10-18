@@ -16,7 +16,7 @@ uvx ruff check src tests                  # CI runs this too
 uvx ruff format --check src tests         # and this
 echo "# Hello" | uv run rupa -o out/hello.pdf && uv run rupa verify out/hello.pdf
 uv run rupa refs                          # after any theme CSS change; commit the PNGs
-uv run python docs/build.py               # re-render docs/dist/ with Rupa itself
+uv run python docs/build.py               # re-render docs/dist/ with Rupa, then verify
 claude plugin validate ./plugin           # after any edit to plugin/
 ```
 

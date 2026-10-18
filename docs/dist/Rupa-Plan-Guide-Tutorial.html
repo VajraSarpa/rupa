@@ -1406,7 +1406,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <p>Create <code>pyproject.toml</code>. The <code>[project.scripts]</code> entry is what makes <code>rupa</code> a command once installed. The <code>pythonpath</code> setting lets pytest import the package without installing it.</p>
 <pre class="hl"><code class="language-toml"><span class="k">[project]</span>
 <span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"rupa"</span>
-<span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"0.1.0"</span>
+<span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"0.1.1"</span>
 <span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"Render Markdown + frontmatter from stdin into styled HTML or PDF."</span>
 <span class="n">readme</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"README.md"</span>
 <span class="n">requires-python</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"&gt;=3.11"</span>
@@ -1443,7 +1443,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <p>Create <code>src/rupa/__init__.py</code>:</p>
 <pre class="hl"><code class="language-python"><span class="sd">"""Rupa: a renderer layer. Content in on stdin, styled HTML or PDF out."""</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">"0.1.0"</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">"0.1.1"</span>
 </code></pre>
 <p>Then install everything into a local environment:</p>
 <pre class="hl"><code class="language-bash">uv<span class="w"> </span>sync

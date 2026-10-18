@@ -1,7 +1,8 @@
 """Render the plan, guide and tutorial with Rupa itself.
 
 Expands `@@include path lang@@` lines with the real source files, fills the
-verification record, then renders docs/dist/Rupa-Plan-Guide-Tutorial.{html,pdf}.
+verification record, then renders docs/dist/Rupa-Plan-Guide-Tutorial.{html,pdf}
+and verifies the PDF against docs/guide-wants.yaml.
 Run from the repo root: uv run python docs/build.py
 """
 
@@ -57,7 +58,14 @@ def main() -> int:
         print(r.stdout or r.stderr, end="")
         if r.returncode:
             return r.returncode
-    return 0
+    r = subprocess.run(
+        ["rupa", "verify", str(out), "--wants", str(DOCS / "guide-wants.yaml")],
+        text=True,
+        check=False,
+        capture_output=True,
+    )
+    print(r.stdout or r.stderr, end="")
+    return r.returncode
 
 
 if __name__ == "__main__":

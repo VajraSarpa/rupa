@@ -1,0 +1,3 @@
+# Verify rules for the guide. It quotes the source and tests in full, so it
+# runs past the default 100 pages; 120 still catches a runaway render.
+max_pages: 120
