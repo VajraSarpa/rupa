@@ -10,12 +10,13 @@ skill makes Claude use it instead of hand-writing markup.
 
 ```bash
 uv sync                                   # needs Pango for WeasyPrint (see README)
-uv run pytest -q                          # 148 tests
+uv run pytest -q                          # 166 tests
 uv run pytest tests/test_verify.py::test_stranded_heading_fails   # one test
 uvx ruff check src tests                  # CI runs this too
 uvx ruff format --check src tests         # and this
 echo "# Hello" | uv run rupa -o out/hello.pdf && uv run rupa verify out/hello.pdf
 uv run rupa refs                          # after any theme CSS change; commit the PNGs
+                                          # (an installed rupa refuses refs without --out)
 uv run python docs/build.py               # re-render docs/dist/ with Rupa, then verify
 claude plugin validate ./plugin           # after any edit to plugin/
 ```
@@ -36,7 +37,8 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
 - **`document.py`** parses Markdown into a `Document` (meta, body HTML,
   headings). This is the contract boundary: Claude supplies content only.
   Frontmatter keys are restricted to `ALLOWED_META` (title, subtitle, author,
-  date, theme, toc, pages); anything else is an `InputError`. Raw HTML is escaped
+  date, theme, toc, pages); anything else is an `InputError`, as is a wrong
+  type (`_check_meta`) or a YAML alias. Text fields come out as `str`. Raw HTML is escaped
   (`html=False`), never passed through.
 - **`render.py`** owns all styling: a Jinja template plus `themes/<name>.css`
   (or the one `THEME_BASE` names, so `cyan-dark` shares `cyan.css`), with
@@ -82,7 +84,7 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
   to verify), `4` render failure,
   `5` verify checks failed, or a PDF still over its `pages` budget.
 - Any non-zero exit or crash is appended to `~/.rupa/log.jsonl` (`RUPA_LOG`
-  moves or disables it). Tests point it at a tmp file via `tests/conftest.py`;
+  moves or disables it): mode 0600, fields clipped, rotated to `.1` past 1 MB. Tests point it at a tmp file via `tests/conftest.py`;
   `bench.sh` sets `RUPA_LOG=off`. Logging must never change stdout or exit codes.
 - Status-line wording is matched by evals (e.g. `verify: N/N checks pass`).
 

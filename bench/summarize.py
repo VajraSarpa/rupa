@@ -14,20 +14,28 @@ ARMS = ("baseline", "rupa", "rupa-flagged", "rupa-pertype", "rupa-verify")
 COLS = ("turns", "cache_read", "cache_write", "input", "output", "cost_usd", "secs")
 
 
+def num(d: dict, key: str, default=0):
+    """A field's number, or the default if it is missing, null or not a number."""
+    v = d.get(key)
+    return v if isinstance(v, (int, float)) and not isinstance(v, bool) else default
+
+
 def row(path: Path) -> dict | None:
     try:
         r = json.loads(path.read_text())
     except (OSError, json.JSONDecodeError):
         return None
-    u = r.get("usage", {})
+    if not isinstance(r, dict):  # valid JSON, but not a claude -p result
+        return None
+    u = r["usage"] if isinstance(r.get("usage"), dict) else {}
     return {
-        "turns": r.get("num_turns", 0),
-        "cache_read": u.get("cache_read_input_tokens", 0),
-        "cache_write": u.get("cache_creation_input_tokens", 0),
-        "input": u.get("input_tokens", 0),
-        "output": u.get("output_tokens", 0),
-        "cost_usd": r.get("total_cost_usd", 0.0),
-        "secs": round(r.get("duration_ms", 0) / 1000),
+        "turns": num(r, "num_turns"),
+        "cache_read": num(u, "cache_read_input_tokens"),
+        "cache_write": num(u, "cache_creation_input_tokens"),
+        "input": num(u, "input_tokens"),
+        "output": num(u, "output_tokens"),
+        "cost_usd": float(num(r, "total_cost_usd")),
+        "secs": round(num(r, "duration_ms") / 1000),
         "pdf": path.with_suffix(".pdf").exists(),
     }
 

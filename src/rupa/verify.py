@@ -124,9 +124,10 @@ def _validate(wants: dict) -> None:
     from .render import THEMES
 
     vision = wants["vision"]
-    if wants["theme"] not in THEMES:
+    # isinstance first: a list or mapping isn't hashable, so `in` would raise.
+    if not isinstance(wants["theme"], str) or wants["theme"] not in THEMES:
         raise WantsError(f"theme must be one of {list(THEMES)}")
-    if wants["page_size"] not in PAGE_SIZES:
+    if not isinstance(wants["page_size"], str) or wants["page_size"] not in PAGE_SIZES:
         raise WantsError(f"page_size must be one of {sorted(PAGE_SIZES)}")
     if not _is_int(wants["max_pages"]) or wants["max_pages"] < 1:
         raise WantsError("max_pages must be a whole number of at least 1")
@@ -143,7 +144,7 @@ def _validate(wants: dict) -> None:
     bad = set(wants["checks"]) - set(ALL_CHECKS)
     if bad:
         raise WantsError(f"unknown checks: {sorted(bad)}")
-    if vision["sample"] not in SAMPLE_MODES:
+    if not isinstance(vision["sample"], str) or vision["sample"] not in SAMPLE_MODES:
         raise WantsError(f"vision.sample must be one of {', '.join(SAMPLE_MODES)}")
     if not _is_int(vision["max_sheets"]) or vision["max_sheets"] < 0:
         raise WantsError("vision.max_sheets must be a whole number of at least 0")

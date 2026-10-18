@@ -142,3 +142,31 @@ def test_svg_data_images_become_images():
 def test_other_data_image_types_are_bad_input(mime):
     with pytest.raises(InputError, match="data:image"):
         parse(f"![a](data:{mime};base64,AAAA)\n")
+
+
+@pytest.mark.parametrize(
+    "front, message",
+    [
+        ("title: [a, b]", "'title' must be text"),
+        ("author: {name: A}", "'author' must be text"),
+        ("subtitle: true", "'subtitle' must be text"),
+        ('toc: "false"', "'toc' must be true or false"),
+        ("theme: [cyan]", "'theme' must be a theme name"),
+    ],
+)
+def test_frontmatter_types_are_checked(front, message):
+    # title: [a, b] used to render as a Python list; toc: "false" kept the toc.
+    with pytest.raises(InputError, match=message):
+        parse(f"---\n{front}\n---\n\nBody.\n")
+
+
+def test_numbers_and_dates_in_text_fields_become_text():
+    meta = parse("---\ntitle: 1984\ndate: 2026-10-17\n---\n\nBody.\n").meta
+    assert meta["title"] == "1984" and meta["date"] == "2026-10-17"
+
+
+def test_yaml_aliases_are_refused():
+    # A short alias chain used to expand a few lines into a 921 KB page.
+    front = "a: &a [x, x, x, x, x, x, x, x, x]\nb: &b [*a, *a, *a, *a, *a, *a]"
+    with pytest.raises(InputError, match="aliases"):
+        parse(f"---\n{front}\n---\n\nBody.\n")

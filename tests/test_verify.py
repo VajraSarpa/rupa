@@ -70,6 +70,10 @@ def test_wants_file_overrides_and_merges_vision(tmp_path):
         ("theme: ../../etc\n", "theme must be one of"),
         ("vision: 5\n", "vision must be a YAML mapping"),
         ("vision:\n  resolution: 5000\n", "vision.resolution"),
+        # unhashable values used to raise TypeError at the `in` lookup
+        ("page_size: [a]\n", "page_size"),
+        ("theme: {a: 1}\n", "theme must be one of"),
+        ("vision:\n  sample: [a]\n", "vision.sample"),
     ],
 )
 def test_bad_wants_are_rejected(tmp_path, body, message):
@@ -431,3 +435,20 @@ def test_verify_clears_only_the_sheets_it_wrote(real_pdf, tmp_path):
     second = verify(real_pdf, wants, out)
     left = sorted(p.name for p in out.glob("sheet-p*.png"))
     assert left == sorted([mine.name, second.sheets[0]["path"].split("/")[-1]])
+
+
+@pytest.mark.parametrize("where", ["out-is-a-file", "default-is-a-file"])
+def test_unwritable_sheet_folder_is_one_line_bad_input(tmp_path, capsys, where):
+    # Both used to escape as FileExistsError with exit 1.
+    data, _ = to_pdf(parse("# T\n\nBody.\n"))
+    pdf = tmp_path / "doc.pdf"
+    pdf.write_bytes(data)
+    blocker = tmp_path / ("taken" if where == "out-is-a-file" else "doc.verify")
+    blocker.write_text("not a folder")
+    argv = ["verify", str(pdf)] + (
+        ["--out", str(blocker)] if where != "default-is-a-file" else []
+    )
+    assert main(argv) == EXIT_INPUT
+    err = capsys.readouterr().err
+    assert err.count("\n") == 1 and "cannot write to" in err
+    assert blocker.read_text() == "not a folder"

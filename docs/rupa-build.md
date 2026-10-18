@@ -195,7 +195,7 @@ rupa: wrote out/report.pdf (pdf, 3 pages, 44,870 bytes); over the 2-page budget 
 
 ## Input format
 
-Frontmatter is optional. Only these keys are accepted; anything else is exit code 3, so typos fail loudly instead of being ignored.
+Frontmatter is optional. Only these keys are accepted; anything else is exit code 3, so typos fail loudly instead of being ignored. A value of the wrong type (`title: [a, b]`, `toc: "false"`) is exit 3 too, and so are YAML aliases (`*name`), since a short chain of them can expand a few lines into megabytes. A number or date in a text field is fine: `title: 1984` is the text 1984.
 
 | Key | Type | Effect |
 |---|---|---|
@@ -205,6 +205,7 @@ Frontmatter is optional. Only these keys are accepted; anything else is exit cod
 | `date` | string | Byline, after the author |
 | `theme` | string | Theme name. Defaults to `default`; `--theme` overrides it |
 | `toc` | bool | Table of contents from `#` and `##` headings. Defaults to true |
+| `pages` | whole number | PDF page budget (see above) |
 
 Body conventions:
 
@@ -267,7 +268,7 @@ max_pages: 10
 
 ### Reference pages
 
-A theme's reference pages are its picture of itself. `rupa refs` renders a bundled sample document with the theme and saves the most typical page of each type as a PNG inside the package. Rebuild them whenever the theme's CSS changes, and commit them with it. A golden-render test (`tests/test_golden.py`) holds you to that: for every theme it renders the sample, requires it to pass verify, rebuilds the reference pages in a temporary folder, and fails if any of them differs from the committed PNG in more than 0.5% of its pixels. The tolerance covers antialiasing differences between Pango builds; a moved margin fails it. A sheet without a reference still shows the page, labeled so.
+A theme's reference pages are its picture of itself. `rupa refs` renders a bundled sample document with the theme and saves the most typical page of each type as a PNG inside the package (`src/rupa/references/<theme>/`). That default only works in a source checkout; an installed `rupa refs` needs `--out`, so it can't overwrite the pages verify compares against. Rebuild them whenever the theme's CSS changes, and commit them with it. A golden-render test (`tests/test_golden.py`) holds you to that: for every theme it renders the sample, requires it to pass verify, rebuilds the reference pages in a temporary folder, and fails if any of them differs from the committed PNG in more than 0.5% of its pixels. The tolerance covers antialiasing differences between Pango builds; a moved margin fails it. A sheet without a reference still shows the page, labeled so.
 
 ### What it costs
 

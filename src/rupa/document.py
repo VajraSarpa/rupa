@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from datetime import date
 
 import yaml
 from markdown_it import MarkdownIt
@@ -22,6 +23,7 @@ from pygments.lexers import TextLexer, get_lexer_by_name
 from pygments.util import ClassNotFound
 
 ALLOWED_META = {"title", "subtitle", "author", "date", "theme", "toc", "pages"}
+TEXT_META = ("title", "subtitle", "author", "date")
 
 
 class InputError(ValueError):
@@ -42,6 +44,49 @@ def yaml_problem(exc: Exception) -> str:
         where = f"line {mark.line + 1}, column {mark.column + 1}: " if mark else ""
         return where + exc.problem
     return clip(exc)
+
+
+class _NoAliasLoader(yaml.SafeLoader):
+    """SafeLoader that refuses aliases: a few lines of them, each repeating
+    the last, expand into a page of megabytes."""
+
+    def compose_node(self, parent, index):
+        if self.check_event(yaml.AliasEvent):
+            raise yaml.composer.ComposerError(
+                None,
+                None,
+                "aliases (*name) are not allowed",
+                self.peek_event().start_mark,
+            )
+        return super().compose_node(parent, index)
+
+
+def _check_meta(meta: dict) -> dict:
+    """Types the template and fitter rely on; text fields come back as str."""
+    for key in TEXT_META:
+        value = meta.get(key)
+        if value is None:
+            continue
+        # A bare 2026 or 2026-10-17 in YAML is a number or a date, not a str.
+        if isinstance(value, bool) or not isinstance(value, (str, int, float, date)):
+            raise InputError(
+                f"frontmatter '{key}' must be text, got {clip(repr(value))}"
+            )
+        meta[key] = str(value)
+    if "theme" in meta and not isinstance(meta["theme"], str):
+        raise InputError(
+            f"frontmatter 'theme' must be a theme name, got {clip(repr(meta['theme']))}"
+        )
+    if "toc" in meta and not isinstance(meta["toc"], bool):
+        raise InputError(
+            f"frontmatter 'toc' must be true or false, got {clip(repr(meta['toc']))}"
+        )
+    pages = meta.get("pages")
+    if pages is not None and (
+        not isinstance(pages, int) or isinstance(pages, bool) or pages < 1
+    ):
+        raise InputError("frontmatter 'pages' must be a whole number >= 1")
+    return meta
 
 
 @dataclass
@@ -143,7 +188,7 @@ def parse(text: str) -> Document:
     for i, tok in enumerate(tokens):
         if tok.type == "front_matter":
             try:
-                loaded = yaml.safe_load(tok.content) or {}
+                loaded = yaml.load(tok.content, Loader=_NoAliasLoader) or {}
             # An impossible date (2026-02-30) raises ValueError, and deeply
             # nested YAML RecursionError; both are bad input, not a crash.
             except (yaml.YAMLError, ValueError, OverflowError, RecursionError) as exc:
@@ -155,12 +200,7 @@ def parse(text: str) -> Document:
                 raise InputError(
                     f"unknown frontmatter keys: {clip(sorted(map(str, unknown)))}"
                 )
-            pages = loaded.get("pages")
-            if pages is not None and (
-                not isinstance(pages, int) or isinstance(pages, bool) or pages < 1
-            ):
-                raise InputError("frontmatter 'pages' must be a whole number >= 1")
-            meta = loaded
+            meta = _check_meta(loaded)
         elif tok.type == "heading_open":
             headings.append(
                 Heading(

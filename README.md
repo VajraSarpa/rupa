@@ -162,8 +162,9 @@ The plugin and its evals depend on this.
 - **Subcommands:** `rupa verify` and `rupa refs`. To render a Markdown file
   named `verify` or `refs`, write `./verify`.
 - **Failure log:** every run that exits non-zero or crashes is appended to
-  `~/.rupa/log.jsonl` (time, arguments, exit code, output, traceback if any).
-  `RUPA_LOG=<path>` moves it; `RUPA_LOG=off` stops it.
+  `~/.rupa/log.jsonl` (time, arguments, exit code, output, traceback if any,
+  each clipped to 2,000 characters). Only you can read it, and past 1 MB it
+  moves to `log.jsonl.1`. `RUPA_LOG=<path>` moves it; `RUPA_LOG=off` stops it.
 
 ## Repository
 
@@ -181,7 +182,7 @@ The plugin and its evals depend on this.
 
 ```bash
 uv sync
-uv run pytest -q                   # 148 tests
+uv run pytest -q                   # 166 tests
 uvx ruff check src tests
 uv run rupa refs --theme <name>    # after any theme change; commit the PNGs
 uv run python docs/build.py        # re-render the guide with Rupa

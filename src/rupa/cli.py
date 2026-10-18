@@ -202,11 +202,19 @@ def verify_main(argv: list[str]) -> int:
     except PdfError as exc:
         _err(args, str(exc))
         return EXIT_INPUT
+    except OSError as exc:  # --out is a file, or <pdf>.verify already is one
+        _err(args, f"cannot write to {out}: {exc.strerror or exc}")
+        return EXIT_INPUT
     if args.json:
         print(Path(report.manifest).read_text())
     else:
         print(report.summary())
     return EXIT_OK if report.ok else EXIT_CHECKS_FAILED
+
+
+def _in_checkout(pkg: Path) -> bool:
+    """True when the package is src/rupa in a repo, not an installed copy."""
+    return pkg.parent.name == "src" and (pkg.parent.parent / "pyproject.toml").is_file()
 
 
 def refs_main(argv: list[str]) -> int:
@@ -217,9 +225,16 @@ def refs_main(argv: list[str]) -> int:
     )
     p.add_argument("--theme", default="default")
     p.add_argument(
-        "--out", help="output directory (default: the package's references/<theme>/)"
+        "--out",
+        help="output directory (default, in a source checkout only:"
+        " src/rupa/references/<theme>/)",
     )
     args = p.parse_args(argv)
+    pkg = Path(str(resources.files("rupa")))
+    if not args.out and not _in_checkout(pkg):
+        # The default would overwrite the reference pages of an installed copy.
+        _err(args, "this rupa is installed, not a source checkout; give --out")
+        return EXIT_USAGE
     sample = (resources.files("rupa") / "references" / "sample.md").read_text(
         encoding="utf-8"
     )
@@ -228,11 +243,7 @@ def refs_main(argv: list[str]) -> int:
     except RenderError as exc:
         _err(args, str(exc))
         return EXIT_RENDER
-    out = (
-        Path(args.out)
-        if args.out
-        else Path(str(resources.files("rupa") / "references" / args.theme))
-    )
+    out = Path(args.out) if args.out else pkg / "references" / args.theme
     with tempfile.TemporaryDirectory() as tmp:
         pdf = Path(tmp) / "sample.pdf"
         pdf.write_bytes(data)
@@ -241,6 +252,9 @@ def refs_main(argv: list[str]) -> int:
         except ValueError as exc:
             _err(args, str(exc))
             return EXIT_RENDER
+        except OSError as exc:
+            _err(args, f"cannot write to {out}: {exc.strerror or exc}")
+            return EXIT_INPUT
     kinds = ", ".join(f"{k}=p{n}" for k, n in sorted(picked.items()))
     print(f"rupa: wrote references for '{args.theme}' to {out} ({kinds})")
     return EXIT_OK
@@ -267,6 +281,18 @@ def _log_path() -> Path | None:
     return Path(value) if value else Path.home() / ".rupa" / "log.jsonl"
 
 
+# Each field is clipped, and a log past LOG_MAX_BYTES is moved to <log>.1
+# (replacing the last one), so the log stays small and never grows unbounded.
+LOG_FIELD_CHARS = 2000
+LOG_MAX_BYTES = 1_000_000
+
+
+def _tail(text: str, limit: int = LOG_FIELD_CHARS) -> str:
+    # The end of a traceback or stderr is the part that names the error.
+    text = text.strip()
+    return text if len(text) <= limit else "..." + text[-(limit - 3) :]
+
+
 def _log(argv, code, out: _Tee, err: _Tee, crash: str | None = None) -> None:
     path = _log_path()
     if path is None:
@@ -275,16 +301,21 @@ def _log(argv, code, out: _Tee, err: _Tee, crash: str | None = None) -> None:
         "time": datetime.now(UTC).isoformat(timespec="seconds"),
         "version": __version__,
         "cwd": str(Path.cwd()),
-        "argv": argv,
+        "argv": [_tail(a, 200) for a in argv],
         "exit": code,
-        "stdout": "".join(out.text).strip(),
-        "stderr": "".join(err.text).strip(),
+        "stdout": _tail("".join(out.text)),
+        "stderr": _tail("".join(err.text)),
     }
     if crash:
-        entry["traceback"] = crash
+        entry["traceback"] = _tail(crash)
     try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a", encoding="utf-8") as f:
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        if path.is_file() and path.stat().st_size > LOG_MAX_BYTES:
+            path.replace(path.with_name(path.name + ".1"))
+        # Entries quote error messages, which can quote the document: owner only.
+        fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+        with os.fdopen(fd, "a", encoding="utf-8") as f:
+            os.chmod(path, 0o600)  # a log made by an older rupa may be 0644
             f.write(json.dumps(entry) + "\n")
     except OSError:
         pass  # logging must never change what the CLI does

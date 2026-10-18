@@ -403,3 +403,67 @@ def test_svg_data_uri_images_render(tmp_path, ext):
 
         with pdfplumber.open(target) as pdf:
             assert "![logo]" not in "".join(p.extract_text() for p in pdf.pages)
+
+
+def test_refs_without_out_refuses_an_installed_copy(tmp_path, monkeypatch, capsys):
+    # The default target is the package's own references/, which in an
+    # installed copy would overwrite the reference pages verify compares to.
+    import rupa.cli
+
+    monkeypatch.setattr(rupa.cli, "_in_checkout", lambda pkg: False)
+    code = main(["refs"])
+    assert code == EXIT_USAGE and "--out" in capsys.readouterr().err
+
+
+def test_in_checkout_tells_src_from_site_packages(tmp_path):
+    from rupa.cli import _in_checkout
+
+    (tmp_path / "pyproject.toml").write_text("")
+    assert _in_checkout(tmp_path / "src" / "rupa")
+    assert not _in_checkout(tmp_path / "lib" / "site-packages" / "rupa")
+
+
+def test_refs_to_a_file_is_one_line_bad_input(tmp_path, capsys):
+    blocker = tmp_path / "refs"
+    blocker.write_text("x")
+    assert main(["refs", "--out", str(blocker)]) == EXIT_INPUT
+    assert "cannot write to" in capsys.readouterr().err
+
+
+def test_log_is_private_and_clipped(tmp_path, monkeypatch, capsys, _rupa_log):
+    import stat
+
+    _rupa_log.write_text("")
+    _rupa_log.chmod(0o644)  # as an older rupa left it
+    long = "x" * 50_000
+    run(monkeypatch, capsys, ["-o", str(tmp_path / "o.html"), long], stdin="")
+    (entry,) = _entries(_rupa_log)
+    assert stat.S_IMODE(_rupa_log.stat().st_mode) == 0o600
+    assert len(json.dumps(entry)) < 10_000
+
+
+def test_log_rotates_past_its_cap(tmp_path, monkeypatch, capsys, _rupa_log):
+    import rupa.cli
+
+    monkeypatch.setattr(rupa.cli, "LOG_MAX_BYTES", 100)
+    _rupa_log.write_text("old\n" * 50)
+    run(monkeypatch, capsys, ["-o", str(tmp_path / "o.html")], stdin="")
+    assert len(_entries(_rupa_log)) == 1
+    assert (_rupa_log.parent / (_rupa_log.name + ".1")).read_text() == "old\n" * 50
+
+
+def test_bench_summary_skips_malformed_results(tmp_path, capsys):
+    import importlib.util
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "summarize", Path(__file__).parent.parent / "bench" / "summarize.py"
+    )
+    summarize = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(summarize)
+    (tmp_path / "rupa-1.json").write_text("[1, 2]")
+    (tmp_path / "rupa-2.json").write_text('{"usage": null, "num_turns": null}')
+    (tmp_path / "rupa-3.json").write_text('{"num_turns": 6, "total_cost_usd": 0.3}')
+    summarize.main(tmp_path)  # used to raise AttributeError
+    rows = capsys.readouterr().out.split("\n\n")[0].splitlines()[1:]
+    assert [r.split("\t")[2] for r in rows] == ["0", "6"]
