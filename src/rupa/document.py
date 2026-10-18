@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 
 import yaml
 from markdown_it import MarkdownIt
+from markdown_it.common.normalize_url import validateLink
 from mdit_py_plugins.anchors import anchors_plugin
 from mdit_py_plugins.footnote import footnote_plugin
 from mdit_py_plugins.front_matter import front_matter_plugin
@@ -80,10 +81,24 @@ def _build_parser() -> MarkdownIt:
     md.use(tasklists_plugin)
     md.use(footnote_plugin)
     md.use(anchors_plugin, min_level=1, max_level=3)
+    # markdown-it drops a link or image whose URL it distrusts and leaves the
+    # Markdown source in the page. Let every data:image URL through so
+    # _check_image can refuse the ones Rupa can't render, with exit 3.
+    md.validateLink = lambda url: (
+        url.strip().lower().startswith("data:image/") or validateLink(url)
+    )
     return md
 
 
 _SCHEME = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*:")
+
+# The data:image types render.load_image can decode.
+DATA_IMAGE_TYPES = ("png", "jpeg", "gif", "webp", "svg+xml")
+
+
+def data_image_type(src: str) -> str:
+    """'svg+xml' for 'data:image/svg+xml;base64,...'."""
+    return src[len("data:image/") :].split(",")[0].split(";")[0].strip().lower()
 
 
 def _check_image(src: str) -> None:
@@ -92,7 +107,12 @@ def _check_image(src: str) -> None:
     A remote image in the HTML would be fetched by the reader's browser, which
     leaks that the page was opened and anything put in the URL.
     """
-    if src.startswith("data:image/"):
+    if src.lower().startswith("data:image/"):
+        if data_image_type(src) not in DATA_IMAGE_TYPES:
+            raise InputError(
+                f"image '{clip(src)}' is not a data:image type Rupa renders"
+                f" ({', '.join(DATA_IMAGE_TYPES)})"
+            )
         return
     if _SCHEME.match(src) or src.startswith(("/", "\\")):
         raise InputError(
@@ -154,6 +174,11 @@ def parse(text: str) -> Document:
         for child in tok.children or []:
             if child.type == "image":
                 _check_image(str(child.attrs.get("src", "")))
+            elif child.type == "link_open":
+                href = str(child.attrs.get("href", ""))
+                # Only images may carry the data:image URLs let through above.
+                if href.lower().startswith("data:") and not validateLink(href):
+                    raise InputError(f"link '{clip(href)}' cannot be a data: URL")
 
     doc = Document(meta=meta, body_html="", headings=headings)
     # The cover already shows the title, so a leading H1 that repeats it is

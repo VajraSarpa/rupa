@@ -181,7 +181,7 @@ The plugin and its evals depend on this.
 
 ```bash
 uv sync
-uv run pytest -q                   # 133 tests
+uv run pytest -q                   # 148 tests
 uvx ruff check src tests
 uv run rupa refs --theme <name>    # after any theme change; commit the PNGs
 uv run python docs/build.py        # re-render the guide with Rupa

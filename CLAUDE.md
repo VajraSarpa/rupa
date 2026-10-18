@@ -10,7 +10,7 @@ skill makes Claude use it instead of hand-writing markup.
 
 ```bash
 uv sync                                   # needs Pango for WeasyPrint (see README)
-uv run pytest -q                          # 140 tests
+uv run pytest -q                          # 148 tests
 uv run pytest tests/test_verify.py::test_stranded_heading_fails   # one test
 uvx ruff check src tests                  # CI runs this too
 uvx ruff format --check src tests         # and this
@@ -46,7 +46,8 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
   `rupa-theme:<name>` in the keywords metadata.
 - **Images:** `document.py` rejects any image that isn't a relative path or a
   `data:image` URI (exit 3), so neither HTML nor PDF ever fetches from the
-  network. Relative paths resolve against the input file's folder (cwd for
+  network. A data URI must be PNG, JPEG, GIF, WebP or SVG (`DATA_IMAGE_TYPES`;
+  markdown-it's `validateLink` is widened so it can't silently drop SVG). Relative paths resolve against the input file's folder (cwd for
   stdin). `render.load_image` reads every image for both formats: only
   files inside that folder, never hidden ones, with an image extension, and
   only if the bytes decode (PNG, JPEG, GIF, WebP via Pillow, or SVG). Both

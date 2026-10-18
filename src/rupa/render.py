@@ -155,13 +155,13 @@ RASTER_MIME = {
 IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")
 
 
-def _decoded_mime(data: bytes, name: str) -> str:
+def _decoded_mime(data: bytes, name: str, svg: bool = False) -> str:
     """The image's MIME type, once its bytes are known to decode as an image.
 
     A file that only claims to be an image (a renamed .env, a truncated PNG)
     fails here, so it is neither embedded in HTML nor dropped from a PDF.
     """
-    if name.lower().endswith(".svg"):
+    if svg:
         import xml.etree.ElementTree as ET
 
         try:
@@ -216,7 +216,8 @@ def load_image(src: str, base_dir: str | Path) -> tuple[bytes, str]:
             )
         except ValueError as exc:
             raise RenderError(f"image data URI cannot be decoded: {exc}") from exc
-        return data, _decoded_mime(data, "data URI")
+        svg = header.lower().startswith("data:image/svg+xml")
+        return data, _decoded_mime(data, "data URI", svg=svg)
 
     base = Path(base_dir).resolve()
     path = (base / unquote(src)).resolve()
@@ -233,7 +234,7 @@ def load_image(src: str, base_dir: str | Path) -> tuple[bytes, str]:
         data = path.read_bytes()
     except OSError as exc:
         raise RenderError(f"blocked or missing resource: {path}") from exc
-    return data, _decoded_mime(data, path.name)
+    return data, _decoded_mime(data, path.name, svg=path.suffix.lower() == ".svg")
 
 
 def embed_images(body: str, base_dir: str | Path) -> str:

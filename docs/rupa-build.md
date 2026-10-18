@@ -15,7 +15,7 @@ The document has three parts plus a short note on presenting the build:
 - **Part 2, Guide:** the reference for how Rupa works once it exists.
 - **Part 3, Tutorial:** build it step by step, from an empty folder to a tested CLI, a validated plugin, a verification loop and a benchmark.
 
-Everything in Part 3 was built and run before this was written: 40 tests pass, `claude plugin validate` passes, and Claude Code loads the skill and uses it to render and verify a PDF on its own. This document was rendered by that prototype from one Markdown file, then checked with `rupa verify` and a visual review of its sample pages. The appendix records what that review found.
+Everything in Part 3 was built and run before this was written: every test passes, `claude plugin validate` passes, and Claude Code loads the skill and uses it to render and verify a PDF on its own. This document was rendered by that prototype from one Markdown file, then checked with `rupa verify` and a visual review of its sample pages. The appendix records what that review found.
 
 # Part 1: Plan
 
@@ -115,7 +115,7 @@ Estimates assume evenings and weekends.
 | # | Milestone | Done when | Estimate |
 |---|---|---|---|
 | M0 | Scaffold | `uv sync` and an empty test run pass | 1 hour |
-| M1 | Parser | Document model and 8 parser tests pass | 2–3 hours |
+| M1 | Parser | Document model and its parser tests pass | 2–3 hours |
 | M2 | Renderer | HTML and PDF from a sample; PDF text forced black | 3–4 hours |
 | M3 | CLI contract | Status line, `--json`, exit codes, CLI tests pass | 2 hours |
 | M4 | Plugin | `claude plugin validate` passes; skill loads with `--plugin-dir` | 1–2 hours |
@@ -213,7 +213,7 @@ Body conventions:
 - Fenced code blocks take a language tag for highlighting.
 - Tables use GitHub pipe syntax. `~~strikethrough~~`, task lists (`- [ ]`, `- [x]`) and footnotes (`[^1]`) work too; in a PDF the footnotes are collected at the end.
 - Raw HTML is escaped and shown as text.
-- Images must be relative paths next to the Markdown file, or `data:image` URIs. A URL or absolute path is bad input (exit code 3); a missing file, a hidden one, one outside the Markdown file's folder, or one that doesn't decode as a PNG, JPEG, GIF, WebP or SVG image fails the render (exit code 4). HTML output embeds each image as a data URI, so the file can be sent on its own.
+- Images must be relative paths next to the Markdown file, or `data:image` URIs. A URL, an absolute path or a `data:image` URI of any other type is bad input (exit code 3); a missing file, a hidden one, one outside the Markdown file's folder, or one that doesn't decode as a PNG, JPEG, GIF, WebP or SVG image fails the render (exit code 4). HTML output embeds each image as a data URI, so the file can be sent on its own.
 
 ## Themes
 
@@ -602,7 +602,7 @@ Write the tests before moving on. `tests/test_document.py`:
 
 @@include tests/test_document.py python@@
 
-**Checkpoint:** `uv run pytest tests/test_document.py -q` shows 8 passed.
+**Checkpoint:** `uv run pytest tests/test_document.py -q` passes every test in the file.
 
 ## Step 3: The renderer and themes
 
@@ -638,7 +638,7 @@ The CLI tests check the contract, not the implementation: one stdout line, real 
 
 @@include tests/test_cli.py python@@
 
-**Checkpoint:** `uv run pytest -q` shows 16 passed.
+**Checkpoint:** `uv run pytest -q` passes every test.
 
 ## Step 5: Install it as a command
 
@@ -729,7 +729,7 @@ The tests, `tests/test_verify.py`. Most build synthetic pages, so each check is 
 
 @@include tests/test_verify.py python@@
 
-**Checkpoint:** `uv run pytest -q` shows 40 passed, and `rupa verify hello.pdf` prints a line starting with `verify:` and writes a `hello.verify/` folder with `verify.json` (plus a sheet for any flagged page).
+**Checkpoint:** `uv run pytest -q` passes every test, and `rupa verify hello.pdf` prints a line starting with `verify:` and writes a `hello.verify/` folder with `verify.json` (plus a sheet for any flagged page).
 
 **Checkpoint in Claude Code:** with the plugin loaded, ask for a one-page PDF and to verify it. Claude should render, run `rupa verify`, open the sheet, give a verdict per sheet, and fix the Markdown if something fails.
 

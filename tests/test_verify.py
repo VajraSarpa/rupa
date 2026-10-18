@@ -404,3 +404,30 @@ def test_sheet_size_is_capped_on_a_huge_page(tmp_path):
     pdf = _blank_pdf(tmp_path / "big.pdf", (2000, 2000))  # ~28 in square
     img = render_page_png(pdf, 1, 300)  # uncapped this is 8333 px a side
     assert max(img.size) <= MAX_SHEET_PX
+
+
+def test_an_unreadable_pdf_leaves_existing_sheets_alone(tmp_path, capsys):
+    out = tmp_path / "v"
+    out.mkdir()
+    keep = out / "sheet-p001-prose.png"
+    keep.write_bytes(b"not ours")
+    bad = tmp_path / "bad.pdf"
+    bad.write_bytes(b"%PDF-1.7 truncated")
+    assert main(["verify", str(bad), "--out", str(out)]) == EXIT_INPUT
+    assert keep.exists()
+
+
+def test_verify_clears_only_the_sheets_it_wrote(real_pdf, tmp_path):
+    out = tmp_path / "v"
+    out.mkdir()
+    mine = out / "sheet-p099-prose.png"  # someone else's file in --out
+    mine.write_bytes(b"not ours")
+    wants = load_wants(None)
+    wants["vision"]["sample"] = "all"
+    first = verify(real_pdf, wants, out)
+    assert len(first.sheets) > 1
+
+    wants["vision"]["max_sheets"] = 1
+    second = verify(real_pdf, wants, out)
+    left = sorted(p.name for p in out.glob("sheet-p*.png"))
+    assert left == sorted([mine.name, second.sheets[0]["path"].split("/")[-1]])

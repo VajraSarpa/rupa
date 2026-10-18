@@ -123,3 +123,22 @@ def test_frontmatter_that_crashes_yaml_is_bad_input(front):
     # escape as tracebacks with exit 1.
     with pytest.raises(InputError, match="bad frontmatter"):
         parse(f"---\n{front}\n---\n\nBody.\n")
+
+
+SVG_URI = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0JyBoZWlnaHQ9JzQnLz4="
+)
+
+
+def test_svg_data_images_become_images():
+    # markdown-it's own link check drops SVG data URIs, which used to leave
+    # the Markdown source showing in the page.
+    doc = parse(f"![logo]({SVG_URI})\n")
+    assert "<img" in doc.body_html and "![logo]" not in doc.body_html
+
+
+@pytest.mark.parametrize("mime", ["image/bmp", "image/x-icon", "image/svg"])
+def test_other_data_image_types_are_bad_input(mime):
+    with pytest.raises(InputError, match="data:image"):
+        parse(f"![a](data:{mime};base64,AAAA)\n")

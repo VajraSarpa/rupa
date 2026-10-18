@@ -601,6 +601,22 @@ def pdf_theme(pdf_path: str | Path) -> str | None:
     return m.group(1) if m and m.group(1) in THEMES else None
 
 
+def _clear_old_sheets(out: Path) -> None:
+    """Remove the sheets the last verify listed in out/verify.json.
+
+    Only those: --out may name a folder that holds other files, even ones
+    named like sheets.
+    """
+    try:
+        listed = json.loads((out / "verify.json").read_text())["sheets"]
+        names = {Path(s["path"]).name for s in listed}
+    except (OSError, ValueError, TypeError, KeyError):
+        return
+    for name in names:
+        if re.fullmatch(r"sheet-p\d+-\w+\.png", name):
+            (out / name).unlink(missing_ok=True)
+
+
 def verify(
     pdf_path: str | Path, wants: dict, out_dir: str | Path, theme: str | None = None
 ) -> VerifyReport:
@@ -611,13 +627,12 @@ def verify(
     if not wants["text_color"]:
         wants = {**wants, "text_color": THEME_TEXT_COLORS[theme]}
     out = Path(out_dir)
-    out.mkdir(parents=True, exist_ok=True)
-    for old in out.glob("sheet-p*.png"):
-        old.unlink()
     pages = read_pages(pdf_path, wants["text_color"])
     if not pages:  # every check loops over pages, so none would all "pass"
         raise PdfError(f"{pdf_path} has no pages")
     results = run_checks(pages, wants)
+    out.mkdir(parents=True, exist_ok=True)
+    _clear_old_sheets(out)
     flags_by_page: dict[int, list[str]] = {}
     for r in results:
         for n in r.pages:

@@ -1,3 +1,4 @@
+import base64
 import io
 import json
 
@@ -384,3 +385,21 @@ def test_file_named_verify_renders_with_dot_slash(tmp_path, monkeypatch, capsys)
     code = main(["./verify", "-o", "out.html"])
     capsys.readouterr()
     assert code == EXIT_OK and (tmp_path / "out.html").is_file()
+
+
+@pytest.mark.parametrize("ext", ["pdf", "html"])
+def test_svg_data_uri_images_render(tmp_path, ext):
+    svg = b'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="red"/></svg>'
+    uri = "data:image/svg+xml;base64," + base64.b64encode(svg).decode()
+    md = tmp_path / "doc.md"
+    md.write_text(f"# Logo\n\n![logo]({uri})\n")
+    target = tmp_path / f"o.{ext}"
+    assert main([str(md), "-o", str(target)]) == EXIT_OK
+    if ext == "html":
+        html = target.read_text()
+        assert "<img" in html and "![logo]" not in html
+    else:
+        import pdfplumber
+
+        with pdfplumber.open(target) as pdf:
+            assert "![logo]" not in "".join(p.extract_text() for p in pdf.pages)

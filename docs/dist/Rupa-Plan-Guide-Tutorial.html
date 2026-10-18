@@ -271,7 +271,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <li><strong>Part 2, Guide:</strong> the reference for how Rupa works once it exists.</li>
 <li><strong>Part 3, Tutorial:</strong> build it step by step, from an empty folder to a tested CLI, a validated plugin, a verification loop and a benchmark.</li>
 </ul>
-<p>Everything in Part 3 was built and run before this was written: 40 tests pass, <code>claude plugin validate</code> passes, and Claude Code loads the skill and uses it to render and verify a PDF on its own. This document was rendered by that prototype from one Markdown file, then checked with <code>rupa verify</code> and a visual review of its sample pages. The appendix records what that review found.</p>
+<p>Everything in Part 3 was built and run before this was written: every test passes, <code>claude plugin validate</code> passes, and Claude Code loads the skill and uses it to render and verify a PDF on its own. This document was rendered by that prototype from one Markdown file, then checked with <code>rupa verify</code> and a visual review of its sample pages. The appendix records what that review found.</p>
 <h1 id="part-1-plan">Part 1: Plan</h1>
 <h2 id="the-problem">The problem</h2>
 <p>When Claude Code produces an HTML page or PDF, it writes the markup itself: every tag, every CSS rule, or a script that builds the PDF. Four costs follow.</p>
@@ -482,7 +482,7 @@ stdout: one status line          exit code: 0 / 2 / 3 / 4 / 5
 <tr>
 <td>M1</td>
 <td>Parser</td>
-<td>Document model and 8 parser tests pass</td>
+<td>Document model and its parser tests pass</td>
 <td>2–3 hours</td>
 </tr>
 <tr>
@@ -707,7 +707,7 @@ $<span class="w"> </span>rupa<span class="w"> </span>notes.md<span class="w"> </
 <li>Fenced code blocks take a language tag for highlighting.</li>
 <li>Tables use GitHub pipe syntax. <code>~~strikethrough~~</code>, task lists (<code>- [ ]</code>, <code>- [x]</code>) and footnotes (<code>[^1]</code>) work too; in a PDF the footnotes are collected at the end.</li>
 <li>Raw HTML is escaped and shown as text.</li>
-<li>Images must be relative paths next to the Markdown file, or <code>data:image</code> URIs. A URL or absolute path is bad input (exit code 3); a missing file, a hidden one, one outside the Markdown file's folder, or one that doesn't decode as a PNG, JPEG, GIF, WebP or SVG image fails the render (exit code 4). HTML output embeds each image as a data URI, so the file can be sent on its own.</li>
+<li>Images must be relative paths next to the Markdown file, or <code>data:image</code> URIs. A URL, an absolute path or a <code>data:image</code> URI of any other type is bad input (exit code 3); a missing file, a hidden one, one outside the Markdown file's folder, or one that doesn't decode as a PNG, JPEG, GIF, WebP or SVG image fails the render (exit code 4). HTML output embeds each image as a data URI, so the file can be sent on its own.</li>
 </ul>
 <h2 id="themes">Themes</h2>
 <p>A theme is one CSS file in <code>src/rupa/themes/</code>. The PDF target appends <code>print.css</code> on top of it, which sets the page size, margins, footer, page breaks, and forces all text to solid black:</p>
@@ -1470,6 +1470,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">markdown_it</span><span class="w"> </span><span class="kn">import</span> <span class="n">MarkdownIt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">markdown_it.common.normalize_url</span><span class="w"> </span><span class="kn">import</span> <span class="n">validateLink</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mdit_py_plugins.anchors</span><span class="w"> </span><span class="kn">import</span> <span class="n">anchors_plugin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mdit_py_plugins.footnote</span><span class="w"> </span><span class="kn">import</span> <span class="n">footnote_plugin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mdit_py_plugins.front_matter</span><span class="w"> </span><span class="kn">import</span> <span class="n">front_matter_plugin</span>
@@ -1539,10 +1540,24 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="n">md</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="n">tasklists_plugin</span><span class="p">)</span>
     <span class="n">md</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="n">footnote_plugin</span><span class="p">)</span>
     <span class="n">md</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="n">anchors_plugin</span><span class="p">,</span> <span class="n">min_level</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_level</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="c1"># markdown-it drops a link or image whose URL it distrusts and leaves the</span>
+    <span class="c1"># Markdown source in the page. Let every data:image URL through so</span>
+    <span class="c1"># _check_image can refuse the ones Rupa can't render, with exit 3.</span>
+    <span class="n">md</span><span class="o">.</span><span class="n">validateLink</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">url</span><span class="p">:</span> <span class="p">(</span>
+        <span class="n">url</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"data:image/"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">validateLink</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="k">return</span> <span class="n">md</span>
 
 
 <span class="n">_SCHEME</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[a-zA-Z][a-zA-Z0-9+.-]*:"</span><span class="p">)</span>
+
+<span class="c1"># The data:image types render.load_image can decode.</span>
+<span class="n">DATA_IMAGE_TYPES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"png"</span><span class="p">,</span> <span class="s2">"jpeg"</span><span class="p">,</span> <span class="s2">"gif"</span><span class="p">,</span> <span class="s2">"webp"</span><span class="p">,</span> <span class="s2">"svg+xml"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">data_image_type</span><span class="p">(</span><span class="n">src</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""'svg+xml' for 'data:image/svg+xml;base64,...'."""</span>
+    <span class="k">return</span> <span class="n">src</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="s2">"data:image/"</span><span class="p">)</span> <span class="p">:]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">";"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_check_image</span><span class="p">(</span><span class="n">src</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1551,7 +1566,12 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="sd">    A remote image in the HTML would be fetched by the reader's browser, which</span>
 <span class="sd">    leaks that the page was opened and anything put in the URL.</span>
 <span class="sd">    """</span>
-    <span class="k">if</span> <span class="n">src</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"data:image/"</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">src</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"data:image/"</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">data_image_type</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">DATA_IMAGE_TYPES</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"image '</span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="n">src</span><span class="p">)</span><span class="si">}</span><span class="s2">' is not a data:image type Rupa renders"</span>
+                <span class="sa">f</span><span class="s2">" (</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_IMAGE_TYPES</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
+            <span class="p">)</span>
         <span class="k">return</span>
     <span class="k">if</span> <span class="n">_SCHEME</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="ow">or</span> <span class="n">src</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">"/"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">"</span><span class="p">)):</span>
         <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span>
@@ -1613,6 +1633,11 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
         <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">tok</span><span class="o">.</span><span class="n">children</span> <span class="ow">or</span> <span class="p">[]:</span>
             <span class="k">if</span> <span class="n">child</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"image"</span><span class="p">:</span>
                 <span class="n">_check_image</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"src"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)))</span>
+            <span class="k">elif</span> <span class="n">child</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"link_open"</span><span class="p">:</span>
+                <span class="n">href</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"href"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
+                <span class="c1"># Only images may carry the data:image URLs let through above.</span>
+                <span class="k">if</span> <span class="n">href</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"data:"</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">validateLink</span><span class="p">(</span><span class="n">href</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"link '</span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="n">href</span><span class="p">)</span><span class="si">}</span><span class="s2">' cannot be a data: URL"</span><span class="p">)</span>
 
     <span class="n">doc</span> <span class="o">=</span> <span class="n">Document</span><span class="p">(</span><span class="n">meta</span><span class="o">=</span><span class="n">meta</span><span class="p">,</span> <span class="n">body_html</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span> <span class="n">headings</span><span class="o">=</span><span class="n">headings</span><span class="p">)</span>
     <span class="c1"># The cover already shows the title, so a leading H1 that repeats it is</span>
@@ -1757,8 +1782,27 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="c1"># escape as tracebacks with exit 1.</span>
     <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="n">InputError</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="s2">"bad frontmatter"</span><span class="p">):</span>
         <span class="n">parse</span><span class="p">(</span><span class="sa">f</span><span class="s2">"---</span><span class="se">\n</span><span class="si">{</span><span class="n">front</span><span class="si">}</span><span class="se">\n</span><span class="s2">---</span><span class="se">\n\n</span><span class="s2">Body.</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+
+
+<span class="n">SVG_URI</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"data:image/svg+xml;base64,"</span>
+    <span class="s2">"PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0JyBoZWlnaHQ9JzQnLz4="</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_svg_data_images_become_images</span><span class="p">():</span>
+    <span class="c1"># markdown-it's own link check drops SVG data URIs, which used to leave</span>
+    <span class="c1"># the Markdown source showing in the page.</span>
+    <span class="n">doc</span> <span class="o">=</span> <span class="n">parse</span><span class="p">(</span><span class="sa">f</span><span class="s2">"![logo](</span><span class="si">{</span><span class="n">SVG_URI</span><span class="si">}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="s2">"&lt;img"</span> <span class="ow">in</span> <span class="n">doc</span><span class="o">.</span><span class="n">body_html</span> <span class="ow">and</span> <span class="s2">"![logo]"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">doc</span><span class="o">.</span><span class="n">body_html</span>
+
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="s2">"mime"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"image/bmp"</span><span class="p">,</span> <span class="s2">"image/x-icon"</span><span class="p">,</span> <span class="s2">"image/svg"</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_other_data_image_types_are_bad_input</span><span class="p">(</span><span class="n">mime</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="n">InputError</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="s2">"data:image"</span><span class="p">):</span>
+        <span class="n">parse</span><span class="p">(</span><span class="sa">f</span><span class="s2">"![a](data:</span><span class="si">{</span><span class="n">mime</span><span class="si">}</span><span class="s2">;base64,AAAA)</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 </code></pre>
-<p><strong>Checkpoint:</strong> <code>uv run pytest tests/test_document.py -q</code> shows 8 passed.</p>
+<p><strong>Checkpoint:</strong> <code>uv run pytest tests/test_document.py -q</code> passes every test in the file.</p>
 <h2 id="step-3-the-renderer-and-themes">Step 3: The renderer and themes</h2>
 <p>All styling decisions live in <code>render.py</code> and the CSS files. The HTML template is inline so the package has one less file to ship. The PDF function resolves relative images against the input file's folder and refuses to read files outside it.</p>
 <p>One trap worth knowing: WeasyPrint's <code>FatalURLFetchingError</code> inherits from <code>BaseException</code>, not <code>Exception</code>, so a plain <code>except Exception</code> does not catch it. That is why the code names it explicitly. This was found by a failing test during the build.</p>
@@ -1920,13 +1964,13 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="n">IMAGE_SUFFIXES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">".png"</span><span class="p">,</span> <span class="s2">".jpg"</span><span class="p">,</span> <span class="s2">".jpeg"</span><span class="p">,</span> <span class="s2">".gif"</span><span class="p">,</span> <span class="s2">".webp"</span><span class="p">,</span> <span class="s2">".svg"</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_decoded_mime</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_decoded_mime</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">svg</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The image's MIME type, once its bytes are known to decode as an image.</span>
 
 <span class="sd">    A file that only claims to be an image (a renamed .env, a truncated PNG)</span>
 <span class="sd">    fails here, so it is neither embedded in HTML nor dropped from a PDF.</span>
 <span class="sd">    """</span>
-    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".svg"</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">svg</span><span class="p">:</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">xml.etree.ElementTree</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ET</span>
 
         <span class="k">try</span><span class="p">:</span>
@@ -1981,7 +2025,8 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
             <span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">RenderError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"image data URI cannot be decoded: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
-        <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">_decoded_mime</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">"data URI"</span><span class="p">)</span>
+        <span class="n">svg</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"data:image/svg+xml"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">_decoded_mime</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">"data URI"</span><span class="p">,</span> <span class="n">svg</span><span class="o">=</span><span class="n">svg</span><span class="p">)</span>
 
     <span class="n">base</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">base_dir</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
     <span class="n">path</span> <span class="o">=</span> <span class="p">(</span><span class="n">base</span> <span class="o">/</span> <span class="n">unquote</span><span class="p">(</span><span class="n">src</span><span class="p">))</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
@@ -1998,7 +2043,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
         <span class="n">data</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">RenderError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"blocked or missing resource: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
-    <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">_decoded_mime</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">_decoded_mime</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">svg</span><span class="o">=</span><span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">".svg"</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">embed_images</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -2695,7 +2740,8 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </code></pre>
 <p>The CLI tests check the contract, not the implementation: one stdout line, real PDF bytes, the black-text rule, each exit code, and blocked remote resources. <code>tests/test_cli.py</code>:</p>
-<pre class="hl"><code class="language-python"><span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+<pre class="hl"><code class="language-python"><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
@@ -3081,8 +3127,26 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
     <span class="n">code</span> <span class="o">=</span> <span class="n">main</span><span class="p">([</span><span class="s2">"./verify"</span><span class="p">,</span> <span class="s2">"-o"</span><span class="p">,</span> <span class="s2">"out.html"</span><span class="p">])</span>
     <span class="n">capsys</span><span class="o">.</span><span class="n">readouterr</span><span class="p">()</span>
     <span class="k">assert</span> <span class="n">code</span> <span class="o">==</span> <span class="n">EXIT_OK</span> <span class="ow">and</span> <span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"out.html"</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
+
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="s2">"ext"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"pdf"</span><span class="p">,</span> <span class="s2">"html"</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_svg_data_uri_images_render</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">ext</span><span class="p">):</span>
+    <span class="n">svg</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">'&lt;svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"&gt;&lt;rect width="40" height="20" fill="red"/&gt;&lt;/svg&gt;'</span>
+    <span class="n">uri</span> <span class="o">=</span> <span class="s2">"data:image/svg+xml;base64,"</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">svg</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+    <span class="n">md</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"doc.md"</span>
+    <span class="n">md</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="sa">f</span><span class="s2">"# Logo</span><span class="se">\n\n</span><span class="s2">![logo](</span><span class="si">{</span><span class="n">uri</span><span class="si">}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"o.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">assert</span> <span class="n">main</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">md</span><span class="p">),</span> <span class="s2">"-o"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">target</span><span class="p">)])</span> <span class="o">==</span> <span class="n">EXIT_OK</span>
+    <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">"html"</span><span class="p">:</span>
+        <span class="n">html</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="s2">"&lt;img"</span> <span class="ow">in</span> <span class="n">html</span> <span class="ow">and</span> <span class="s2">"![logo]"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">html</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">pdfplumber</span>
+
+        <span class="k">with</span> <span class="n">pdfplumber</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">target</span><span class="p">)</span> <span class="k">as</span> <span class="n">pdf</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="s2">"![logo]"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">extract_text</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pdf</span><span class="o">.</span><span class="n">pages</span><span class="p">)</span>
 </code></pre>
-<p><strong>Checkpoint:</strong> <code>uv run pytest -q</code> shows 16 passed.</p>
+<p><strong>Checkpoint:</strong> <code>uv run pytest -q</code> passes every test.</p>
 <h2 id="step-5-install-it-as-a-command">Step 5: Install it as a command</h2>
 <pre class="hl"><code class="language-bash">uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>.
 <span class="nb">echo</span><span class="w"> </span><span class="s2">"# Hello"</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>rupa<span class="w"> </span>-o<span class="w"> </span>hello.pdf
@@ -3843,6 +3907,22 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
     <span class="k">return</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">m</span> <span class="ow">and</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="ow">in</span> <span class="n">THEMES</span> <span class="k">else</span> <span class="kc">None</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_clear_old_sheets</span><span class="p">(</span><span class="n">out</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Remove the sheets the last verify listed in out/verify.json.</span>
+
+<span class="sd">    Only those: --out may name a folder that holds other files, even ones</span>
+<span class="sd">    named like sheets.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">listed</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">((</span><span class="n">out</span> <span class="o">/</span> <span class="s2">"verify.json"</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">())[</span><span class="s2">"sheets"</span><span class="p">]</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">{</span><span class="n">Path</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">"path"</span><span class="p">])</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">listed</span><span class="p">}</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
+        <span class="k">return</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">"sheet-p\d+-\w+\.png"</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+            <span class="p">(</span><span class="n">out</span> <span class="o">/</span> <span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">verify</span><span class="p">(</span>
     <span class="n">pdf_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">wants</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">theme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VerifyReport</span><span class="p">:</span>
@@ -3853,13 +3933,12 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
     <span class="k">if</span> <span class="ow">not</span> <span class="n">wants</span><span class="p">[</span><span class="s2">"text_color"</span><span class="p">]:</span>
         <span class="n">wants</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">wants</span><span class="p">,</span> <span class="s2">"text_color"</span><span class="p">:</span> <span class="n">THEME_TEXT_COLORS</span><span class="p">[</span><span class="n">theme</span><span class="p">]}</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">out_dir</span><span class="p">)</span>
-    <span class="n">out</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">old</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"sheet-p*.png"</span><span class="p">):</span>
-        <span class="n">old</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
     <span class="n">pages</span> <span class="o">=</span> <span class="n">read_pages</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">,</span> <span class="n">wants</span><span class="p">[</span><span class="s2">"text_color"</span><span class="p">])</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">pages</span><span class="p">:</span>  <span class="c1"># every check loops over pages, so none would all "pass"</span>
         <span class="k">raise</span> <span class="n">PdfError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">pdf_path</span><span class="si">}</span><span class="s2"> has no pages"</span><span class="p">)</span>
     <span class="n">results</span> <span class="o">=</span> <span class="n">run_checks</span><span class="p">(</span><span class="n">pages</span><span class="p">,</span> <span class="n">wants</span><span class="p">)</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">_clear_old_sheets</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
     <span class="n">flags_by_page</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">pages</span><span class="p">:</span>
@@ -4472,8 +4551,35 @@ Rupa separates content from form. Claude writes Markdown, and the renderer appli
     <span class="n">pdf</span> <span class="o">=</span> <span class="n">_blank_pdf</span><span class="p">(</span><span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"big.pdf"</span><span class="p">,</span> <span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">2000</span><span class="p">))</span>  <span class="c1"># ~28 in square</span>
     <span class="n">img</span> <span class="o">=</span> <span class="n">render_page_png</span><span class="p">(</span><span class="n">pdf</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>  <span class="c1"># uncapped this is 8333 px a side</span>
     <span class="k">assert</span> <span class="nb">max</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">size</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">MAX_SHEET_PX</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_an_unreadable_pdf_leaves_existing_sheets_alone</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">capsys</span><span class="p">):</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"v"</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+    <span class="n">keep</span> <span class="o">=</span> <span class="n">out</span> <span class="o">/</span> <span class="s2">"sheet-p001-prose.png"</span>
+    <span class="n">keep</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"not ours"</span><span class="p">)</span>
+    <span class="n">bad</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"bad.pdf"</span>
+    <span class="n">bad</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"%PDF-1.7 truncated"</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">main</span><span class="p">([</span><span class="s2">"verify"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">bad</span><span class="p">),</span> <span class="s2">"--out"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">out</span><span class="p">)])</span> <span class="o">==</span> <span class="n">EXIT_INPUT</span>
+    <span class="k">assert</span> <span class="n">keep</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_verify_clears_only_the_sheets_it_wrote</span><span class="p">(</span><span class="n">real_pdf</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">):</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">tmp_path</span> <span class="o">/</span> <span class="s2">"v"</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+    <span class="n">mine</span> <span class="o">=</span> <span class="n">out</span> <span class="o">/</span> <span class="s2">"sheet-p099-prose.png"</span>  <span class="c1"># someone else's file in --out</span>
+    <span class="n">mine</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"not ours"</span><span class="p">)</span>
+    <span class="n">wants</span> <span class="o">=</span> <span class="n">load_wants</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">wants</span><span class="p">[</span><span class="s2">"vision"</span><span class="p">][</span><span class="s2">"sample"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"all"</span>
+    <span class="n">first</span> <span class="o">=</span> <span class="n">verify</span><span class="p">(</span><span class="n">real_pdf</span><span class="p">,</span> <span class="n">wants</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">first</span><span class="o">.</span><span class="n">sheets</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+
+    <span class="n">wants</span><span class="p">[</span><span class="s2">"vision"</span><span class="p">][</span><span class="s2">"max_sheets"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">second</span> <span class="o">=</span> <span class="n">verify</span><span class="p">(</span><span class="n">real_pdf</span><span class="p">,</span> <span class="n">wants</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+    <span class="n">left</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"sheet-p*.png"</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="n">left</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">mine</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">second</span><span class="o">.</span><span class="n">sheets</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"path"</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
 </code></pre>
-<p><strong>Checkpoint:</strong> <code>uv run pytest -q</code> shows 40 passed, and <code>rupa verify hello.pdf</code> prints a line starting with <code>verify:</code> and writes a <code>hello.verify/</code> folder with <code>verify.json</code> (plus a sheet for any flagged page).</p>
+<p><strong>Checkpoint:</strong> <code>uv run pytest -q</code> passes every test, and <code>rupa verify hello.pdf</code> prints a line starting with <code>verify:</code> and writes a <code>hello.verify/</code> folder with <code>verify.json</code> (plus a sheet for any flagged page).</p>
 <p><strong>Checkpoint in Claude Code:</strong> with the plugin loaded, ask for a one-page PDF and to verify it. Claude should render, run <code>rupa verify</code>, open the sheet, give a verdict per sheet, and fix the Markdown if something fails.</p>
 <h2 id="step-9-measure">Step 9: Measure</h2>
 <p><code>bench/bench.sh</code> sets up the four arms and runs them. The <code>awk</code> line builds the render-only plugin by dropping everything from <code>## Verify</code> up to the skill's closing line, and the <code>sed</code> line builds the per-type plugin by adding <code>--sample per-type</code> to the verify command:</p>
