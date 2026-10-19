@@ -37,7 +37,8 @@ changes the reading: on 15 blind pairs Vajra found the content equally good
 in 12 of 13 and preferred the baseline's layout in 7 of 15. The supported
 claim is: Rupa makes documents about 40% cheaper and 1.7× faster with the
 same content, and its layout on longer documents is weaker and needs a theme
-fix.
+fix. One layout fault is a plain bug: every image wider than the text column
+runs off the page (all 8 Rupa lab reports), and nothing in Rupa caught it.
 
 ## What was run
 
@@ -143,6 +144,11 @@ a human reader, and Rupa's layout on longer documents is a real, moderate
 weakness. The LLM pairwise judge is harsher than a person and leans toward
 denser pages.
 
+His notes after judging: some pages had much more empty space than the
+other document's; on a couple of pages part of a graph was missing; and he
+liked the bold front page in some documents. The missing graphs were Rupa's
+(see the next section).
+
 ## Pre-registered rules
 
 Opus, held-out tasks:
@@ -184,6 +190,15 @@ pairs against Claude Code alone, 14 of 17 against hinted), H3 holds.
 
 ## Seen in the runs, not fixed (Rupa is frozen)
 
+- **Wide images run off the page.** Every Rupa PDF with an image (all 8
+  lab reports, Opus and Sonnet) has the chart cut at the right edge: the
+  supplied 900 px PNG is set at its natural 675 pt from a 58 pt margin, on a
+  612 pt page, so the last data point and the right axis are gone. No
+  baseline PDF has an image off the page. The theme has no rule shrinking an
+  image to the text width, and `rupa verify`'s overflow check reads only
+  text, so it passed all 8. Bench v2's own `in_bounds` check also reads only
+  text and missed it; the LLM judge marked Rupa's lab layout 2 of 5 but
+  never named the cut. Vajra found it in blind judging.
 - A table split across a page break can leave one row under a repeated header
   at the top of the next page, and `rupa verify` passes it.
 - The judge's most common layout complaint was large empty areas at page
