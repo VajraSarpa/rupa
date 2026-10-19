@@ -172,7 +172,7 @@ run_one() {  # $1 = arm, $2 = run number, $3 = position in this run's order
 
 for i in $(seq 1 "$RUNS"); do
   pos=0
-  order="$(python3 -c 'import random, sys; a = sys.argv[2:]; random.Random(sys.argv[1]).shuffle(a); print(*a)' "$SEED-$i" $ARMS)"
+  order="$(python3 -c 'import random, sys; a = sys.argv[2:]; random.Random(sys.argv[1]).shuffle(a); print(*a)' "$SEED-$TASK_NAME-$i" $ARMS)"
   for arm in $order; do
     pos=$((pos + 1))
     run_one "$arm" "$i" "$pos"

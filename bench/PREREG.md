@@ -125,4 +125,17 @@ failure counts against its arm.
 
 ## Changes after registration
 
-None yet.
+Pilot, 18 October 2026 (`cv`, `notes`; not analysed, kept in
+`bench/results/pilot/`). Tooling only; no task, rule or Rupa change:
+
+1. The arm order was seeded by run number alone, so every task got the same
+   order. The seed now includes the task name.
+2. The judge's folder held only page images, so checklist items that say
+   "check against notes.txt" or "data.csv" couldn't be checked. The task's
+   input files are now copied in and named in the prompt.
+3. Main runs go from a git worktree of the committed tooling, so editing the
+   repo can't change a script while it runs (it broke the pilot's last lines).
+
+Seen in the pilot, recorded and not fixed (Rupa is frozen): in `notes`, a
+table split across a page break left one row and a repeated header at the
+top of page 2, and `rupa verify` passed it.
