@@ -1,0 +1,15 @@
+{
+  "steps": [
+    {"format": "pdf", "pages": 1,
+     "phrases": ["operational excellence", "security", "reliability", "performance efficiency", "cost optimization", "sustainability"],
+     "judge": ["Summarizes all six Well-Architected pillars on one page"]},
+    {"format": "pdf", "pages": 2, "phrases": ["secretsmanager", "rollback"], "numbered_min": 4,
+     "judge": ["Numbered steps for rotating the RDS for PostgreSQL master password with Secrets Manager", "AWS CLI commands", "A rollback section"]},
+    {"format": "html", "phrases": ["handover", "escalation"],
+     "judge": ["FAQs covering shifts, handover, paging, compensation and escalation"]},
+    {"format": "pdf", "pages": 3, "phrases": ["endpoint"], "json_min_lines": 5,
+     "judge": ["Goals, architecture, data model and scaling notes", "A table of API endpoints", "A JSON example of the create request and response"]},
+    {"format": "pdf", "pages": 1, "phrases": ["load test", "Secrets Manager"],
+     "judge": ["Covers every point given: shipped, approved, published, next week's two items, and the risk"]}
+  ]
+}

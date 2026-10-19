@@ -1,0 +1,12 @@
+{
+  "format": "pdf",
+  "pages": 2,
+  "phrases": ["INC-2291", "v2.31.0", "v2.30.4", "14:32", "15:20", "Priya", "Sam", "Dmitri"],
+  "judge": [
+    "Sections for summary, impact, timeline, root cause, what went well, what did not, and action items",
+    "Every timeline entry in notes.txt (14:32 to 15:20) appears with its time",
+    "Impact matches the notes: about 46 minutes, about 3,900 failed checkouts, no double charges",
+    "All five action items appear, each with its owner and due date as given",
+    "Nothing is stated that the notes don't support"
+  ]
+}

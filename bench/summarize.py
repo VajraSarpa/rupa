@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 # rupa-flagged is the old name of the flagged arm, kept so older results read.
-ARMS = ("baseline", "rupa", "rupa-flagged", "rupa-pertype", "rupa-verify")
+ARMS = ("baseline", "baseline-hinted", "rupa", "rupa-flagged", "rupa-pertype", "rupa-verify")
 COLS = ("turns", "cache_read", "cache_write", "input", "output", "cost_usd", "secs")
 
 
@@ -36,7 +36,7 @@ def row(path: Path) -> dict | None:
         "output": num(u, "output_tokens"),
         "cost_usd": float(num(r, "total_cost_usd")),
         "secs": round(num(r, "duration_ms") / 1000),
-        "pdf": path.with_suffix(".pdf").exists(),
+        "pdf": path.with_suffix(".pdf").exists() or path.with_suffix(".html").exists(),
     }
 
 

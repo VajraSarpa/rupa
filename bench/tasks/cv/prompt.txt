@@ -1,0 +1,1 @@
+Make a one-page CV as a PDF, saved as cv.pdf in the current directory, for a fictional mid-career data engineer named Jordan Lee: a short profile, three jobs with two or three achievements each, a skills section, education, and contact details (use example.com for the email and website).

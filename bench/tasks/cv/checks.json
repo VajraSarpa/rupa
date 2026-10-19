@@ -1,0 +1,12 @@
+{
+  "format": "pdf",
+  "pages": 1,
+  "phrases": ["Jordan Lee", "example.com"],
+  "judge": [
+    "A short profile or summary",
+    "Three jobs, each with two or three achievements",
+    "A skills section",
+    "An education section",
+    "Contact details using example.com"
+  ]
+}

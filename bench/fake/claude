@@ -1,19 +1,48 @@
 #!/usr/bin/env bash
-# Stand-in for `claude` to test bench.sh plumbing without spending tokens.
-# Usage: PATH="$PWD/bench/fake:$PATH" bench/bench.sh 2
-# Reports fewer turns for the plugin arms so the comparison lines have
-# something to show. The numbers are made up; only the plumbing is real.
-plugin=""
-while [[ $# -gt 0 ]]; do [[ "$1" == "--plugin-dir" ]] && plugin="$2"; shift; done
-turns=20
+# Stand-in for `claude` to test the bench plumbing without spending tokens.
+# Usage: PATH="$PWD/bench/fake:$PATH" FREEZE_TAG=off bench/bench.sh 2
+# Writes the file the prompt names (the first word ending in .pdf or .html)
+# and prints a stream-json init event, one assistant event and a result.
+# Plugin arms report fewer turns so the comparison has something to show.
+# FAKE_FAIL=<arm> makes that arm fail: no output file, no result, exit 1.
+# The numbers are made up; only the plumbing is real.
+[[ "${1:-}" == --version ]] && { echo "0.0.0 (fake claude)"; exit 0; }
+printf '%s\n' "$@" > .fake-args  # so tests can check the flags each run got
+plugin="" prompt="" format=json resumed=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --plugin-dir) plugin="$2"; shift ;;
+    --output-format) format="$2"; shift ;;
+    -p) prompt="$2"; shift ;;
+    --resume) resumed="$2"; shift ;;
+  esac
+  shift
+done
+arm=baseline turns=20
+[[ -f CLAUDE.md ]] && arm=baseline-hinted turns=16
 if [[ -n "$plugin" ]]; then
-  turns=12
-  grep -q "## Verify" "$plugin/skills/render/SKILL.md" && turns=15
-  grep -q -- "--sample per-type" "$plugin/skills/render/SKILL.md" && turns=17
+  arm=rupa turns=12
+  grep -q "## Verify" "$plugin/skills/render/SKILL.md" && arm=rupa-verify turns=15
+  grep -q -- "--sample per-type" "$plugin/skills/render/SKILL.md" && arm=rupa-pertype turns=17
 fi
-printf '%%PDF-1.4 fake\n' > report.pdf
-cat <<JSON
-{"num_turns": $turns, "total_cost_usd": 0.$turns, "duration_ms": 30000,
- "usage": {"input_tokens": 5, "cache_creation_input_tokens": 50000,
-           "cache_read_input_tokens": $((turns * 40000)), "output_tokens": 4000}}
-JSON
+[[ "${FAKE_FAIL:-}" == "$arm" ]] && { echo "fake: failing $arm" >&2; exit 1; }
+out="$(grep -oE '[A-Za-z0-9_.-]+\.(pdf|html)' <<<"$prompt" | head -1)"
+case "$out" in
+  *.pdf) printf '%%PDF-1.4 fake\n' > "$out" ;;
+  *.html) printf '<!doctype html><title>fake</title><p>fake</p>\n' > "$out" ;;
+esac
+skills='[]'; plugins='[]'
+[[ -n "$plugin" ]] && skills='["rupa:render"]' plugins='[{"name": "rupa"}]'
+result="{\"type\": \"result\", \"num_turns\": $turns, \"total_cost_usd\": 0.$turns,
+ \"duration_ms\": 30000, \"session_id\": \"${resumed:-fake-$arm-$$}\", \"modelUsage\": {\"fake-model\": {}},
+ \"usage\": {\"input_tokens\": 5, \"cache_creation_input_tokens\": 50000,
+           \"cache_read_input_tokens\": $((turns * 40000)), \"output_tokens\": 4000}}"
+if [[ "$format" == stream-json ]]; then
+  echo "{\"type\": \"system\", \"subtype\": \"init\", \"skills\": $skills, \"plugins\": $plugins}"
+  for n in 1 2; do
+    echo "{\"type\": \"assistant\", \"message\": {\"id\": \"m$n\", \"content\": [], \"usage\": {\"input_tokens\": 2, \"cache_read_input_tokens\": $((20000 * n)), \"cache_creation_input_tokens\": 1000}}}"
+  done
+  tr -d '\n' <<<"$result"; echo
+else
+  echo "$result"
+fi

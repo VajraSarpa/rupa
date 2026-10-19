@@ -1,0 +1,11 @@
+{
+  "steps": [
+    {"format": "pdf", "pages": 2, "phrases": ["cost"],
+     "judge": ["Covers the AWS Well-Architected cost optimization pillar"]},
+    {"format": "pdf", "pages": 2, "phrases": ["AWS Budgets", "Cost Anomaly Detection"],
+     "judge": [
+       "A section on AWS Budgets and AWS Cost Anomaly Detection, with one short example of each",
+       "The rest of the cost optimization report is still there"
+     ]}
+  ]
+}

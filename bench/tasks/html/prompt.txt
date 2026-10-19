@@ -1,0 +1,1 @@
+Make a single HTML page explaining how HTTPS works, from typing a URL to having an encrypted connection, saved as https.html in the current directory. Include a numbered step-by-step walkthrough, a small table comparing TLS 1.2 and TLS 1.3, and a short glossary.

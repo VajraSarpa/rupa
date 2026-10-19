@@ -1,0 +1,9 @@
+{
+  "format": "pdf",
+  "pages": 2,
+  "phrases": ["security"],
+  "judge": [
+    "Covers the AWS Well-Architected security pillar",
+    "Reads as a report, not notes: an introduction, sections, and a conclusion or summary"
+  ]
+}

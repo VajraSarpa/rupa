@@ -1,0 +1,3 @@
+Write a two-page PDF report on the AWS Well-Architected cost optimization pillar, saved as report.pdf in the current directory.
+---
+Add a section to report.pdf on using AWS Budgets and AWS Cost Anomaly Detection, with one short example of each, and keep the report at two pages. Save it as report.pdf again.

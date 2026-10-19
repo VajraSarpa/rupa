@@ -1,0 +1,1 @@
+Turn notes.txt into a clean two-page incident postmortem as a PDF, saved as postmortem.pdf in the current directory: summary, impact, timeline, root cause, what went well, what did not, and action items with owners and due dates. Use only what the notes say.

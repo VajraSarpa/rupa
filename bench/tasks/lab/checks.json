@@ -1,0 +1,13 @@
+{
+  "format": "pdf",
+  "pages": 5,
+  "phrases": ["abstract", "conclusion"],
+  "image": true,
+  "judge": [
+    "An abstract, a method section, a results section, a discussion of error sources, and a conclusion",
+    "The supplied chart (pendulum period against the square root of length) appears in the report",
+    "A table of the data covering all six string lengths (0.20 to 0.70 m)",
+    "An estimate of g from the data, close to 9.8 m/s²",
+    "The numbers quoted agree with data.csv"
+  ]
+}
