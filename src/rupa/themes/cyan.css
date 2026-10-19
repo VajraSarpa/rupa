@@ -17,6 +17,7 @@
   --measure: 48rem;
 }
 * { box-sizing: border-box; }
+img { max-width: 100%; height: auto; } /* never wider than the text column, aspect ratio kept */
 html {
   background:
     radial-gradient(ellipse 900px 520px at 50% 0%, rgba(56, 189, 248, 0.13), transparent 70%),
