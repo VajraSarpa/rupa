@@ -1,0 +1,11 @@
+{
+  "format": "html",
+  "phrases": ["TLS 1.2", "TLS 1.3", "glossary"],
+  "numbered_min": 4,
+  "judge": [
+    "A numbered step-by-step walkthrough from typing a URL to an encrypted connection",
+    "A table comparing TLS 1.2 and TLS 1.3",
+    "A short glossary",
+    "The page reads well in a browser: clear headings, readable text, nothing broken"
+  ]
+}

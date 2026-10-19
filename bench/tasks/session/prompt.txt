@@ -1,0 +1,9 @@
+Make a one-page PDF summary of the six AWS Well-Architected pillars, saved as pillars.pdf in the current directory.
+---
+Now a two-page PDF runbook for rotating an Amazon RDS for PostgreSQL master password with AWS Secrets Manager, saved as runbook.pdf. Include numbered steps, the AWS CLI commands, and a rollback section.
+---
+Next, an HTML page of frequently asked questions about joining our team's on-call rota (shifts, handover, paging, compensation, escalation), saved as oncall.html.
+---
+Now a three-page PDF design document for a URL shortener service, saved as design.pdf: goals, architecture, a table of the API endpoints, a JSON example of the create request and response, data model, and scaling notes.
+---
+Last one: a one-page PDF weekly status update, saved as status.pdf, from these points: shipped the URL shortener design review; RDS password rotation runbook approved; on-call FAQ published; next week: load test the shortener, start the Secrets Manager migration; risk: one engineer out Thursday and Friday.

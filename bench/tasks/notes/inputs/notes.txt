@@ -1,0 +1,21 @@
+INC-2291 checkout errors -- raw notes from the bridge, tidy later
+
+tues 14 oct
+14:32 pagerduty fires: checkout-api 5xx > 5% (alert: chk-5xx-rate)
+14:35 Priya (IC) opens bridge, Sam + Dmitri join
+14:41 dashboards: errors only on payments path, started right after 14:20 deploy of checkout-api v2.31.0
+14:44 Sam: deploy changed the payments client timeout 30s -> 3s (typo, meant 3000ms->30000ms?? no -- config said 3, units are seconds)
+14:47 decision: roll back to v2.30.4
+14:58 rollback done, error rate falling
+15:06 error rate back under 0.2%, normal
+15:20 Priya declares resolved, monitoring 1h
+impact: ~46 min of elevated errors, ~3,900 failed checkouts (est from logs), about 11% of attempts in window. no data loss. some customers charged w/o order?? -> Dmitri checked: 0 double charges, payments provider voids unconfirmed auths after 30 min
+root cause: timeout config value in seconds, reviewer read it as ms. no test covers payments client timeout. canary stage was skipped because pipeline flag left on from last week's hotfix
+went well: alert fired in 12 min, rollback fast, IC role clear
+didnt: canary skipped silently, no runbook link in alert, status page updated late (15:10)
+actions:
+- add unit + integration test for payments client timeout -- Sam -- due oct 24
+- pipeline: fail if canary skip flag older than 24h -- Dmitri -- due oct 28
+- add runbook link to chk-5xx-rate alert -- Priya -- due oct 17
+- status page within 10 min of sev2 -- Priya -- process change, next ops review
+- config: require units in timeout keys (timeout_ms) -- Sam -- due nov 7

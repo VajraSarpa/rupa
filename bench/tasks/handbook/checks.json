@@ -1,0 +1,15 @@
+{
+  "format": "pdf",
+  "pages": 10,
+  "phrases": ["Northwind Labs", "code review", "on-call"],
+  "judge": [
+    "A contents page",
+    "Welcome and values",
+    "A day-by-day first-week schedule",
+    "Tools and accounts",
+    "How we work: meetings, code review and on-call",
+    "Time off and benefits",
+    "Security basics",
+    "Who to ask about what"
+  ]
+}
