@@ -88,6 +88,28 @@ def test_relative_image_next_to_the_markdown_is_embedded(tmp_path, capsys):
         assert sum(len(p.images) for p in pdf.pages) == 1
 
 
+@pytest.mark.parametrize("theme", ["default", "cyan", "cyan-dark"])
+def test_wide_image_stays_inside_the_text_column(tmp_path, theme):
+    import pdfplumber
+    from PIL import Image
+
+    (tmp_path / "doc").mkdir()
+    Image.new("RGB", (900, 600), "red").save(tmp_path / "doc" / "wide.png")
+    md = tmp_path / "doc" / "t.md"
+    md.write_text("## x\n\n![wide](wide.png)\n")
+    target = tmp_path / "o.pdf"
+    assert main([str(md), "-o", str(target), "--theme", theme]) == EXIT_OK
+    with pdfplumber.open(target) as pdf:
+        images = [(p, im) for p in pdf.pages for im in p.images]
+        assert len(images) == 1
+        for page, im in images:
+            left, right = 0.8 * 72, page.width - 0.8 * 72  # print.css page margins
+            assert im["x0"] >= left - 1 and im["x1"] <= right + 1, (im["x0"], im["x1"])
+            # aspect ratio kept
+            ratio = (im["x1"] - im["x0"]) / (im["bottom"] - im["top"])
+            assert abs(ratio - 1.5) < 0.02
+
+
 def test_html_embeds_images_so_the_file_stands_alone(tmp_path, capsys):
     target = tmp_path / "out" / "o.html"
     assert main([_image_doc(tmp_path, "fig.png"), "-o", str(target)]) == EXIT_OK

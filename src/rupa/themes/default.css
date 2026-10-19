@@ -15,6 +15,7 @@
   }
 }
 * { box-sizing: border-box; }
+img { max-width: 100%; height: auto; } /* never wider than the text column, aspect ratio kept */
 html { background: var(--bg); }
 body {
   margin: 0 auto;
