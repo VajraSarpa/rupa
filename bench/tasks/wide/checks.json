@@ -1,0 +1,11 @@
+{
+  "format": "pdf",
+  "pages": 3,
+  "phrases": ["aws ec2"],
+  "numbered_min": 4,
+  "judge": [
+    "A table comparing ten instance types across eleven columns (instance type, family, vCPU, memory in GiB, instance storage, network bandwidth, EBS bandwidth, processor, on-demand price per hour, 1-year reserved price per hour, best fit), with every column filled for every instance type",
+    "An AWS CLI example that lists instance types matching a vCPU and memory filter",
+    "A numbered sizing checklist"
+  ]
+}
