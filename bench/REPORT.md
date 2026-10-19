@@ -31,10 +31,13 @@ rules were registered before any paid run (`bench/PREREG.md`, commit
   on the seen tasks (52%). The v1 line "0 of 9 baseline PDFs pass verify"
   measured Rupa's house style: neutral checks pass almost every baseline PDF.
 
-By the registered rule, "Rupa makes documents more cheaply without making
-them worse" does not hold. "Rupa makes documents about 40% cheaper and twice
-as fast, and an LLM judge usually prefers the documents Claude makes without
-it" does. The human check below decides how far to trust the judge.
+By the registered rule, which used the LLM judge, "Rupa makes documents
+more cheaply without making them worse" does not hold. The human check
+changes the reading: on 15 blind pairs Vajra found the content equally good
+in 12 of 13 and preferred the baseline's layout in 7 of 15. The supported
+claim is: Rupa makes documents about 40% cheaper and 1.7× faster with the
+same content, and its layout on longer documents is weaker and needs a theme
+fix.
 
 ## What was run
 
@@ -124,8 +127,21 @@ the seen ones), because the theme keeps its margins and type size. On Sonnet
 the word counts are level, and Rupa still loses 5 to 28, so length isn't the
 whole story.
 
-**Human check:** Vajra judges 15 random Opus held-out pairs blind. Pending;
-added below when done.
+**Human check** (Vajra, 15 random Opus held-out pairs, blind; 28 of 30
+questions answered):
+
+| Same 15 pairs | "Does what was asked": Rupa wins / losses / ties | "Laid out and readable" |
+|---|---|---|
+| Vajra | 0 / 1 / 12 (13 answered) | 1 / 7 / 7 |
+| LLM judge | 0 / 9 / 6 | 2 / 13 / 0 |
+
+He agreed with the LLM judge on 4 of 13 content answers and 7 of 15 layout
+answers. On content he saw no real difference: 12 ties in 13. On layout he
+preferred the baseline in 7, including every handbook and two of the three
+lab reports, and Rupa in 1. So the judge's "thinner" verdict doesn't hold for
+a human reader, and Rupa's layout on longer documents is a real, moderate
+weakness. The LLM pairwise judge is harsher than a person and leans toward
+denser pages.
 
 ## Pre-registered rules
 
@@ -157,8 +173,9 @@ pairs against Claude Code alone, 14 of 17 against hinted), H3 holds.
 
 ## Limits
 
-- The quality verdict rests on an LLM judge from the same model family as the
-  agent, seeing page images at 100 dpi. The human check is the guard.
+- The LLM judge is from the same model family as the agent and saw page
+  images at 100 dpi. It disagreed with the human check on most content
+  answers; the human sample is 15 pairs from one person.
 - HTML outputs were printed to PDF for judging. Two baseline FAQ pages hid
   their answers in collapsed sections, which don't print, so the judge marked
   them partly complete; in a browser they work.

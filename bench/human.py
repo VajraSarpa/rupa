@@ -90,7 +90,7 @@ def score(results: Path, out: Path, answers_file: Path) -> None:
     agree = {q: [0, 0] for q, _ in QUESTIONS}
     rupa = {q: [0, 0, 0] for q, _ in QUESTIONS}
     for n, k in key.items():
-        label = k["base"].split(".s")[0].replace(f"{k['other']}-", "", 1)
+        label = k["base"].replace(f"{k['other']}-", "", 1)
         llm_file = results / k["folder"] / "judge" / f"pair-{k['other']}-{label}.json"
         llm = json.loads(llm_file.read_text()) if llm_file.exists() else None
         for q, _ in QUESTIONS:
