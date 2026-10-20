@@ -139,3 +139,38 @@ Pilot, 18 October 2026 (`cv`, `notes`; not analysed, kept in
 Seen in the pilot, recorded and not fixed (Rupa is frozen): in `notes`, a
 table split across a page break left one row and a repeated header at the
 top of page 2, and `rupa verify` passed it.
+
+## Addendum: v0.1.3 rerun (19 October 2026, before any v0.1.3 run)
+
+Bench v2 found four layout faults in Rupa. Four fixes were then made, each
+test first, and tagged `v0.1.3`:
+
+1. Images are never wider than the text column (`max-width: 100%`).
+2. `rupa verify`'s `overflow` check covers images.
+3. A table split across pages keeps at least two body rows on each side.
+4. Images are at most 3 in tall, and a new `figure-gap` verify check flags a
+   page under 70% full before a figure that opens the next page.
+
+**Question.** Does `v0.1.3` close the layout gap on held-out tasks, and does
+the cost saving still hold?
+
+**Runs.** Held-out tasks only (`cv`, `lab`, `handbook`, `notes`, `html`,
+`revise`), all three arms, 5 runs per arm, Opus 5.5, `FREEZE_TAG=v0.1.3`,
+`SEED=v013`. That is 90 runs. Same task text, hint, flags, timeout and
+interleaving as above. No Sonnet, seen or session sets.
+
+**Tooling change, applied to both versions.** `in_bounds` now fails an image
+whose box lies outside the page, as well as text (bench v2 missed the clipped
+lab chart because the check read only text). The v0.1.2 results are rescored
+with the new check, and both versions are compared on it. Under it, v0.1.2
+fails 8 PDFs, all `rupa-verify` lab reports.
+
+**Rules.** H1–H3 and the exclusion rules above apply unchanged, against each
+baseline. The layout comparison with v0.1.2 has no pass rule. Report
+`rupa-verify`'s pairwise layout wins, losses and ties per task, next to
+v0.1.2's held-out Opus figures (14 / 56 / 0, 70 pairs against both baselines). Report also the per-output
+layout score, and the count of pages flagged by `figure-gap` in every arm.
+A smaller layout loss count is described as a narrower gap only if it holds
+on more than one task. The LLM judge was harsher than Vajra in v2, so a human
+check of 15 pairs (seed 0, blind) is offered to Vajra and reported if he does
+it.
