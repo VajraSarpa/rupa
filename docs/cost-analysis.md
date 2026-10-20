@@ -52,6 +52,7 @@ From the first benchmark's transcripts:
 - **Starting a session is most of a short run.** Claude Code writes its system prompt, tools and the skill to cache first. That is why the one-page CV saved only 7 cents, and why Rupa's cost moves less between tasks than Claude Code's.
 - **Fewer output tokens.** Claude writes Markdown, not markup: 3,000 to 5,200 output tokens per Rupa run against 8,500 to 25,500 for Claude Code on the first benchmark.
 - **Fewer turns where layout is hard.** Every turn re-reads the whole conversation. On the lab report Claude Code took 21 turns and Rupa 10; on the revision, 24 and 10. On short documents the turn counts are close, and the saving is smaller.
+- **Fewer API calls, mostly.** Across the six tasks Rupa made 0.78 times as many model calls: 7 against 14 on the lab report and 8 against 16 on the revision, but 4 against 2 on the HTML page, which Claude Code writes in one go while Rupa always renders and then checks. Fewer calls also means less exposure to request-rate limits and fewer round trips.
 
 ## The context window
 
@@ -66,6 +67,7 @@ Over a session it was measured directly, on Rupa v0.1.2, three runs per arm: fiv
 | Context added | 55,300 tokens | 16,200 tokens | 71% |
 | Range across runs | 50,400 – 64,800 | 12,800 – 17,600 | |
 | Turns | 37 | 19 | 49% |
+| API calls | 27 | 13 | 52% |
 | Cost | $4.52 | $1.88 | 58% |
 | Time | 391 s | 153 s | 61% |
 

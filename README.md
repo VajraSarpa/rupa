@@ -36,6 +36,10 @@ registered before the runs):
   without, and cost $1.88 against $4.52 (v0.1.2, three runs per arm; every
   Rupa session stayed under 17,600, every baseline one over 50,400). Per
   document, Rupa adds about half the context.
+- **Fewer API calls.** The same session took 13 model calls against 27.
+  Per document it's 0.78× overall: half on the layout-heavy tasks (lab
+  report 7 against 14), more on the simplest (an HTML page, 4 against 2,
+  because Rupa always renders and then checks).
 - **About 1.9× faster.**
 - **The same to a human reader.** In my blind check of 15 random pairs, every
   pair tied on content, design and ease of reading. An LLM judge disagreed:

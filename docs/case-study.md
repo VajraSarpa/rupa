@@ -98,6 +98,7 @@ On the six held-out tasks, Claude Code with Rupa v0.1.3 against Claude Code alon
 | Time per document | 42 – 185 s | 24 – 106 s | about 1.9× faster |
 | Context added per document | 5,000 – 26,500 tokens | 2,900 – 12,000 tokens | about half |
 | Context added, five documents in one session (v0.1.2) | 55,300 tokens | 16,200 tokens | 71% less |
+| API calls, the same session | 27 | 13 | 52% fewer |
 | Blind human check, 15 pairs | | | all 15 tied |
 
 The gains share one cause. Claude stops writing and re-reading markup, and Rupa answers in one line. I've come to think the context figure matters more than the cost. On a Pro or Max plan nobody sees a per-token bill, but everyone sees a filling context window. A document's cost is paid once; its context stays for the rest of the session, re-read on every later turn and pulling compaction closer. So the gap grows with each document: one document adds about half the context with Rupa, and five in one session added 71% less, with every Rupa session under 17,600 tokens and every baseline session over 50,400.

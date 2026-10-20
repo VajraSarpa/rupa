@@ -349,6 +349,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <li><strong>Starting a session is most of a short run.</strong> Claude Code writes its system prompt, tools and the skill to cache first. That is why the one-page CV saved only 7 cents, and why Rupa's cost moves less between tasks than Claude Code's.</li>
 <li><strong>Fewer output tokens.</strong> Claude writes Markdown, not markup: 3,000 to 5,200 output tokens per Rupa run against 8,500 to 25,500 for Claude Code on the first benchmark.</li>
 <li><strong>Fewer turns where layout is hard.</strong> Every turn re-reads the whole conversation. On the lab report Claude Code took 21 turns and Rupa 10; on the revision, 24 and 10. On short documents the turn counts are close, and the saving is smaller.</li>
+<li><strong>Fewer API calls, mostly.</strong> Across the six tasks Rupa made 0.78 times as many model calls: 7 against 14 on the lab report and 8 against 16 on the revision, but 4 against 2 on the HTML page, which Claude Code writes in one go while Rupa always renders and then checks. Fewer calls also means less exposure to request-rate limits and fewer round trips.</li>
 </ul>
 <h2 id="the-context-window">The context window</h2>
 <p>For anyone on a Pro or Max plan, this is the saving that shows. A document's cost is paid once, but the context it adds stays for the rest of the session: every later turn re-reads it, and a fuller window gets compacted sooner. So the gap grows with each document.</p>
@@ -381,6 +382,12 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <td>37</td>
 <td>19</td>
 <td>49%</td>
+</tr>
+<tr>
+<td>API calls</td>
+<td>27</td>
+<td>13</td>
+<td>52%</td>
 </tr>
 <tr>
 <td>Cost</td>
