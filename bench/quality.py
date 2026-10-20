@@ -5,7 +5,7 @@ it can't judge the baseline fairly. These checks ask only what the task asked
 for and what any printed page needs:
 
 - pages: the page count the task asked for (from the task's checks.json)
-- in_bounds: no text outside the page box
+- in_bounds: no text or image outside the page box (images since v0.1.3)
 - printable: no text within 12 pt (about 0.17 in) of the edge, where printers clip
 - min_font: no text smaller than 6 pt
 - phrases: each required phrase appears (case and spacing ignored)
@@ -121,7 +121,11 @@ def check_pdf(path: Path, spec: dict) -> dict:
             out["pages"] = result(len(pages) == spec["pages"], f"{len(pages)} of {spec['pages']}")
         outside = [c for p, c in chars if c["x0"] < -1 or c["x1"] > p.width + 1
                    or c["top"] < -1 or c["bottom"] > p.height + 1]
-        out["in_bounds"] = result(not outside, f"{len(outside)} chars outside")
+        images = [(p, im) for p in pages for im in p.images]
+        off = [im for p, im in images if im["x0"] < -1 or im["x1"] > p.width + 1
+               or im["top"] < -1 or im["bottom"] > p.height + 1]
+        out["in_bounds"] = result(not outside and not off,
+                                  f"{len(outside)} chars, {len(off)} images outside")
         edge = [c for p, c in chars if c["x0"] < EDGE_PT or c["x1"] > p.width - EDGE_PT
                 or c["top"] < EDGE_PT or c["bottom"] > p.height - EDGE_PT]
         out["printable"] = result(not edge, f"{len(edge)} chars within {EDGE_PT} pt of an edge")

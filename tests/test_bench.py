@@ -241,3 +241,26 @@ def test_quality_html_flags_remote_resources(tmp_path):
     assert quality.check(tmp_path / "missing.html", {}) == {
         "exists": {"ok": False, "detail": "no output"}
     }
+
+
+@needs_pdftotext
+@pytest.mark.parametrize("width_pt, inside", [(675, False), (400, True)])
+def test_quality_in_bounds_counts_images(tmp_path, width_pt, inside):
+    # Bench v2's lab reports placed a 900x600 chart 675pt wide from a 58pt
+    # margin on a 612pt page; in_bounds read only text and passed them.
+    import weasyprint
+    from PIL import Image
+
+    quality = load("quality")
+    Image.new("RGB", (900, 600), (30, 110, 140)).save(tmp_path / "chart.png")
+    html = (
+        "<style>@page { size: letter; margin: 58pt }</style>"
+        f'<p>Figure 1</p><img src="chart.png" style="width: {width_pt}pt">'
+    )
+    pdf = tmp_path / "wide.pdf"
+    weasyprint.HTML(string=html, base_url=str(tmp_path)).write_pdf(pdf)
+    checks = quality.check(pdf, {})
+    assert checks["in_bounds"]["ok"] is inside, checks["in_bounds"]
+    assert (
+        checks["in_bounds"]["detail"] == f"0 chars, {0 if inside else 1} images outside"
+    )
