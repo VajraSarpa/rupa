@@ -1,10 +1,11 @@
 """Blind human judging of bench v2 pairs (see bench/PREREG.md, "Human").
 
-    uv run python bench/human.py make  bench/results OUT_DIR
+    uv run python bench/human.py make  bench/results OUT_DIR [SEED]
     uv run python bench/human.py score bench/results OUT_DIR ANSWERS.json
 
 make:  draws 15 pairs (seed 0) from the Opus held-out pairs: rupa-verify run i
-       against baseline or baseline-hinted run i. Writes OUT_DIR/index.html,
+       against baseline or baseline-hinted run i; with SEED, only folders whose
+       manifest has that seed (e.g. v013 for the v0.1.3 rerun). Writes OUT_DIR/index.html,
        which shows each request and the two documents' pages as A and B in a
        seeded random order, with the judge's two questions. The page builds an
        answer code to paste back. The answer key goes to OUT_DIR/key.json;
@@ -13,6 +14,7 @@ score: compares the answers with the key and with the LLM judge's verdicts on
        the same pairs.
 """
 
+import hashlib
 import html
 import json
 import random
@@ -30,11 +32,13 @@ QUESTIONS = (
 )
 
 
-def candidates(results: Path) -> list[dict]:
+def candidates(results: Path, seed: str | None = None) -> list[dict]:
     found = []
     for folder in sorted(p for p in results.iterdir() if (p / "manifest.json").exists()):
         m = json.loads((folder / "manifest.json").read_text())
         if m["model"] != MODEL or m["task"] not in HELD:
+            continue
+        if seed is not None and m.get("seed") != seed:
             continue
         last = m["steps"] > 1  # a session task is judged on its final output
         for other in ("baseline", "baseline-hinted"):
@@ -49,9 +53,9 @@ def candidates(results: Path) -> list[dict]:
     return found
 
 
-def make(results: Path, out: Path) -> None:
+def make(results: Path, out: Path, seed: str | None = None) -> None:
     rng = random.Random(0)
-    chosen = rng.sample(candidates(results), PAIRS)
+    chosen = rng.sample(candidates(results, seed), PAIRS)
     out.mkdir(parents=True, exist_ok=True)
     key, sections = [], []
     for n, pair in enumerate(chosen, 1):
@@ -79,7 +83,10 @@ def make(results: Path, out: Path) -> None:
         key.append({**{k: v for k, v in pair.items() if k != "request"}, "n": n,
                     "A": a, "B": b, "rupa_is": "A" if rupa_a else "B"})
     (out / "key.json").write_text(json.dumps(key, indent=2))
-    (out / "index.html").write_text(PAGE.replace("{{N}}", str(PAIRS)).replace(
+    # Pages opened from file:// share localStorage, so each page saves under its own key.
+    pairs_id = hashlib.sha256(json.dumps(key, sort_keys=True).encode()).hexdigest()[:12]
+    page = PAGE.replace("{{STORE}}", f"blind-pairs-{pairs_id}")
+    (out / "index.html").write_text(page.replace("{{N}}", str(PAIRS)).replace(
         "{{SECTIONS}}", "\n".join(sections)))
     print(f"human: {PAIRS} pairs in {out}/index.html (key in key.json; don't open it)")
 
@@ -159,7 +166,7 @@ paste it to Claude. Your answers are kept in this browser if you reload.</p>
 <div id="done"><span id="count">0 answered</span>
 <textarea id="code" readonly></textarea><button id="copy">Copy answer code</button></div>
 <script>
-const total = {{N}} * 2, store = "blind-pairs";
+const total = {{N}} * 2, store = "{{STORE}}";
 function answers() {
   const a = {};
   document.querySelectorAll("input[type=radio]:checked").forEach(i => a[i.name] = i.value);
@@ -191,6 +198,6 @@ if __name__ == "__main__":
     if sys.argv[1:2] not in (["make"], ["score"]) or len(sys.argv) < 4 + (sys.argv[1] == "score"):
         sys.exit(__doc__)
     if sys.argv[1] == "make":
-        make(Path(sys.argv[2]), Path(sys.argv[3]))
+        make(Path(sys.argv[2]), Path(sys.argv[3]), *sys.argv[4:5])
     else:
         score(Path(sys.argv[2]), Path(sys.argv[3]), Path(sys.argv[4]))
