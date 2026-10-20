@@ -40,6 +40,11 @@ same content, and its layout on longer documents is weaker and needs a theme
 fix. One layout fault is a plain bug: every image wider than the text column
 runs off the page (all 8 Rupa lab reports), and nothing in Rupa caught it.
 
+**Rerun on `v0.1.3`** (last section):
+four layout fixes later, the image bug is gone and the cost saving holds
+(0.58×), but the layout gap is about the same: the judge preferred the
+baseline's layout in 51 of 70 held-out pairs, against 56 before.
+
 ## What was run
 
 | Set | Tasks | Arms | Runs per arm | Runs |
@@ -203,6 +208,69 @@ pairs against Claude Code alone, 14 of 17 against hinted), H3 holds.
   at the top of the next page, and `rupa verify` passes it.
 - The judge's most common layout complaint was large empty areas at page
   ends, where Rupa keeps a block whole rather than splitting it.
+
+## Rerun on v0.1.3 (19–20 October 2026)
+
+After bench v2, four fixes were made to Rupa, each test first, and tagged
+`v0.1.3`: images are never wider than the text column; `rupa verify`'s
+overflow check covers images; a table split across pages keeps at least two
+body rows on each side; and images are at most 3 in tall, with a new
+`figure-gap` check for a page left under 70% full before a figure. Bench
+v2's own `in_bounds` check was extended to images first, and v0.1.2 was
+rescored with it. The rerun was registered as an addendum to
+`bench/PREREG.md` before any v0.1.3 run.
+
+**What was run.** The six held-out tasks, all three arms, 5 runs each, Opus
+5.5, `FREEZE_TAG=v0.1.3`, seed `v013`: 90 runs, 22:31–00:44. Same tasks,
+hint, isolation and judge as above. The runs came to $38.64 at list price,
+and the judge to $8.95 (175 calls). Every run made its document.
+
+| Opus, held-out | v0.1.2 | v0.1.3 |
+|---|---|---|
+| Cost, Rupa / Claude Code (90% interval) | 0.56 (0.51–0.60) | 0.58 (0.55–0.63) |
+| Cost, Rupa / hinted | 0.63 (0.56–0.65) | 0.62 (0.59–0.67) |
+| Time, Rupa / Claude Code | 0.57 | 0.54 |
+| Checklist score, Rupa vs Claude Code | 0.97 vs 0.99 | 0.97 vs 0.97 |
+| Pairwise "does what was asked", both baselines | 5 / 47 / 18 | 7 / 48 / 15 |
+| Pairwise "laid out and readable", both baselines | 14 / 56 / 0 | 17 / 51 / 2 |
+| Lab reports with an image off the page | 8 of 8 (v0.1.2 Rupa, Opus and Sonnet) | 0 of 5 |
+| Judge layout score, Rupa: lab / handbook / revise | 2 / 3 / 3.5 | 3 / 3 / 4 |
+| Pages flagged by `figure-gap`, any arm | 0 | 0 |
+
+Layout pairs per task, wins / losses / ties against both baselines,
+v0.1.3 (v0.1.2): CV 0 / 10 / 0 (0 / 10 / 0); lab 2 / 7 / 1 (0 / 10 / 0);
+handbook 0 / 10 / 0 (0 / 10 / 0); postmortem 0 / 10 / 0 (0 / 10 / 0);
+HTML 0 / 10 / 0 (0 / 10 / 0); revision 15 / 4 / 1 (14 / 6 / 0).
+
+**Pre-registered rules.** H1 cost holds against both baselines (cheaper on
+6 of 6). H2 quality fails against both (Claude Code: 0.97 vs 0.97, lost 26
+of 28 decided pairs; hinted: 0.97 vs 0.98, lost 22 of 27). H3 reliability
+holds.
+
+**Reading.**
+
+- The image fix works. No Rupa PDF has an image outside the page, the lab
+  reports pass every mechanical check (0.86 before), and their judge layout
+  score rose from 2 to 3.
+- The layout gap is not closed. Rupa still loses every layout pair on the CV,
+  handbook, postmortem and HTML tasks. The loss count fell on two tasks, lab
+  and revision, so by the addendum's wording the gap is narrower; but the
+  revision change is two pairs and the total moved from 56 to 51 of 70, which
+  is within what five runs per arm can show by chance. At most, the gap is
+  slightly narrower.
+- `figure-gap` flagged no page in any arm of either version on these runs.
+  Its three known hits in bench v2 were Sonnet or baseline lab reports, so
+  this rerun doesn't test the fourth fix. The table fix wasn't checked
+  separately.
+- The judge still names the same faults. A rough keyword count over its
+  51 layout-loss reasons finds empty space in 37, page or table breaks in
+  34, and plainer styling or no cover page in about half. In the handbooks it
+  names a mostly blank first page (title and contents only), tables split
+  across pages, and a half-empty last page. In a postmortem it counts against
+  Rupa a table split with two rows on page 2, which the table fix now allows.
+  The fixes removed the outright faults; what loses is page balance and the
+  plain theme, which they don't address.
+- A human check of 15 blind pairs, as in v2, has not been done for v0.1.3.
 
 ## Data
 
