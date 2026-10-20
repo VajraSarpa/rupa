@@ -264,3 +264,26 @@ def test_quality_in_bounds_counts_images(tmp_path, width_pt, inside):
     assert (
         checks["in_bounds"]["detail"] == f"0 chars, {0 if inside else 1} images outside"
     )
+
+
+def test_human_candidates_filter_by_seed(tmp_path):
+    human = load("human")
+    for name, seed in (("old-cv", "main"), ("new-cv", "v013")):
+        folder = tmp_path / name
+        for stem in ("rupa-verify-1", "baseline-1", "baseline-hinted-1"):
+            (folder / "pages" / stem).mkdir(parents=True)
+        (folder / "steps").mkdir()
+        (folder / "steps" / "1.txt").write_text("request")
+        (folder / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "model": human.MODEL,
+                    "task": "cv",
+                    "steps": 1,
+                    "runs": 1,
+                    "seed": seed,
+                }
+            )
+        )
+    assert {c["folder"] for c in human.candidates(tmp_path)} == {"old-cv", "new-cv"}
+    assert {c["folder"] for c in human.candidates(tmp_path, seed="v013")} == {"new-cv"}
