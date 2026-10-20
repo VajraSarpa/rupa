@@ -229,6 +229,31 @@ def test_overflow_names_what_runs_over_and_by_how_much():
     assert "p4 table by 20pt" in detail
 
 
+def test_image_past_the_margin_fails_and_is_named():
+    right = LETTER[0] - MARGIN_SIDE * PT_PER_IN
+    wide = page(2)
+    wide.images = [(58.0, 100.0, right + 121.0, 500.0)]
+    pages = [page(1), wide, page(3)]
+    results = run_checks(pages, load_wants(None))
+    assert failing(results) == {"overflow": [2]}
+    assert "p2 image by 121pt" in overflow_detail(results)
+
+
+def test_image_off_the_page_fails():
+    off = page(2)
+    off.images = [(60.0, 100.0, 300.0, LETTER[1] + 40.0)]
+    results = run_checks([page(1), off, page(3)], load_wants(None))
+    assert failing(results) == {"overflow": [2]}
+    assert "p2 image by 40pt" in overflow_detail(results)
+
+
+def test_image_inside_the_margins_passes():
+    ok = page(2)
+    left = MARGIN_SIDE * PT_PER_IN
+    ok.images = [(left, 100.0, LETTER[0] - left, 500.0)]
+    assert failing(run_checks([page(1), ok, page(3)], load_wants(None))) == {}
+
+
 def wide_table_pdf(tmp_path, ncols: int):
     cols = [f"Column {i}" for i in range(ncols)]
     row = ["m7i.2xlarge", "General purpose", "Up to 12.5 Gbps"]
