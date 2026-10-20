@@ -183,6 +183,7 @@ class PageInfo:
     table_frac: float = 0.0
     tables: list[tuple] = field(default_factory=list)  # (x0, top, x1, bottom)
     image_bottom: float = 0.0  # lowest image edge in the body; images have no text
+    images: list[tuple] = field(default_factory=list)  # (x0, top, x1, bottom)
     kind: str = "prose"
 
     @property
@@ -306,6 +307,10 @@ def _read_pages(pdfplumber, pdf_path, want) -> list[PageInfo]:
                 (im["bottom"] for im in page.images if im["bottom"] < footer_y),
                 default=0.0,
             )
+            info.images = [
+                tuple(float(im[k]) for k in ("x0", "top", "x1", "bottom"))
+                for im in page.images
+            ]
             info.content_bottom = max(
                 [r["bottom"] for r in rects] + line_bottoms + [info.image_bottom],
                 default=0.0,
@@ -436,10 +441,22 @@ def run_checks(pages: list[PageInfo], wants: dict) -> list[CheckResult]:
             overflow.append(p.number)
             over = max(max(left - ln.x0, ln.x1 - right) for ln in bad) + 2
             where.append(f"p{p.number} {_overflow_kind(p, bad)} by {over:.0f}pt")
+        img_over = max(
+            (
+                max(left - x0 + 2, x1 - right + 2, -top, bottom - p.height)
+                for x0, top, x1, bottom in p.images
+                if x0 < left or x1 > right or top < 0 or bottom > p.height
+            ),
+            default=None,
+        )
+        if img_over is not None:
+            if p.number not in overflow:
+                overflow.append(p.number)
+            where.append(f"p{p.number} image by {img_over:.0f}pt")
     add(
         "overflow",
         overflow,
-        f"text extends past the side margins ({', '.join(where)})",
+        f"text or an image extends past the side margins or the page ({', '.join(where)})",
     )
     return results
 
