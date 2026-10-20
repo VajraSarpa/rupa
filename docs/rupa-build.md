@@ -503,6 +503,19 @@ Measured with `TASK=wide ARMS="rupa rupa-verify"`, three runs each, Opus 5.5. Ba
 
 Every run fitted on its first render, with no fix rounds: one Write, one render, and for the shipped arm one clean verify. Each kept a single eleven-column table at 7.5pt, carried across a page break with its header repeated. Against baseline the shipped arm takes 45% fewer turns and costs 40% less, in line with the other tasks, where before the rule it saved 13%. Render-only now ships correct tables too, so on this task verify is a check that passes rather than the step that makes the output right.
 
+### Held-out tasks: bench v2 and v0.1.3 (2026-10-18 to 10-20)
+
+Every result above comes from tasks Rupa was tuned on. Bench v2 (`bench/REPORT.md`, rules registered first in `bench/PREREG.md`) used six new tasks (CV, lab report, handbook, postmortem, HTML page, report plus revision), a baseline with a three-line PDF hint, isolated runs with the user's plugins and skills off, Opus and Sonnet, and quality judged by an LLM and by a person, blind.
+
+| Opus, held-out, Rupa / Claude Code | v0.1.2 | v0.1.3 |
+|---|---|---|
+| Cost (90% interval) | 0.56 (0.51–0.60) | 0.58 (0.55–0.63) |
+| Time | 0.57 | 0.54 |
+| Lab reports with an image off the page | 8 of 8 | 0 of 5 |
+| Blind human check, 15 pairs | layout: baseline preferred in 7 | all 15 tied |
+
+Cost held on every task. The person found a bug every automated check missed: images wider than the column ran off the page, and verify read only text. v0.1.3 fixed it, extended verify's overflow check to images, kept at least two table rows on each side of a page break, and added the `figure-gap` check. The LLM judge still preferred the baseline's layout in most pairs (page balance, plainer theme), so the pre-registered quality rule fails; it agreed with the person on 2 of 30 answers. Per-run data is in `bench/data-v2/` and `bench/data-v013/`.
+
 ### How to read the results
 
 - Compare medians, not single runs. Agent runs vary.

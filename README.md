@@ -14,22 +14,37 @@ exists, how it was measured, and what the measurements forced me to fix.
 
 ## Results
 
-Claude Code with the plugin, against Claude Code on its own, on three real
-document tasks (Claude Opus 5.5, three runs per arm, medians, API list
-prices, October 2026):
+Claude Code with the plugin, against Claude Code on its own, on six document
+tasks Rupa was never tuned on (Rupa v0.1.3, Claude Opus 5.5, five runs per
+arm, medians, API list prices, 19–20 October 2026; hypotheses and pass rules
+registered before the runs):
 
-| | Claude Code alone | With Rupa | Gain |
-|---|---|---|---|
-| Cost per document | $0.52 – $1.19 | $0.29 – $0.33 | **40–74% cheaper** |
-| Time per document | 112 – 252 s | 36 – 52 s | **2.4–5.6× faster** |
-| Context added per document | 12,200 – 34,300 tokens | 3,800 – 5,800 tokens | **61–86% less** |
-| PDFs passing `rupa verify` | 0 of 9 | 9 of 9 | |
+| Task | Claude Code alone | With Rupa | Time alone | Time with Rupa |
+|---|---|---|---|---|
+| One-page CV | $0.21 | $0.14 | 42 s | 24 s |
+| Five-page lab report from data and a chart | $0.77 | $0.33 | 185 s | 76 s |
+| Ten-page handbook | $0.51 | $0.39 | 140 s | 106 s |
+| Two-page postmortem from notes | $0.30 | $0.16 | 65 s | 27 s |
+| HTML explainer | $0.22 | $0.18 | 50 s | 36 s |
+| Two-page report, then a revision | $1.05 | $0.44 | 142 s | 64 s |
 
-All three gains come from the same place: Claude stops writing and re-reading
-markup, and Rupa answers with one status line instead of the document. The
-hardest task, a three-page technical guide, shows the widest gap: 23 turns,
-$1.19 and four minutes alone, against 6 turns, $0.31 and 45 seconds with Rupa.
-Details, caveats and projections at volume are in
+- **42% cheaper** (0.58× the cost, 90% interval 0.55–0.63), and cheaper on
+  all six tasks. Against Claude Code with a three-line hint on how to make a
+  PDF, 38% cheaper.
+- **About 1.9× faster**, and **about half the context** added per document.
+- **The same to a human reader.** In my blind check of 15 random pairs, every
+  pair tied on content, design and ease of reading. An LLM judge disagreed:
+  it preferred Claude Code's document in most pairs, mainly for page balance
+  and Rupa's plainer theme, so the pre-registered quality rule, which used
+  that judge, fails. Both results are reported.
+
+The saving comes from one place: Claude stops writing and re-reading markup,
+and Rupa answers with one status line instead of the document. It is largest
+where Claude Code would otherwise iterate on its own layout; the lab report
+and the revision cost less than half. On the first benchmark's three tasks,
+which Rupa was tuned against, the saving was 40–74%; the held-out figure is
+the one to quote. Method, both judges and every run:
+[the bench v2 report](bench/REPORT.md). Costs at volume:
 [What Rupa Costs](docs/dist/Rupa-Cost-Analysis.pdf).
 
 ## How it works
@@ -41,7 +56,7 @@ Details, caveats and projections at volume are in
 2. **`rupa` renders it** through a theme into HTML or PDF, offline. Given a
    page budget, it tightens type and spacing to fit, and if that isn't
    enough, it says how many lines to cut.
-3. **`rupa verify` checks the PDF** with eight code checks and writes
+3. **`rupa verify` checks the PDF** with nine code checks and writes
    side-by-side sheets (the theme's reference page next to the rendered page)
    only for the pages a check flags.
 4. **Claude reviews the flagged sheets** and fixes the Markdown, never the
@@ -121,9 +136,15 @@ lists every rule and its default.
 - **Looks come from themes.** A new look means writing a theme in CSS.
 - **Markdown limits.** No callouts; footnotes become endnotes in PDFs; bare
   URLs aren't clickable.
-- **A cost floor.** About $0.19 of every run is Claude Code starting a
-  session, so short, simple documents save the least.
-- **A small sample.** Three runs per arm, one model, one person's tasks.
+- **Short documents save the least.** Most of a short run is Claude Code
+  starting a session; the one-page CV saved 7 cents.
+- **Plainer pages.** Rupa keeps a theme's margins and breaks pages to keep
+  blocks whole. An LLM judge prefers the baseline's denser, more styled
+  pages; one person's blind check didn't.
+- **The evidence has limits.** Five runs per arm on one model for the
+  headline (on Sonnet 5.5 the saving was smaller, 0.67× the cost on v0.1.2),
+  one person's tasks, written by Claude, and a human check of 15 pairs by one
+  person.
 
 ## How the results were found
 
@@ -131,7 +152,7 @@ The benchmark (`bench/`) gives `claude -p` the same prompt in a fresh, empty
 folder, across four arms: no plugin, Rupa render-only, Rupa with a sheet per
 page type, and Rupa as shipped. The first benchmark found no saving. It took
 page budgets, flagged-only review sheets and line-based cut hints to get to
-the numbers above.
+a saving at all.
 
 The wide-table task is the clearest example of measuring and then fixing.
 Every first draft overflowed, and at first Rupa saved only 13%, because
@@ -142,9 +163,18 @@ cheaper:
 
 ![The same eleven-column table: Claude Code alone at 6.6pt with a header split mid-word, and Rupa at 7.5pt on the first render](docs/img/wide-table-before-after.png)
 
-Every run is published as data in [`bench/data/`](bench/data/): 101 runs
-with turns, cost, time, tokens, context and each PDF's verify result, plus
-medians that name the published numbers they back. The story of what changed
+Those three tasks were the ones Rupa was tuned on, so a second benchmark
+([bench v2](bench/REPORT.md)) tested six new tasks, against Claude Code
+alone and with a hint, with user plugins switched off, on two models, with
+quality judged by an LLM and by me, blind. It confirmed the cost saving and
+found a plain bug: every image wider than the text column ran off the page,
+and `rupa verify` passed it. v0.1.3 fixes that and three page-break faults;
+the results above are from its rerun.
+
+Every run is published as data: [`bench/data/`](bench/data/) (the first
+benchmark, 101 runs), [`bench/data-v2/`](bench/data-v2/) (210 runs on v0.1.2)
+and [`bench/data-v013/`](bench/data-v013/) (90 runs on v0.1.3), each with
+turns, cost, time, tokens and context per run. The story of what changed
 between runs is in the build guide ([PDF](docs/dist/Rupa-Plan-Guide-Tutorial.pdf),
 section "Measuring the savings").
 
@@ -175,14 +205,14 @@ The plugin and its evals depend on this.
 | `src/rupa/references/` | The reference pages each theme is compared against |
 | `plugin/` | The Claude Code plugin: one skill that renders, verifies and reviews |
 | `plugin/evals/` | A `claude plugin eval` suite: does the skill trigger, render with Rupa and pass verify |
-| `bench/` | The four-arm benchmark, a fake `claude` for testing it without spending tokens, and `data/` with every run |
+| `bench/` | The benchmarks (v1 four-arm, v2 held-out with judges), a fake `claude` for testing them without spending tokens, and every run as data |
 | `docs/` | The build guide, cost analysis and architecture diagram, with their sources |
 
 ## Develop
 
 ```bash
 uv sync
-uv run pytest -q                   # 166 tests
+uv run pytest -q                   # 203 tests
 uvx ruff check src tests
 uv run rupa refs --theme <name>    # after any theme change; commit the PNGs
 uv run python docs/build.py        # re-render the guide with Rupa

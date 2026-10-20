@@ -33,7 +33,7 @@ A narrow contract is what makes the savings possible. It's also what the plugin'
 
 A renderer that only promises the file exists isn't much help. Rupa also checks its own output, in two tiers.
 
-The first tier is code. `rupa verify` reads the PDF and runs eight checks: text colour, page size, page count, blank, near-empty and sparse pages, headings stranded at the bottom of a page, and anything running into the margin. Each check reports exactly what and where, such as `p1 table by 13pt`.
+The first tier is code. `rupa verify` reads the PDF and runs nine checks: text colour, page size, page count, blank, near-empty and sparse pages, a page left mostly empty before a figure, headings stranded at the bottom of a page, and anything, text or image, running into the margin. Each check reports exactly what and where, such as `p1 table by 13pt`.
 
 The second tier is visual, and it's the part I'm proudest of. For every page a check flags, verify writes a sheet: the theme's reference page on the left and the rendered page on the right. Claude, which is already a vision model and already in the session, judges the sheet against a short rubric and fixes the Markdown. Rupa itself never calls a model. A clean PDF gets no sheets at all, so the visual review costs nothing when nothing is wrong.
 
@@ -78,29 +78,39 @@ Benchmarks only test what you think to ask. Using the installed plugin on everyd
 - **Verify was blind to images.** A heading, its one-line lead-in and a chart at the end of a page read as a stranded heading, and the page measured half full when it was nearly full. Images now count.
 - **HTML linked its images instead of embedding them,** so a sent file lost its chart. HTML output now carries its images inside the file.
 
+## Testing it where it hadn't been tuned
+
+By then the first benchmark had a weakness I had built in myself: every fix was tuned on the same three tasks it was measured on. So for the second benchmark I wrote down the hypotheses and pass rules before spending anything, and used six new tasks: a CV, a lab report from a supplied CSV and chart, a ten-page handbook, a postmortem from notes, an HTML explainer, and a report revised in the same session. Claude Code got a fairer opponent too, an arm with a three-line hint on how to make a good PDF. And every run was isolated from my own setup. That mattered more than I expected: a plain `claude -p` on my machine was loading the Rupa plugin, 116 skills and 39 MCP servers, and part of what I had called the cost floor was just that.
+
+The cost saving held: Rupa was cheaper on every new task. Quality was harder to call. An LLM judge, shown both documents in a random order, preferred Claude Code's in most pairs, so the quality rule I had registered failed. When I judged 15 pairs blind myself, the content was equally good in 12 of 13, but I preferred the baseline's layout in 7, and on a couple of pages part of a chart was missing.
+
+That was a plain bug. Every image wider than the text column ran off the right edge of the page, in all eight lab reports, and verify passed them all, because its overflow check read only text. The benchmark's own bounds check had the same blind spot, and the LLM judge marked the layout down without ever naming the cut. A person looking at pages found it.
+
+Four fixes followed, each with its test written first, as Rupa v0.1.3: images never exceed the column, verify's overflow check covers images, a table split across pages keeps at least two rows on each side, and a page left mostly empty before a figure is flagged. On the rerun no image left the page, and the saving held. The judge still preferred the baseline's layout in most pairs, for page balance and Rupa's plainer theme. In my second blind check I couldn't tell the two apart: all 15 pairs tied.
+
 ## Results
 
-On the three benchmark tasks, Claude Code with Rupa against Claude Code alone (medians of three runs each):
+On the six held-out tasks, Claude Code with Rupa v0.1.3 against Claude Code alone (Claude Opus 5.5, medians of five runs each):
 
 | | Claude Code alone | With Rupa | Gain |
 |---|---|---|---|
-| Cost per document | $0.52 – $1.19 | $0.29 – $0.33 | 40–74% cheaper |
-| Time per document | 112 – 252 s | 36 – 52 s | 2.4–5.6× faster |
-| Context added per document | 12,200 – 34,300 tokens | 3,800 – 5,800 tokens | 61–86% less |
-| PDFs passing `rupa verify` | 0 of 9 | 9 of 9 | |
+| Cost per document | $0.21 – $1.05 | $0.14 – $0.44 | 42% cheaper on average |
+| Time per document | 42 – 185 s | 24 – 106 s | about 1.9× faster |
+| Context added per document | 5,000 – 26,500 tokens | 2,900 – 12,000 tokens | about half |
+| Blind human check, 15 pairs | | | all 15 tied |
 
-The three gains share one cause. Claude stops writing and re-reading markup, and Rupa answers in one line. The context figure matters beyond cost, because that context stays for the rest of the session: five guides would fill about 17% of the model's million-token window without Rupa, and 2.4% with it.
+The gains share one cause. Claude stops writing and re-reading markup, and Rupa answers in one line. The context figure matters beyond cost, because that context stays for the rest of the session: five documents in one session (measured on v0.1.2) added 16,000 tokens with Rupa and 55,000 without.
 
-The harder the layout, the bigger the gap. On the three-page guide, plain Claude Code took 23 turns, $1.19 and over four minutes; Rupa took 6 turns, $0.31 and 45 seconds.
+The harder the layout, the bigger the gap. The lab report took Claude Code 21 turns, $0.77 and three minutes; Rupa took 10 turns, $0.33 and 76 seconds. On the three tasks Rupa was tuned on, the saving reached 74%, but the held-out 42% is the number I'd quote.
 
 ## What it doesn't do
 
 - **It only runs in Claude Code.** Rupa is a local tool plus a plugin, so the Claude chat app can't use it, and I haven't measured the chat app.
 - **It makes HTML and PDF only.** Slides are the natural next format; DOCX would need much heavier tooling to check.
 - **Looks come from themes.** That's the point, but it means a new look is CSS work. I built two themes from my own slide-deck design system, one with a dark PDF and one that prints black on white.
-- **Part of the saving is less writing.** At a fixed page count, Rupa keeps the theme's margins, so its two-page report held about 850 words against about 1,180. The baseline PDFs also fail verify partly by Rupa's own rules, such as pure black text, though they were readable.
-- **There's a floor.** About $0.19 of every run is Claude Code starting a session, so short, simple documents save least.
-- **The sample is small.** Three runs per arm, one model, my own tasks. Agent runs vary; the medians matter more than any single run.
+- **Its pages are plainer.** Rupa keeps the theme's margins and keeps blocks whole across page breaks, so its documents hold somewhat fewer words (0.88 times on the held-out tasks) and leave more white space. An LLM judge counts that against it; I didn't, in the end.
+- **Short documents save least.** Most of a short run is Claude Code starting a session; the one-page CV saved 7 cents.
+- **The sample is small.** Five runs per arm on one model for the headline (Sonnet showed a smaller saving), my own tasks, written by Claude, and a human check by one person. Agent runs vary; the medians matter more than any single run.
 
 ## What I took from it
 
@@ -110,4 +120,6 @@ The harder the layout, the bigger the gap. On the three-page guide, plain Claude
 
 **Fix the system, not the prompt.** Page budgets, line-based cut hints, a named overflow and a theme rule for wide tables each did more than any instruction could, because they removed work instead of describing it better.
 
-Rupa is open source under the MIT licence, with the benchmark, its results and a 93-page build guide in the repository. I built it with Claude Code, which made the measurements an unusually honest check: the agent the tool is for did the work being measured.
+**Test where you didn't tune, and look yourself.** The held-out tasks gave a smaller saving than the tuned ones, and a truer one. And three automated checks and an LLM judge missed a chart cut in half that one person spotted; on the final check that judge and I agreed on 2 answers out of 30.
+
+Rupa is open source under the MIT licence, with both benchmarks, every run as data and a 113-page build guide in the repository. I built it with Claude Code, which made the measurements an unusually honest check: the agent the tool is for did the work being measured.

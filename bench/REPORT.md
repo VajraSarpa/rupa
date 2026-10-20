@@ -285,7 +285,9 @@ holds.
 ## Data
 
 `bench/data-v2/runs.csv` (one row per run) and `summary.csv`, from
-`uv run python bench/export.py --v2`. The analysis is
+`uv run python bench/export.py --v2`; the v0.1.3 rerun's 90 runs are in
+`bench/data-v013/`, exported the same way from its six folders alone (the
+summary groups by task, model and arm, not by tag). The analysis is
 `uv run python bench/analyze_v2.py bench/results [--model ...]`. Raw results
 folders, with every transcript, output, page image and judge verdict, are in
 `bench/results/` on the machine that ran them.
