@@ -287,3 +287,31 @@ def test_human_candidates_filter_by_seed(tmp_path):
         )
     assert {c["folder"] for c in human.candidates(tmp_path)} == {"old-cv", "new-cv"}
     assert {c["folder"] for c in human.candidates(tmp_path, seed="v013")} == {"new-cv"}
+
+
+def test_human_pages_do_not_share_saved_answers(tmp_path, monkeypatch):
+    human = load("human")
+    monkeypatch.setattr(human, "PAIRS", 1)
+    stores = []
+    for seed in ("main", "v013"):
+        folder = tmp_path / "results" / f"{seed}-cv"
+        for stem in ("rupa-verify-1", "baseline-1", "baseline-hinted-1"):
+            (folder / "pages" / stem).mkdir(parents=True)
+        (folder / "steps").mkdir()
+        (folder / "steps" / "1.txt").write_text("request")
+        (folder / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "model": human.MODEL,
+                    "task": "cv",
+                    "steps": 1,
+                    "runs": 1,
+                    "seed": seed,
+                }
+            )
+        )
+        out = tmp_path / seed
+        human.make(tmp_path / "results", out, seed)
+        page = (out / "index.html").read_text()
+        stores.append(page.split('store = "', 1)[1].split('"', 1)[0])
+    assert stores[0] != stores[1]

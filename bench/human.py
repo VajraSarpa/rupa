@@ -14,6 +14,7 @@ score: compares the answers with the key and with the LLM judge's verdicts on
        the same pairs.
 """
 
+import hashlib
 import html
 import json
 import random
@@ -82,7 +83,10 @@ def make(results: Path, out: Path, seed: str | None = None) -> None:
         key.append({**{k: v for k, v in pair.items() if k != "request"}, "n": n,
                     "A": a, "B": b, "rupa_is": "A" if rupa_a else "B"})
     (out / "key.json").write_text(json.dumps(key, indent=2))
-    (out / "index.html").write_text(PAGE.replace("{{N}}", str(PAIRS)).replace(
+    # Pages opened from file:// share localStorage, so each page saves under its own key.
+    pairs_id = hashlib.sha256(json.dumps(key, sort_keys=True).encode()).hexdigest()[:12]
+    page = PAGE.replace("{{STORE}}", f"blind-pairs-{pairs_id}")
+    (out / "index.html").write_text(page.replace("{{N}}", str(PAIRS)).replace(
         "{{SECTIONS}}", "\n".join(sections)))
     print(f"human: {PAIRS} pairs in {out}/index.html (key in key.json; don't open it)")
 
@@ -162,7 +166,7 @@ paste it to Claude. Your answers are kept in this browser if you reload.</p>
 <div id="done"><span id="count">0 answered</span>
 <textarea id="code" readonly></textarea><button id="copy">Copy answer code</button></div>
 <script>
-const total = {{N}} * 2, store = "blind-pairs";
+const total = {{N}} * 2, store = "{{STORE}}";
 function answers() {
   const a = {};
   document.querySelectorAll("input[type=radio]:checked").forEach(i => a[i.name] = i.value);
