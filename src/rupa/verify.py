@@ -36,6 +36,7 @@ ALL_CHECKS = (
     "blank-page",
     "near-empty",
     "sparse",
+    "figure-gap",
     "heading-at-bottom",
     "overflow",
 )
@@ -54,6 +55,7 @@ DEFAULT_WANTS = {
     "text_color": None,  # None: the theme's colours (THEME_TEXT_COLORS in render.py)
     "sparse_fill": 0.4,
     "near_empty_fill": 0.2,
+    "figure_gap_fill": 0.7,
     "checks": list(ALL_CHECKS),
     "vision": {
         "sample": "flagged",
@@ -136,7 +138,7 @@ def _validate(wants: dict) -> None:
         isinstance(color, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", color)
     ):
         raise WantsError(f"text_color must be #RRGGBB, got {color!r}")
-    for key in ("sparse_fill", "near_empty_fill"):
+    for key in ("sparse_fill", "near_empty_fill", "figure_gap_fill"):
         if not _is_fraction(wants[key]):
             raise WantsError(f"{key} must be a number from 0 to 1")
     if not _is_str_list(wants["checks"]):
@@ -401,6 +403,27 @@ def run_checks(pages: list[PageInfo], wants: dict) -> list[CheckResult]:
         "sparse",
         sparse,
         f"under {wants['sparse_fill']:.0%} full with no part break after",
+    )
+
+    # A figure moves to the next page whole, with its heading and lead-in, when it
+    # doesn't fit; that leaves the page before it short. Judge only a page that
+    # sparse and near-empty haven't already reported, and not before a part.
+    figure_gap, gap_where = [], []
+    for idx, p in enumerate(pages[:-1]):
+        if not p.lines or p.number == 1 or p.number in near_empty + sparse:
+            continue
+        nxt = pages[idx + 1]
+        if p.fill >= wants["figure_gap_fill"] or nxt.starts_part or not nxt.images:
+            continue
+        # The figure opens the next page: its top is in the upper third of the body.
+        third = nxt.body_top + (nxt.body_bottom - nxt.body_top) / 3
+        if min(im[1] for im in nxt.images) <= third:
+            figure_gap.append(p.number)
+            gap_where.append(f"p{p.number} {p.fill:.0%} full before a figure")
+    add(
+        "figure-gap",
+        figure_gap,
+        f"under {wants['figure_gap_fill']:.0%} full before a figure that opens the next page ({', '.join(gap_where)})",
     )
 
     def is_heading(ln: Line) -> bool:

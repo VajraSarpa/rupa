@@ -8,6 +8,7 @@ text_color: null          # every character must be this #RRGGBB; null uses the
                           # theme's colours (black for light themes)
 sparse_fill: 0.4          # flag a page under 40% full, unless a part starts next
 near_empty_fill: 0.2      # flag a page under 20% full, always
+figure_gap_fill: 0.7      # flag a page under 70% full when a figure opens the next page
 checks:                   # remove any you don't want
   - text-color
   - page-size
@@ -15,6 +16,7 @@ checks:                   # remove any you don't want
   - blank-page
   - near-empty
   - sparse
+  - figure-gap
   - heading-at-bottom
   - overflow
 vision:
