@@ -9,7 +9,7 @@ pages: 4
 
 ## Summary
 
-On six document tasks it was never tuned on, Claude Code with the Rupa plugin produced each document for **$0.14 to $0.44**, against **$0.21 to $1.05** for Claude Code on its own: 42% cheaper on average, cheaper on every task, and about 1.9 times faster. Each document added about half as much to Claude's context window. In a blind check of 15 pairs, a person found the two documents equally good every time; an LLM judge preferred Claude Code's layout. The more Claude Code would iterate on its own layout, the bigger the saving.
+On six document tasks it was never tuned on, Claude Code with the Rupa plugin produced each document for **$0.14 to $0.44**, against **$0.21 to $1.05** for Claude Code on its own: 42% cheaper on average, cheaper on every task, and about 1.9 times faster. Context saves more than cost: each document added about half as much to Claude's context window, and five documents in one session added 71% less (16,200 tokens against 55,300). In a blind check of 15 pairs, a person found the two documents equally good every time; an LLM judge preferred Claude Code's layout. The more Claude Code would iterate on its own layout, the bigger the saving.
 
 Claude in the chat app was not measured. It builds a PDF the way Claude Code does without the plugin, by writing layout code, so expect baseline-like usage. It is billed by plan rather than per token, and Rupa doesn't run there today.
 
@@ -55,9 +55,21 @@ From the first benchmark's transcripts:
 
 ## The context window
 
-Rupa also leaves more room in the conversation: the context a document added (the largest context in the run minus the session's starting context) was about half of Claude Code's, from 2,900 tokens for the CV to 12,000 for the handbook, against 5,000 to 26,500.
+For anyone on a Pro or Max plan, this is the saving that shows. A document's cost is paid once, but the context it adds stays for the rest of the session: every later turn re-reads it, and a fuller window gets compacted sooner. So the gap grows with each document.
 
-That context stays for the rest of the session: every later turn re-reads it, and a full window gets compacted sooner. It was measured directly on Rupa v0.1.2: five documents in one session (three PDFs, an HTML page and a status note) added 16,000 tokens with Rupa and 55,000 without, and cost $1.88 against $4.52.
+Per document, the context added (the largest context in the run minus the session's starting context) was about half of Claude Code's: from 2,900 tokens for the CV to 12,000 for the handbook, against 5,000 to 26,500.
+
+Over a session it was measured directly, on Rupa v0.1.2, three runs per arm: five documents in one session (three PDFs, an HTML page and a status note).
+
+| Five documents, one session | Claude Code | Rupa | Less |
+|---|---|---|---|
+| Context added | 55,300 tokens | 16,200 tokens | 71% |
+| Range across runs | 50,400 – 64,800 | 12,800 – 17,600 | |
+| Turns | 37 | 19 | 49% |
+| Cost | $4.52 | $1.88 | 58% |
+| Time | 391 s | 153 s | 61% |
+
+Not measured yet: sessions longer than five documents, how much later compaction comes, and whether output holds up better late in a long session.
 
 ## On a cheaper model
 

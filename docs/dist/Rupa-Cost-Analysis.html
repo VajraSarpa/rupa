@@ -226,7 +226,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <main>
 
 <h2 id="summary">Summary</h2>
-<p>On six document tasks it was never tuned on, Claude Code with the Rupa plugin produced each document for <strong>$0.14 to $0.44</strong>, against <strong>$0.21 to $1.05</strong> for Claude Code on its own: 42% cheaper on average, cheaper on every task, and about 1.9 times faster. Each document added about half as much to Claude's context window. In a blind check of 15 pairs, a person found the two documents equally good every time; an LLM judge preferred Claude Code's layout. The more Claude Code would iterate on its own layout, the bigger the saving.</p>
+<p>On six document tasks it was never tuned on, Claude Code with the Rupa plugin produced each document for <strong>$0.14 to $0.44</strong>, against <strong>$0.21 to $1.05</strong> for Claude Code on its own: 42% cheaper on average, cheaper on every task, and about 1.9 times faster. Context saves more than cost: each document added about half as much to Claude's context window, and five documents in one session added 71% less (16,200 tokens against 55,300). In a blind check of 15 pairs, a person found the two documents equally good every time; an LLM judge preferred Claude Code's layout. The more Claude Code would iterate on its own layout, the bigger the saving.</p>
 <p>Claude in the chat app was not measured. It builds a PDF the way Claude Code does without the plugin, by writing layout code, so expect baseline-like usage. It is billed by plan rather than per token, and Rupa doesn't run there today.</p>
 <h2 id="how-it-was-measured">How it was measured</h2>
 <p>Each run gave <code>claude -p</code> the same prompt in a fresh, empty folder, with the user's own plugins, skills and MCP servers switched off, five times per arm in a seeded interleaved order, on Claude Opus 5.5, 19 to 20 October 2026, with Rupa frozen at v0.1.3. The hypotheses and pass rules were registered before any run (<code>bench/PREREG.md</code>). Costs are what Claude Code reported, at API list prices.</p>
@@ -351,8 +351,52 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <li><strong>Fewer turns where layout is hard.</strong> Every turn re-reads the whole conversation. On the lab report Claude Code took 21 turns and Rupa 10; on the revision, 24 and 10. On short documents the turn counts are close, and the saving is smaller.</li>
 </ul>
 <h2 id="the-context-window">The context window</h2>
-<p>Rupa also leaves more room in the conversation: the context a document added (the largest context in the run minus the session's starting context) was about half of Claude Code's, from 2,900 tokens for the CV to 12,000 for the handbook, against 5,000 to 26,500.</p>
-<p>That context stays for the rest of the session: every later turn re-reads it, and a full window gets compacted sooner. It was measured directly on Rupa v0.1.2: five documents in one session (three PDFs, an HTML page and a status note) added 16,000 tokens with Rupa and 55,000 without, and cost $1.88 against $4.52.</p>
+<p>For anyone on a Pro or Max plan, this is the saving that shows. A document's cost is paid once, but the context it adds stays for the rest of the session: every later turn re-reads it, and a fuller window gets compacted sooner. So the gap grows with each document.</p>
+<p>Per document, the context added (the largest context in the run minus the session's starting context) was about half of Claude Code's: from 2,900 tokens for the CV to 12,000 for the handbook, against 5,000 to 26,500.</p>
+<p>Over a session it was measured directly, on Rupa v0.1.2, three runs per arm: five documents in one session (three PDFs, an HTML page and a status note).</p>
+<table>
+<thead>
+<tr>
+<th>Five documents, one session</th>
+<th>Claude Code</th>
+<th>Rupa</th>
+<th>Less</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Context added</td>
+<td>55,300 tokens</td>
+<td>16,200 tokens</td>
+<td>71%</td>
+</tr>
+<tr>
+<td>Range across runs</td>
+<td>50,400 – 64,800</td>
+<td>12,800 – 17,600</td>
+<td></td>
+</tr>
+<tr>
+<td>Turns</td>
+<td>37</td>
+<td>19</td>
+<td>49%</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>$4.52</td>
+<td>$1.88</td>
+<td>58%</td>
+</tr>
+<tr>
+<td>Time</td>
+<td>391 s</td>
+<td>153 s</td>
+<td>61%</td>
+</tr>
+</tbody>
+</table>
+<p>Not measured yet: sessions longer than five documents, how much later compaction comes, and whether output holds up better late in a long session.</p>
 <h2 id="on-a-cheaper-model">On a cheaper model</h2>
 <p>Measured on Claude Sonnet 5.5 with Rupa v0.1.2, three runs per arm on the same six tasks: Rupa cost 0.67 times Claude Code alone (90% interval 0.60 to 0.71) and 0.79 times the hinted baseline, and took 0.69 times as long. The saving keeps its direction with a smaller margin, because Sonnet took about as many turns with Rupa as without.</p>
 <h2 id="on-a-subscription">On a subscription</h2>

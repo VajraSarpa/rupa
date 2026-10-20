@@ -31,16 +31,28 @@ registered before the runs):
 - **42% cheaper** (0.58× the cost, 90% interval 0.55–0.63), and cheaper on
   all six tasks. Against Claude Code with a three-line hint on how to make a
   PDF, 38% cheaper.
-- **About 1.9× faster**, and **about half the context** added per document.
+- **71% less context over a working session.** Five documents in one
+  session added 16,200 tokens to the conversation with Rupa and 55,300
+  without, and cost $1.88 against $4.52 (v0.1.2, three runs per arm; every
+  Rupa session stayed under 17,600, every baseline one over 50,400). Per
+  document, Rupa adds about half the context.
+- **About 1.9× faster.**
 - **The same to a human reader.** In my blind check of 15 random pairs, every
   pair tied on content, design and ease of reading. An LLM judge disagreed:
   it preferred Claude Code's document in most pairs, mainly for page balance
   and Rupa's plainer theme, so the pre-registered quality rule, which used
   that judge, fails. Both results are reported.
 
-The saving comes from one place: Claude stops writing and re-reading markup,
-and Rupa answers with one status line instead of the document. It is largest
-where Claude Code would otherwise iterate on its own layout; the lab report
+Context matters more than the bill suggests, especially on a Pro or Max plan
+where there is no per-token bill. A document's cost is paid once, but the
+context it adds stays: every later turn in the session re-reads it, and a
+fuller window is compacted sooner. So the gap widens with each document, which
+is why the session saves more than any single document.
+
+Both savings come from one place: Claude stops writing and re-reading markup,
+and Rupa answers with one status line instead of the document. The cost
+saving is largest where Claude Code would otherwise iterate on its own
+layout; the lab report
 and the revision cost less than half. On the first benchmark's three tasks,
 which Rupa was tuned against, the saving was 40–74%; the held-out figure is
 the one to quote. Method, both judges and every run:
