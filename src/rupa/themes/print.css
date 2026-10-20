@@ -49,6 +49,10 @@ main h1 { break-before: page; margin-top: 0; }
 
 blockquote, tr { break-inside: avoid; }
 thead { display: table-header-group; }
+/* A table that splits keeps at least two body rows on each side: WeasyPrint
+   has no orphans/widows for rows, but it honours break-before: avoid between
+   rows when a row overflows, so it backs the break up one row. */
+tbody tr:nth-child(2), tbody tr:last-child { break-before: avoid; }
 pre { break-inside: auto; white-space: pre-wrap; orphans: 3; widows: 3; } /* wrap at spaces, never mid-token; no 1-2 line fragments across a page break */
 /* pre carries the code font and a fixed line height, so each line box is
    exactly that tall; with Inter as the block's strut, the height came from
