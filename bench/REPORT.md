@@ -44,6 +44,8 @@ runs off the page (all 8 Rupa lab reports), and nothing in Rupa caught it.
 four layout fixes later, the image bug is gone and the cost saving holds
 (0.58×), but the layout gap is about the same: the judge preferred the
 baseline's layout in 51 of 70 held-out pairs, against 56 before.
+In Vajra's blind check of 15 v0.1.3 pairs, every pair tied on content and
+layout (in v2 he preferred the baseline's layout in 7 of 15).
 
 ## What was run
 
@@ -270,7 +272,15 @@ holds.
   Rupa a table split with two rows on page 2, which the table fix now allows.
   The fixes removed the outright faults; what loses is page balance and the
   plain theme, which they don't address.
-- A human check of 15 blind pairs, as in v2, has not been done for v0.1.3.
+- **Human check** (Vajra, 20 October 2026, 15 random v0.1.3 Opus held-out
+  pairs, seed 0, blind). He looked through all 15 and gave one verdict for
+  the set rather than an answer per pair: the two documents tie on content,
+  design and ease of reading in every pair. On the same 15 pairs the LLM
+  judge preferred the baseline on content in 11 (Rupa 2, ties 2) and on
+  layout in 12 (Rupa 3, no ties), so it agrees with him on 2 of 30 answers.
+  In v2 he preferred the baseline's layout in 7 of 15; here, in none. The
+  judge's layout losses are the faults he no longer sees. The sample is one
+  person, and a blanket verdict is coarser than per-pair answers.
 
 ## Data
 
