@@ -60,6 +60,11 @@ pre { break-inside: auto; white-space: pre-wrap; orphans: 3; widows: 3; } /* wra
 pre { font: 8.3pt/13.875pt "JetBrains Mono", "DejaVu Sans Mono", monospace; }
 pre code { font-size: 1em; line-height: inherit; }
 p:not(:has(> img)):is(:has(+ pre), :has(+ table)) { break-after: avoid; } /* a lead-in ("Run this:") moves with its block, and so does the heading above it */
+/* A figure is at most 3in tall (32% of a letter body, 30% of A4), so heading, lead-in and image
+   fit a half-empty page more often than a full-width image. Width stays auto, so the aspect ratio
+   holds and the image stays inside the column (max-width: 100% in each theme). The body's height is
+   auto, so a percentage max-height would be ignored; WeasyPrint has no vh. */
+img { max-height: 3in; width: auto; }
 p:has(> img) { break-before: avoid; } /* and with its image; WeasyPrint has no p:has(+ p > img) */
 :is(h2, h3) + :is(ul, ol) > li:first-child { break-after: avoid; } /* a heading never ends a page with one list item */
 table { display: table; font-size: 9pt; }

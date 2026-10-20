@@ -67,6 +67,8 @@ def test_wants_file_overrides_and_merges_vision(tmp_path):
         ('max_pages: "10"\n', "max_pages"),
         ("checks: null\n", "checks must be a list"),
         ("sparse_fill: 2\n", "sparse_fill"),
+        ("figure_gap_fill: 2\n", "figure_gap_fill"),
+        ("figure_gap_fill: high\n", "figure_gap_fill"),
         ("theme: ../../etc\n", "theme must be one of"),
         ("vision: 5\n", "vision must be a YAML mapping"),
         ("vision:\n  resolution: 5000\n", "vision.resolution"),
@@ -126,6 +128,64 @@ def test_sparse_page_is_allowed_before_a_part_break():
 def test_sparse_page_without_a_part_break_fails():
     pages = [page(1), page(2, fill_to=300), page(3), page(4)]
     assert failing(run_checks(pages, load_wants(None))) == {"sparse": [2]}
+
+
+def figure_page(n, image_top=130.0, height=330.0, **kw):
+    """A page that opens with a heading, a line of lead-in and then a 330pt image."""
+    lines = [body_line(70, size=12, bold=True), body_line(95)]
+    p = page(n, lines=lines, **kw)
+    p.images = [(58.0, image_top, 554.0, image_top + height)]
+    p.image_bottom = p.content_bottom = image_top + height
+    return p
+
+
+def test_figure_gap_defaults_to_seventy_percent():
+    assert DEFAULT_WANTS["figure_gap_fill"] == 0.7
+    assert "figure-gap" in DEFAULT_WANTS["checks"]
+
+
+def test_page_left_short_before_a_figure_fails():
+    pages = [page(1), page(2, fill_to=380), figure_page(3), page(4)]
+    results = run_checks(pages, load_wants(None))
+    assert failing(results) == {"figure-gap": [2]}
+    (gap,) = [r for r in results if r.id == "figure-gap"]
+    assert "p2 48% full before a figure" in gap.detail
+
+
+def test_figure_gap_threshold_is_a_wants_key(tmp_path):
+    pages = [page(1), page(2, fill_to=600), figure_page(3), page(4)]  # 81% full
+    assert failing(run_checks(pages, load_wants(None))) == {}
+    f = tmp_path / "wants.yaml"
+    f.write_text("figure_gap_fill: 0.9\n")
+    assert failing(run_checks(pages, load_wants(str(f)))) == {"figure-gap": [2]}
+
+
+def test_figure_gap_is_not_judged_on_the_first_page():
+    pages = [page(1, fill_to=380), figure_page(2), page(3)]
+    assert failing(run_checks(pages, load_wants(None))) == {}
+
+
+def test_figure_gap_is_not_flagged_before_a_part_break():
+    part = figure_page(3)
+    part.lines = [body_line(70, size=20, bold=True), *part.lines]
+    pages = [page(1), page(2, fill_to=380), part, page(4)]
+    assert failing(run_checks(pages, load_wants(None))) == {}
+
+
+def test_figure_gap_needs_the_figure_to_open_the_next_page():
+    low = figure_page(
+        3, image_top=500.0, height=150.0
+    )  # text first, the image far down the page
+    no_image = page(3)
+    for nxt in (low, no_image):
+        pages = [page(1), page(2, fill_to=380), nxt, page(4)]
+        assert failing(run_checks(pages, load_wants(None))) == {}
+
+
+def test_figure_gap_leaves_pages_already_reported_alone():
+    for fill_to, other in ((120, "near-empty"), (300, "sparse")):
+        pages = [page(1), page(2, fill_to=fill_to), figure_page(3), page(4)]
+        assert failing(run_checks(pages, load_wants(None))) == {other: [2]}
 
 
 def test_stranded_heading_fails():
@@ -192,7 +252,7 @@ def test_title_only_render_passes_verify(tmp_path):
     pdf = tmp_path / "hello.pdf"
     pdf.write_bytes(data)
     report = verify(pdf, load_wants(None), tmp_path / "v")
-    assert report.summary() == "verify: 8/8 checks pass"  # clean: no sheets
+    assert report.summary() == "verify: 9/9 checks pass"  # clean: no sheets
     wants = load_wants(None)
     wants["vision"]["sample"] = "per-type"
     report = verify(pdf, wants, tmp_path / "v")
@@ -415,7 +475,7 @@ def _blank_pdf(path, *sizes):
 
 
 def test_a_pdf_with_no_pages_is_bad_input(tmp_path, capsys):
-    # With no pages every check loops over nothing, which used to read 8/8 pass.
+    # With no pages every check loops over nothing, which used to read 9/9 pass.
     pdf = _blank_pdf(tmp_path / "empty.pdf")
     assert main(["verify", str(pdf)]) == EXIT_INPUT
     assert "no pages" in capsys.readouterr().err

@@ -57,7 +57,7 @@ def test_verify_follows_the_theme_in_the_pdf(tmp_path):
 def test_verify_cli_needs_no_theme_flag(tmp_path, capsys):
     pdf = render(tmp_path, "cyan-dark")
     assert main(["verify", str(pdf)]) == EXIT_OK
-    assert "8/8 checks pass" in capsys.readouterr().out
+    assert "9/9 checks pass" in capsys.readouterr().out
 
 
 def test_light_cyan_pdf_text_is_black(tmp_path):

@@ -252,6 +252,7 @@ Rendering proves the file exists. Verification checks that it's right, in two ti
 | `blank-page` | A page has no text |
 | `near-empty` | A page is under 20% full (cover and last page exempt) |
 | `sparse` | A page is under 40% full and the next page doesn't start a new part |
+| `figure-gap` | A page is under 70% full and a figure opens the next page (not before a part, not if already near-empty or sparse) |
 | `heading-at-bottom` | A heading is the last line on a page, or a heading and one line end it and the next page doesn't open with a heading |
 | `overflow` | Text runs past the side margins |
 

@@ -82,7 +82,7 @@ EOF
 rupa report.md -o report.pdf
 # rupa: wrote report.pdf (pdf, 1 page, 8,629 bytes)
 rupa verify report.pdf
-# verify: 8/8 checks pass
+# verify: 9/9 checks pass
 ```
 
 Supported Markdown: CommonMark, tables, strikethrough, task lists, footnotes
@@ -107,7 +107,7 @@ so a PDF looks the same on every machine.
 ## Verification
 
 `rupa verify` checks text colour, page size, page count, empty and sparse
-pages, stranded headings and overflow, and reports exactly what and where
+pages, a short page before a figure, stranded headings and overflow, and reports exactly what and where
 (`p1 table by 13pt`). It reads the theme from the PDF, so it compares against
 the right reference pages without being told. A clean PDF gets no sheets, so
 the visual review costs nothing when nothing is wrong. `wants.example.yaml`
