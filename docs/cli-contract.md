@@ -62,6 +62,4 @@ PDF still over its page budget. A crash is exit `1`.
 - **New output formats are additive.** Slides, the next planned format, will
   arrive as a new `--to` value (for example `--to slides`) or a new
   subcommand, never by changing what an existing flag or value does.
-- A change to anything on this page is listed in the release notes, and any
-  policy descriptor that covers Rupa (such as HOL Guard's `command.rupa`)
-  gets a follow-up update opened alongside that release.
+- A change to anything on this page is listed in the release notes.
