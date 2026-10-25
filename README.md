@@ -196,7 +196,9 @@ section "Measuring the savings").
 
 ## Contract
 
-The plugin and its evals depend on this.
+The plugin and its evals depend on this. What each command reads, writes
+and deletes, and which flags never change, is in
+[docs/cli-contract.md](docs/cli-contract.md).
 
 - **Input:** Markdown with optional YAML frontmatter, from a file or stdin.
 - **`-o PATH`:** the output file; the format comes from the extension.

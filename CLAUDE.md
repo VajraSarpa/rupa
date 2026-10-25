@@ -77,6 +77,10 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
 
 ### CLI contract (don't break it; the plugin and evals depend on it)
 
+`docs/cli-contract.md` is the public version (paths each command reads,
+writes and deletes; flags that never change; new formats only add). Update
+it with any change to flags, outputs or exit codes.
+
 - stdout is exactly one status line (or one JSON object with `--json`),
   never the document. Errors are one line on stderr; quoted values are
   clipped at 80 characters (`document.clip`).
