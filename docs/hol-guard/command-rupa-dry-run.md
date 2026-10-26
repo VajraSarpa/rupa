@@ -124,3 +124,5 @@ The failing targets are `guard-command` lib (11), `--test integration` (18), `pr
    - optional Guard Gauntlet live evidence.
 
 **Blockers before a real PR:** decide on `allow_abbrev` in Rupa, and confirm the 45 test failures are root-only by re-running as a normal user.
+
+**Update (2026-10-26):** both blockers are resolved. Rupa v0.1.4 refuses abbreviated flags (exit 2), and a follow-up run ([nonroot-test-run.md](nonroot-test-run.md)) found the gate passes completely as a normal user once umask, clone location, `ssh-keygen` and bubblewrap ≥ 0.11 are set up; the remaining 76 failures happen only as root.
