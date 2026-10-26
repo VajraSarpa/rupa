@@ -230,7 +230,7 @@ and deletes, and which flags never change, is in
 
 ```bash
 uv sync
-uv run pytest -q                   # 203 tests
+uv run pytest -q                   # 208 tests
 uvx ruff check src tests
 uv run rupa refs --theme <name>    # after any theme change; commit the PNGs
 uv run python docs/build.py        # re-render the guide with Rupa

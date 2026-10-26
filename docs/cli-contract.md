@@ -1,6 +1,6 @@
 # Rupa CLI contract
 
-What each `rupa` command reads, writes, deletes and reaches, as of `v0.1.3`.
+What each `rupa` command reads, writes, deletes and reaches, as of `v0.1.4`.
 The README's [Contract](../README.md#contract) section covers stdout and exit
 codes for the plugin; this page is for anyone who wraps or polices the
 commands, such as a pre-execution policy check.
@@ -59,6 +59,10 @@ PDF still over its page budget. A crash is exit `1`.
 
 - `-o`, `--to`, `--force`, `--theme`, `--pages`, `--json` and the `verify`
   and `refs` subcommand names are never renamed or given a new meaning.
+- **Flags must be spelled in full.** Since `v0.1.4` an abbreviation such as
+  `--forc` or `--outp` is a usage error (exit 2), so a policy check that
+  matches `--force` or `--out` sees every spelling Rupa accepts. Up to
+  `v0.1.3`, argparse's prefix matching accepted any unambiguous abbreviation.
 - **New output formats are additive.** Slides, the next planned format, will
   arrive as a new `--to` value (for example `--to slides`) or a new
   subcommand, never by changing what an existing flag or value does.

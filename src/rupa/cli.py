@@ -49,6 +49,7 @@ def _render_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="rupa",
         description="Render Markdown to HTML or PDF.",
+        allow_abbrev=False,  # contract: flags are spelled in full
         epilog="To render a file named verify or refs, write ./verify or ./refs.",
     )
     p.add_argument(
@@ -167,7 +168,9 @@ def verify_main(argv: list[str]) -> int:
         verify,
     )
 
-    p = argparse.ArgumentParser(prog="rupa verify", description="Check a rendered PDF.")
+    p = argparse.ArgumentParser(
+        prog="rupa verify", description="Check a rendered PDF.", allow_abbrev=False
+    )
     p.add_argument("pdf")
     p.add_argument("--wants", help="wants.yaml (default: built-in rules)")
     p.add_argument(
@@ -221,7 +224,9 @@ def refs_main(argv: list[str]) -> int:
     from .verify import build_references
 
     p = argparse.ArgumentParser(
-        prog="rupa refs", description="Rebuild a theme's reference pages."
+        prog="rupa refs",
+        description="Rebuild a theme's reference pages.",
+        allow_abbrev=False,
     )
     p.add_argument("--theme", default="default")
     p.add_argument(

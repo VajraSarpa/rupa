@@ -489,3 +489,27 @@ def test_bench_summary_skips_malformed_results(tmp_path, capsys):
     summarize.main(tmp_path)  # used to raise AttributeError
     rows = capsys.readouterr().out.split("\n\n")[0].splitlines()[1:]
     assert [r.split("\t")[2] for r in rows] == ["0", "6"]
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["--forc", "--to", "html", "--outp", "notes.txt"],
+        ["--outp", "out.html"],
+        ["-o", "out.html", "--them", "cyan"],
+        ["verify", "x.pdf", "--want", "w.yaml"],
+        ["refs", "--ou", "refs"],
+    ],
+)
+def test_abbreviated_flags_are_usage_errors(tmp_path, monkeypatch, capsys, argv):
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    notes = work / "notes.txt"
+    notes.write_text("keep me")
+    with pytest.raises(SystemExit) as exc:
+        run(monkeypatch, capsys, argv)
+    assert exc.value.code == EXIT_USAGE
+    assert "error:" in capsys.readouterr().err
+    assert notes.read_text() == "keep me"
+    assert [p.name for p in work.iterdir()] == ["notes.txt"]
