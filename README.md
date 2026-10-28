@@ -207,6 +207,9 @@ and deletes, and which flags never change, is in
   document.
 - **Exit codes:** `0` ok, `2` usage, `3` bad input, `4` render failure, `5`
   verify checks failed or a PDF still over its page budget.
+- **Flags:** spelled in full. An abbreviation such as `--ou` is a usage
+  error (exit `2`), set by `allow_abbrev=False` in `src/rupa/cli.py` since
+  v0.1.4 and tested in `tests/test_cli.py`.
 - **Subcommands:** `rupa verify` and `rupa refs`. To render a Markdown file
   named `verify` or `refs`, write `./verify`.
 - **Failure log:** every run that exits non-zero or crashes is appended to
