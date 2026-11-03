@@ -66,4 +66,7 @@ PDF still over its page budget. A crash is exit `1`.
 - **New output formats are additive.** Slides, the next planned format, will
   arrive as a new `--to` value (for example `--to slides`) or a new
   subcommand, never by changing what an existing flag or value does.
-- A change to anything on this page is listed in the release notes.
+- A change to anything on this page is listed in the release notes, and any
+  policy descriptor that covers Rupa (such as HOL Guard's `command.rupa`,
+  [hashgraph-online/hol-guard#7119](https://github.com/hashgraph-online/hol-guard/pull/7119))
+  gets a follow-up update opened alongside that release.

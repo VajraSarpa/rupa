@@ -33,7 +33,7 @@ Adds `command.rupa`, an external, opt-in extension for [Rupa](https://github.com
 
 ### Fast validation
 
-Built on hol-guard `main` at `101bc5f`, as a normal user (uid 30033) with Rust 1.88.0, bubblewrap 0.11.0 and `ssh-keygen`.
+Run on this branch (hol-guard `main` at `31e2563` plus the one commit), as a normal user (uid 1000) on Fedora 43 with Rust 1.88.0, bubblewrap 0.12.0 and `ssh-keygen`.
 
 ```sh
 uv run --no-sync hol-guard extensions handoff --repo . \
@@ -45,10 +45,13 @@ uv run --no-sync hol-guard extensions handoff --repo . \
 - `prepare_extension_contribution.py --check`: `ok: true`, `targetCommandsExecuted: 0`.
 - Fixture: 83 of 83 cases pass, `target_commands_executed: 0` (57 force, 26 verify; 74 review, 5 block, 3 allow, 1 require-reapproval).
 - `refresh_extension_artifacts.py --check-trust`: `authored_trust_complete: true`.
-- `scripts/ci/verify_native_command_program.py`: ok, `stale_public_descriptors: []`, 163 generated files. It reads descriptors from the commit, so I ran it with the four files committed on a local branch.
+- `scripts/ci/verify_native_command_program.py`: ok, `stale_public_descriptors: []`, 163 generated files, run on the commit.
 - `cargo +1.88.0 fmt --all --check`: pass.
 - `cargo +1.88.0 clippy --locked --workspace --all-targets -- -D warnings`: pass, 0 warnings.
-- `cargo +1.88.0 test --locked --workspace --all-targets --no-fail-fast`: 13,678 passed, 5 failed, 39 ignored (89 binaries). None comes from this change. Four (`guard-command --lib`) fail the same with the `command.rupa` files removed; they depend on where the build container keeps `gh`, `uv` and `python3`, and the `uv` one passes once my `/usr/local/bin/uv` copy is moved aside. The fifth (`hol-guard-runtime` `workspace_inventory_op::recorded_python_vectors_match`) passes when run alone. Run with `CARGO_PROFILE_DEV_DEBUG=0` after the first build ran out of disk.
+- `cargo +1.88.0 test --locked --workspace --all-targets --no-fail-fast`: 14,044 passed, 3 failed, 39 ignored (90 binaries). None comes from this change: all three fail the same on `main` at `31e2563` without the `command.rupa` files, and each points at this machine.
+  - `guard-command` `pretool_temporary_writes::temporary_write_keeps_link_permission_and_hidden_boundaries`: "Invalid cross-device link" (Fedora's `/tmp` is a separate tmpfs).
+  - `guard-contained-process` `resource_open_file_cap_prevents_an_actual_extra_descriptor`: the child printed `before` and `after`; the file cap didn't stop it here.
+  - `guard-scanner` `staged_scanner::staged_secret_in_real_git_repo_is_detected`: `git add` refused a path my global `.gitignore` ignores.
 - Every case that claims something about Rupa's parser was also run against Rupa `v0.1.4` itself: 36 commands, exit codes and file changes as stated.
 
 ### Checklist
@@ -57,4 +60,6 @@ uv run --no-sync hol-guard extensions handoff --repo . \
 - [x] The canonical source, portable fixture, and external trust entry are included. I have not committed generated projections (command catalog, native program, baselines, digest vectors, directory render); maintainer automation regenerates them on `main` after merge.
 - [x] Cases cover the intended destructive operations and their safe counterparts.
 - [x] Optional public listing data contains no private email, secrets, or inferred claim authority.
-- [ ] For a personal-fork PR, I enabled **Allow edits from maintainers** if I want Gitar to commit mechanical repairs. If GitHub says this also grants access to secrets, I left it disabled and will apply suggestions myself.
+- [x] For a personal-fork PR, I enabled **Allow edits from maintainers** if I want Gitar to commit mechanical repairs. If GitHub says this also grants access to secrets, I left it disabled and will apply suggestions myself.
+
+Built with Claude Code.
