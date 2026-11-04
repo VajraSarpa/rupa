@@ -24,7 +24,7 @@ charts = ["vl-convert-python>=1.9"]
 rupa = "rupa.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8", "vl-convert-python>=1.9"]
+dev = ["hypothesis>=6.170.14", "pytest>=8", "vl-convert-python>=1.9"]
 
 [build-system]
 requires = ["hatchling"]
@@ -36,6 +36,7 @@ packages = ["src/rupa"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = ["fuzz: property and fuzz tests (tests/test_fuzz.py); RUPA_FUZZ_EXAMPLES sets the depth"]
 
 [tool.ruff]
 line-length = 88
