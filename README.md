@@ -120,7 +120,8 @@ rupa verify report.pdf
 ```
 
 Supported Markdown: CommonMark, tables, strikethrough, task lists, footnotes,
-fenced code with syntax highlighting, and Vega-Lite charts (below). Raw HTML is escaped, and images
+bare `https://`, `www.` and email links, fenced code with syntax
+highlighting, and Vega-Lite charts (below). Raw HTML is escaped, and images
 must be PNG, JPEG, GIF, WebP or SVG files next to the Markdown (HTML output
 embeds them).
 
@@ -227,8 +228,7 @@ lists every rule and its default.
   only; a DOCX is laid out by Word, so Rupa can't measure its pages, and
   `pages:` doesn't apply to it.
 - **Looks come from themes.** A new look means writing a theme in CSS.
-- **Markdown limits.** No callouts; footnotes become endnotes in PDFs; bare
-  URLs aren't clickable.
+- **Markdown limits.** No callouts; footnotes become endnotes in PDFs.
 - **Short documents save the least.** Most of a short run is Claude Code
   starting a session; the one-page CV saved 7 cents.
 - **Plainer pages.** Rupa keeps a theme's margins and breaks pages to keep
@@ -311,7 +311,7 @@ and deletes, and which flags never change, is in
 
 ```bash
 uv sync
-uv run pytest -q                   # 274 tests
+uv run pytest -q                   # 290 tests
 uvx ruff check src tests
 uv run rupa refs --theme <name>    # after any theme change; commit the PNGs
 uv run python docs/build.py        # re-render the guide with Rupa

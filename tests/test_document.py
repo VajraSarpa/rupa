@@ -170,3 +170,50 @@ def test_yaml_aliases_are_refused():
     front = "a: &a [x, x, x, x, x, x, x, x, x]\nb: &b [*a, *a, *a, *a, *a, *a]"
     with pytest.raises(InputError, match="aliases"):
         parse(f"---\n{front}\n---\n\nBody.\n")
+
+
+@pytest.mark.parametrize(
+    "text, href",
+    [
+        ("See https://example.com/a?b=1 now.", "https://example.com/a?b=1"),
+        ("See http://example.com now.", "http://example.com"),
+        ("See www.example.com now.", "http://www.example.com"),
+        ("Mail me@example.com today.", "mailto:me@example.com"),
+    ],
+)
+def test_bare_urls_become_links(text, href):
+    assert f'<a href="{href}">' in parse(text).body_html
+
+
+def test_bare_urls_in_code_stay_text():
+    html = parse(
+        "Inline `https://example.com/inline` here.\n\n"
+        "```\nhttps://example.com/fenced\n```\n\n"
+        "    https://example.com/indented\n"
+    ).body_html
+    assert "<a " not in html
+    for path in ("inline", "fenced", "indented"):
+        assert f"https://example.com/{path}" in html
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "javascript:alert(1)",
+        "javascript://example.com/%0Aalert(1)",
+        "[x](javascript:alert(1))",
+        "<javascript:alert(1)>",
+        "vbscript:msgbox(1)",
+        "ftp://example.com/file",
+        "//example.com/protocol-relative",
+        "file:///etc/passwd",
+    ],
+)
+def test_links_only_use_web_or_mail_schemes(text):
+    html = parse(f"Before {text} after.").body_html
+    assert "<a " not in html
+
+
+def test_linkified_text_is_escaped():
+    html = parse('Go https://example.com/"><b>x</b> now.').body_html
+    assert "<b>" not in html
