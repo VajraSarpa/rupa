@@ -1,6 +1,6 @@
 # Rupa CLI contract
 
-What each `rupa` command reads, writes, deletes and reaches, as of `v0.1.5`.
+What each `rupa` command reads, writes, deletes and reaches, as of `v0.1.6`.
 The README's [Contract](../README.md#contract) section covers stdout and exit
 codes for the plugin; this page is for anyone who wraps or polices the
 commands, such as a pre-execution policy check.
@@ -9,7 +9,7 @@ commands, such as a pre-execution policy check.
 
 | Command | Reads | Writes | Deletes | Network |
 |---|---|---|---|---|
-| `rupa [INPUT] -o OUT` | `INPUT` (a Markdown file, or stdin when `INPUT` is `-` or absent); images it names, from inside `INPUT`'s folder (cwd for stdin); the bundled themes and fonts | `OUT`, creating its parent folders | Nothing | None |
+| `rupa [INPUT] -o OUT` | `INPUT` (a Markdown file, or stdin when `INPUT` is `-` or absent); images, chart spec files (`*.vl.json`) and chart data files (`.csv`, `.tsv`, `.json`) it names, from inside `INPUT`'s folder (cwd for stdin); the bundled themes and fonts | `OUT`, creating its parent folders | Nothing | None |
 | `rupa verify PDF` | `PDF`; `--wants` file if given; the theme's bundled reference pages | `<PDF minus extension>.verify/`, or `--out DIR`: `verify.json` and `sheet-p<NNN>-<kind>.png` files, created or replaced | The sheets the previous `verify.json` in that folder listed, and only those | None |
 | `rupa refs` | The bundled `references/sample.md`, themes and fonts | `cover.png`, `prose.png`, `table.png`, `code.png` in `--out DIR`, created or replaced | Nothing | None |
 
@@ -47,7 +47,9 @@ stops it. Successful runs write no log.
   `--out` (exit 2).
 
 Rupa never fetches from the network, never runs a subprocess, and never
-passes raw HTML through. A DOCX holds no macros, embedded objects,
+passes raw HTML through. Charts (`vega-lite` blocks and `*.vl.json` files)
+are drawn in-process by vl-convert with fetching switched off; a chart spec
+with any `url` or `href` other than a local data file is refused. A DOCX holds no macros, embedded objects,
 external templates or remote images; its only hyperlinks are `http`,
 `https`, `mailto` and links to its own headings, and its only fields are
 the footer's page numbers. An image must be a relative path inside the input's

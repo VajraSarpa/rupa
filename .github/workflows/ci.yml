@@ -31,6 +31,8 @@ jobs:
           uv run rupa verify out/ci.pdf
           printf -- '---\ntitle: CI\n---\n\n## ok\n' | uv run rupa -o out/ci.docx
           python3 -c "import zipfile,sys; z=zipfile.ZipFile('out/ci.docx'); sys.exit(z.testzip() is not None)"
+          printf -- '---\ntitle: CI\n---\n\n## Chart\n\n```vega-lite\n{"data":{"values":[{"a":"x","b":1}]},"mark":"bar","encoding":{"x":{"field":"a","type":"nominal"},"y":{"field":"b","type":"quantitative"}}}\n```\n' | uv run rupa -o out/chart.pdf
+          uv run rupa verify out/chart.pdf
   # The DOCX tests open each file in LibreOffice, a stricter reader than a
   # zip check; it's a heavy install, so it gets its own job.
   docx:

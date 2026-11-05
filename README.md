@@ -86,6 +86,8 @@ Ubuntu, `sudo dnf install pango` on Fedora, `brew install pango` on macOS).
 
 ```bash
 uv tool install git+https://github.com/VajraSarpa/rupa     # puts rupa on PATH
+# or, with charts (adds vl-convert, about 84 MB):
+# uv tool install "rupa[charts] @ git+https://github.com/VajraSarpa/rupa"
 claude plugin marketplace add VajraSarpa/rupa
 claude plugin install rupa@rupa                            # the Claude Code plugin
 ```
@@ -116,10 +118,54 @@ rupa verify report.pdf
 # verify: 9/9 checks pass
 ```
 
-Supported Markdown: CommonMark, tables, strikethrough, task lists, footnotes
-and fenced code with syntax highlighting. Raw HTML is escaped, and images
+Supported Markdown: CommonMark, tables, strikethrough, task lists, footnotes,
+fenced code with syntax highlighting, and Vega-Lite charts (below). Raw HTML is escaped, and images
 must be PNG, JPEG, GIF, WebP or SVG files next to the Markdown (HTML output
 embeds them).
+
+## Charts
+
+A chart is a [Vega-Lite](https://vega.github.io/vega-lite/) spec: JSON that
+says what to draw, not code to run. Write it in a `vega-lite` block:
+
+````markdown
+```vega-lite
+{
+  "description": "Revenue by month",
+  "data": {"url": "sales.csv"},
+  "mark": "bar",
+  "encoding": {
+    "x": {"field": "month", "type": "nominal", "sort": null},
+    "y": {"field": "revenue", "type": "quantitative"}
+  }
+}
+```
+````
+
+Or link a spec file as an image: `![Revenue](revenue.vl.json)`. That's the
+file [Altair](https://altair-viz.github.io/) writes with
+`chart.save("revenue.vl.json")`, so a chart built in Python drops straight in.
+
+Rupa draws charts offline with
+[vl-convert](https://github.com/vega/vl-convert): SVG in HTML and PDF, PNG at
+2× in DOCX. The theme sets the fonts and colours (black text on paper, light
+ink on `cyan`'s screen and `cyan-dark`'s pages), and a chart with no width
+fills the text column. Charts need the `charts` extra (see Install);
+without it, a document with a chart fails with an install hint.
+
+What a chart can't do:
+
+- **Reach outside the document.** Any `url` or `href` in the spec is refused
+  (exit 3), except a data `url` naming a `.csv`, `.tsv` or `.json` file next to
+  the Markdown. Rupa reads that file itself, with the same rules as images,
+  and puts it in the spec. vl-convert runs with fetching switched off, and an
+  SVG that still links anywhere fails the render (exit 4).
+- **Grow without limit.** At most 5,000 rows per dataset (inline, from a
+  file or from a `sequence`), a 1 MB spec, 2 MB per data file and 50 charts per
+  document. There's no time limit: vl-convert can't be interrupted without a
+  separate process, which Rupa never starts, so the size limits do that job.
+- **Be interactive.** Tooltips and zoom need Vega's JavaScript in the page;
+  Rupa's HTML charts are static SVG.
 
 ## Word documents
 
@@ -175,7 +221,8 @@ lists every rule and its default.
 
 - **Claude Code only, for now.** Rupa is a local CLI plus a Claude Code
   plugin; it doesn't run in the Claude chat app.
-- **HTML, PDF and DOCX only.** No slides yet. `rupa verify` checks PDFs
+- **HTML, PDF and DOCX only.** No slides yet. Charts are static and capped
+  at 5,000 rows each. `rupa verify` checks PDFs
   only; a DOCX is laid out by Word, so Rupa can't measure its pages, and
   `pages:` doesn't apply to it.
 - **Looks come from themes.** A new look means writing a theme in CSS.
@@ -263,7 +310,7 @@ and deletes, and which flags never change, is in
 
 ```bash
 uv sync
-uv run pytest -q                   # 227 tests
+uv run pytest -q                   # 274 tests
 uvx ruff check src tests
 uv run rupa refs --theme <name>    # after any theme change; commit the PNGs
 uv run python docs/build.py        # re-render the guide with Rupa
