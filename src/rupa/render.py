@@ -155,6 +155,10 @@ RASTER_MIME = {
 IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")
 
 
+def _is_data_uri(src: str) -> bool:
+    return src[:5].lower() == "data:"
+
+
 def _decoded_mime(data: bytes, name: str, svg: bool = False) -> str:
     """The image's MIME type, once its bytes are known to decode as an image.
 
@@ -170,6 +174,14 @@ def _decoded_mime(data: bytes, name: str, svg: bool = False) -> str:
             raise RenderError(f"image {name} is not valid SVG: {exc}") from exc
         if root.tag not in ("svg", "{http://www.w3.org/2000/svg}svg"):
             raise RenderError(f"image {name} is not an SVG image")
+        for el in root.iter():
+            for key in ("href", "{http://www.w3.org/1999/xlink}href"):
+                ref = el.get(key, "").strip()
+                if ref and not ref.startswith("#") and not _is_data_uri(ref):
+                    raise RenderError(
+                        f"image {name} links to '{clip(ref)}'; an SVG may use"
+                        " only #ids and data: URIs"
+                    )
         return "image/svg+xml"
 
     import io
@@ -206,12 +218,12 @@ def load_image(src: str, base_dir: str | Path) -> tuple[bytes, str]:
     refused or undecodable raises RenderError, so the render fails instead
     of leaving a broken image or embedding a file that isn't one.
     """
-    if src.startswith("data:"):
+    if _is_data_uri(src):  # the scheme and ;base64 are case-insensitive
         header, _, payload = src.partition(",")
         try:
             data = (
                 base64.b64decode(payload, validate=True)
-                if header.endswith(";base64")
+                if header.lower().endswith(";base64")
                 else unquote_to_bytes(payload)
             )
         except ValueError as exc:
@@ -220,6 +232,8 @@ def load_image(src: str, base_dir: str | Path) -> tuple[bytes, str]:
         return data, _decoded_mime(data, "data URI", svg=svg)
 
     base = Path(base_dir).resolve()
+    if "\0" in unquote(src):  # resolve() raises ValueError on a NUL
+        raise RenderError(f"blocked resource: '{clip(src)}' has a NUL in its path")
     path = (base / unquote(src)).resolve()
     if not path.is_relative_to(base):
         raise RenderError(f"blocked or missing resource: {path} is outside {base}")
@@ -311,11 +325,14 @@ def to_html(
 
 
 def contained_fetcher(base: Path):
-    """A WeasyPrint URL fetcher for files under base, Rupa's fonts and data: URIs.
+    """A WeasyPrint URL fetcher for data: URIs and Rupa's bundled fonts only.
 
-    Anything else, or a missing file, fails the render instead of fetching
-    from the network or vanishing. Images arrive already checked and inlined,
-    since WeasyPrint swaps an image it can't decode for its alt text.
+    Images arrive already checked by load_image and inlined, since WeasyPrint
+    swaps an image it can't decode for its alt text, so nothing else needs a
+    file. That also stops an SVG's own <image href="file:..."> (any case)
+    from reading a file load_image would refuse. Anything else, or a missing
+    font, fails the render instead of fetching from the network or vanishing.
+    `base` names the document's folder in the error.
     """
     try:
         from weasyprint import URLFetcher
@@ -324,10 +341,15 @@ def contained_fetcher(base: Path):
 
     class ContainedFetcher(URLFetcher):
         def fetch(self, url, headers=None):
-            if url.startswith("file:"):
+            scheme = urlparse(url).scheme.lower()
+            if scheme == "file":
                 path = Path(unquote(urlparse(url).path)).resolve()
-                if not (path.is_relative_to(base) or path.parent == FONT_DIR):
-                    raise ValueError(f"{path} is outside {base}")
+                if path.parent != FONT_DIR or path.suffix != ".ttf":
+                    raise ValueError(
+                        f"{clip(str(path))} is not an image Rupa inlined from {base}"
+                    )
+            elif scheme != "data":
+                raise ValueError(f"{clip(url)} is not a local resource")
             return super().fetch(url, headers)
 
     return ContainedFetcher(allowed_protocols={"file", "data"}, fail_on_errors=True)

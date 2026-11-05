@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from datetime import date
+from urllib.parse import unquote
 
 import yaml
 from markdown_it import MarkdownIt
@@ -26,6 +27,10 @@ from pygments.util import ClassNotFound
 CHART_LANGS = ("vega-lite", "vegalite")
 ALLOWED_META = {"title", "subtitle", "author", "date", "theme", "toc", "pages"}
 TEXT_META = ("title", "subtitle", "author", "date")
+# A page budget no document comes near. YAML reads 0xFFF... ints of any
+# size, and Python refuses to print one past 4,300 digits, so bigger
+# budgets are capped here; a cap this high never changes a render.
+MAX_PAGES = 100_000
 
 
 class InputError(ValueError):
@@ -36,6 +41,35 @@ def clip(value: object, limit: int = 80) -> str:
     """A value short enough to quote in a one-line error message."""
     text = " ".join(str(value).split())
     return text if len(text) <= limit else text[: limit - 3] + "..."
+
+
+_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def one_line(value: object) -> str:
+    """A path or name for a status line: control characters escaped, so a
+    newline in a file name can't split the one line stdout promises."""
+    return _CONTROL.sub(lambda m: repr(m.group())[1:-1], str(value))
+
+
+def show(value: object) -> str:
+    """repr() for an error message, clipped; never raises.
+
+    repr() of an int past 4,300 digits (or a list holding one) raises
+    ValueError, and YAML reads such ints from a few kilobytes of hex.
+    """
+    try:
+        return clip(repr(value))
+    except ValueError:
+        return f"a very large {type(value).__name__}"
+
+
+def as_text(value: object) -> str:
+    """str() that also works for an int past Python's 4,300-digit limit."""
+    try:
+        return str(value)
+    except ValueError:
+        return hex(value)  # only ints raise here; YAML read it as hex or octal
 
 
 def yaml_problem(exc: Exception) -> str:
@@ -71,23 +105,34 @@ def _check_meta(meta: dict) -> dict:
             continue
         # A bare 2026 or 2026-10-17 in YAML is a number or a date, not a str.
         if isinstance(value, bool) or not isinstance(value, (str, int, float, date)):
-            raise InputError(
-                f"frontmatter '{key}' must be text, got {clip(repr(value))}"
-            )
-        meta[key] = str(value)
+            raise InputError(f"frontmatter '{key}' must be text, got {show(value)}")
+        meta[key] = as_text(value)
     if "theme" in meta and not isinstance(meta["theme"], str):
         raise InputError(
-            f"frontmatter 'theme' must be a theme name, got {clip(repr(meta['theme']))}"
+            f"frontmatter 'theme' must be a theme name, got {show(meta['theme'])}"
         )
+    for key in (*TEXT_META, "theme"):
+        # A YAML "\uD800" escape gives a lone surrogate, which no output
+        # format can encode.
+        if isinstance(meta.get(key), str):
+            try:
+                meta[key].encode("utf-8")
+            except UnicodeEncodeError as exc:
+                raise InputError(
+                    f"frontmatter '{key}' has a character that isn't valid"
+                    f" Unicode ({show(exc.object[exc.start : exc.end])})"
+                ) from exc
     if "toc" in meta and not isinstance(meta["toc"], bool):
         raise InputError(
-            f"frontmatter 'toc' must be true or false, got {clip(repr(meta['toc']))}"
+            f"frontmatter 'toc' must be true or false, got {show(meta['toc'])}"
         )
     pages = meta.get("pages")
     if pages is not None and (
         not isinstance(pages, int) or isinstance(pages, bool) or pages < 1
     ):
         raise InputError("frontmatter 'pages' must be a whole number >= 1")
+    if pages is not None:
+        meta["pages"] = min(pages, MAX_PAGES)
     return meta
 
 
@@ -183,6 +228,10 @@ def _check_image(src: str) -> None:
     A remote image in the HTML would be fetched by the reader's browser, which
     leaks that the page was opened and anything put in the URL.
     """
+    if not src.strip():
+        # markdown-it keeps ![alt](<>) as an image with no source, which
+        # would show only its alt text, or nothing.
+        raise InputError("an image has an empty source")
     if src.lower().startswith("data:image/"):
         if data_image_type(src) not in DATA_IMAGE_TYPES:
             raise InputError(
@@ -194,6 +243,8 @@ def _check_image(src: str) -> None:
         raise InputError(
             f"image '{clip(src)}' must be a relative path or a data:image URI"
         )
+    if "\0" in unquote(src):  # %00: no file name holds one
+        raise InputError(f"image '{clip(src)}' has a NUL (%00) in its path")
 
 
 def _plain_text(inline) -> str:

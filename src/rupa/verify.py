@@ -12,6 +12,7 @@ Two tiers:
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import asdict, dataclass, field
 from importlib import resources
@@ -19,7 +20,12 @@ from pathlib import Path
 
 import yaml
 
-from .document import clip, yaml_problem
+from .document import MAX_PAGES, clip, one_line, show, yaml_problem
+
+# pdfminer and pdfplumber log warnings about odd PDFs. With no handler
+# configured, Python prints them to stderr, which must stay one line.
+for _name in ("pdfminer", "pdfplumber"):
+    logging.getLogger(_name).addHandler(logging.NullHandler())
 
 PT_PER_IN = 72
 PAGE_SIZES = {"letter": (612, 792), "a4": (595, 842)}
@@ -86,7 +92,11 @@ def load_wants(path: str | None) -> dict:
         given = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
     except OSError as exc:
         raise WantsError(f"cannot read wants file: {exc}") from exc
-    except yaml.YAMLError as exc:
+    except UnicodeDecodeError as exc:
+        raise WantsError(f"wants file is not UTF-8: {exc.reason}") from exc
+    # An impossible date (2026-02-30) raises ValueError, and deeply nested
+    # YAML RecursionError; both are bad input, not a crash.
+    except (yaml.YAMLError, ValueError, OverflowError, RecursionError) as exc:
         raise WantsError(f"bad wants file: {yaml_problem(exc)}") from exc
     if not isinstance(given, dict):
         raise WantsError("wants file must be a YAML mapping")
@@ -133,11 +143,12 @@ def _validate(wants: dict) -> None:
         raise WantsError(f"page_size must be one of {sorted(PAGE_SIZES)}")
     if not _is_int(wants["max_pages"]) or wants["max_pages"] < 1:
         raise WantsError("max_pages must be a whole number of at least 1")
+    wants["max_pages"] = min(wants["max_pages"], MAX_PAGES)  # see MAX_PAGES
     color = wants["text_color"]
     if color is not None and not (
         isinstance(color, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", color)
     ):
-        raise WantsError(f"text_color must be #RRGGBB, got {color!r}")
+        raise WantsError(f"text_color must be #RRGGBB, got {show(color)}")
     for key in ("sparse_fill", "near_empty_fill", "figure_gap_fill"):
         if not _is_fraction(wants[key]):
             raise WantsError(f"{key} must be a number from 0 to 1")
@@ -145,7 +156,7 @@ def _validate(wants: dict) -> None:
         raise WantsError("checks must be a list of check names")
     bad = set(wants["checks"]) - set(ALL_CHECKS)
     if bad:
-        raise WantsError(f"unknown checks: {sorted(bad)}")
+        raise WantsError(f"unknown checks: {clip(sorted(bad))}")
     if not isinstance(vision["sample"], str) or vision["sample"] not in SAMPLE_MODES:
         raise WantsError(f"vision.sample must be one of {', '.join(SAMPLE_MODES)}")
     if not _is_int(vision["max_sheets"]) or vision["max_sheets"] < 0:
@@ -219,7 +230,7 @@ class PageInfo:
 def _hex_to_rgb(value: str) -> tuple[float, float, float]:
     v = value.lstrip("#")
     if len(v) != 6:
-        raise WantsError(f"text_color must be #RRGGBB, got {value!r}")
+        raise WantsError(f"text_color must be #RRGGBB, got {show(value)}")
     return tuple(int(v[i : i + 2], 16) / 255 for i in (0, 2, 4))
 
 
@@ -228,6 +239,9 @@ def _to_rgb(color) -> tuple[float, float, float] | None:
     if color is None:
         return None
     c = tuple(color) if isinstance(color, (list, tuple)) else (color,)
+    # A pattern fill comes through as its name, not as numbers.
+    if not all(isinstance(v, (int, float)) for v in c):
+        return None
     if len(c) == 1:
         return (c[0], c[0], c[0])
     if len(c) == 3:
@@ -257,7 +271,13 @@ def read_pages(pdf_path: str | Path, wanted_color="#000000") -> list[PageInfo]:
     try:
         return _read_pages(pdfplumber, pdf_path, want)
     except Exception as exc:  # pdfminer raises many types on a damaged file
-        raise PdfError(f"cannot read PDF {pdf_path}: {exc}") from exc
+        # Some pdfminer errors have no message (PDFPasswordIncorrect).
+        # pdfplumber wraps them in PdfminerException(original).
+        inner = exc.args[0] if exc.args and isinstance(exc.args[0], Exception) else exc
+        why = str(inner) or type(inner).__name__
+        if "password" in type(inner).__name__.lower():
+            why = "it is password-protected"
+        raise PdfError(f"cannot read PDF {pdf_path}: {why}") from exc
 
 
 def _read_pages(pdfplumber, pdf_path, want) -> list[PageInfo]:
@@ -622,7 +642,7 @@ class VerifyReport:
             n = len(self.sheets)
             line += (
                 f"; {n} sheet{'s' if n != 1 else ''} for visual review"
-                f" in {Path(self.manifest).parent}/"
+                f" in {one_line(Path(self.manifest).parent)}/"
             )
         return line
 

@@ -31,7 +31,7 @@ from importlib import resources
 from pathlib import Path
 
 from . import __version__
-from .document import InputError, parse
+from .document import InputError, one_line, parse
 from .render import (
     PROSE_WORDS_PER_LINE,
     THEMES,
@@ -47,11 +47,31 @@ FORMATS = ("html", "pdf", "docx")
 REPLACEABLE = tuple(f".{f}" for f in FORMATS)
 
 
-def _render_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(
+class _Parser(argparse.ArgumentParser):
+    """argparse, but a usage error is one line on stderr (or one JSON object
+    with --json) and exit 2, like every other Rupa error. --help is as usual."""
+
+    json_out = False  # set from argv before parsing: parse_args can't tell us
+
+    def error(self, message):
+        _err(
+            argparse.Namespace(json=self.json_out),
+            f"{message} (see {self.prog} --help)",
+        )
+        sys.exit(EXIT_USAGE)
+
+
+def _parser(argv: list[str], **kwargs) -> _Parser:
+    p = _Parser(allow_abbrev=False, **kwargs)  # contract: flags spelled in full
+    p.json_out = "--json" in argv
+    return p
+
+
+def _render_parser(argv: list[str] = ()) -> argparse.ArgumentParser:
+    p = _parser(
+        argv,
         prog="rupa",
         description="Render Markdown to HTML, PDF or DOCX.",
-        allow_abbrev=False,  # contract: flags are spelled in full
         epilog="To render a file named verify or refs, write ./verify or ./refs.",
     )
     p.add_argument(
@@ -90,7 +110,7 @@ def _err(args, msg: str) -> None:
 
 
 def render_main(argv: list[str]) -> int:
-    args = _render_parser().parse_args(argv)
+    args = _render_parser(argv).parse_args(argv)
     out = Path(args.output)
     fmt = args.to or out.suffix.lstrip(".").lower()
     if fmt not in FORMATS:
@@ -113,7 +133,8 @@ def render_main(argv: list[str]) -> int:
             if args.input == "-"
             else Path(args.input).read_bytes()
         )
-        text = raw.decode("utf-8")
+        # utf-8-sig drops a leading BOM, which would hide the frontmatter.
+        text = raw.decode("utf-8-sig")
         # DOCX is built from the tokens, so it skips the HTML render.
         doc = parse(text, html=fmt != "docx")
     except (InputError, OSError, UnicodeDecodeError) as exc:
@@ -159,7 +180,7 @@ def render_main(argv: list[str]) -> int:
         extra = f", {pages} page{'s' if pages != 1 else ''}" if pages else ""
         if fit and fit.steps and not over:
             extra += f", fit to {budget} with {' + '.join(fit.steps)}"
-        line = f"rupa: wrote {out} ({fmt}{extra}, {len(data):,} bytes)"
+        line = f"rupa: wrote {one_line(out)} ({fmt}{extra}, {len(data):,} bytes)"
         if over:
             line += (
                 f"; over the {budget}-page budget at the tightest type:"
@@ -181,9 +202,7 @@ def verify_main(argv: list[str]) -> int:
         verify,
     )
 
-    p = argparse.ArgumentParser(
-        prog="rupa verify", description="Check a rendered PDF.", allow_abbrev=False
-    )
+    p = _parser(argv, prog="rupa verify", description="Check a rendered PDF.")
     p.add_argument("pdf")
     p.add_argument("--wants", help="wants.yaml (default: built-in rules)")
     p.add_argument(
@@ -236,10 +255,8 @@ def _in_checkout(pkg: Path) -> bool:
 def refs_main(argv: list[str]) -> int:
     from .verify import build_references
 
-    p = argparse.ArgumentParser(
-        prog="rupa refs",
-        description="Rebuild a theme's reference pages.",
-        allow_abbrev=False,
+    p = _parser(
+        argv, prog="rupa refs", description="Rebuild a theme's reference pages."
     )
     p.add_argument("--theme", default="default")
     p.add_argument(
@@ -274,7 +291,10 @@ def refs_main(argv: list[str]) -> int:
             _err(args, f"cannot write to {out}: {exc.strerror or exc}")
             return EXIT_INPUT
     kinds = ", ".join(f"{k}=p{n}" for k, n in sorted(picked.items()))
-    print(f"rupa: wrote references for '{args.theme}' to {out} ({kinds})")
+    print(
+        f"rupa: wrote references for '{one_line(args.theme)}'"
+        f" to {one_line(out)} ({kinds})"
+    )
     return EXIT_OK
 
 

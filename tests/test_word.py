@@ -204,6 +204,26 @@ def test_image_outside_folder_fails(tmp_path, monkeypatch, capsys):
     assert not (tmp_path / "o.docx").exists()
 
 
+def test_svg_cannot_pull_in_a_file(tmp_path, monkeypatch, capsys):
+    # An SVG's own <image> must not read a file, whatever case the scheme is in.
+    (tmp_path / "doc").mkdir()
+    secret = tmp_path / "secret.png"
+    secret.write_bytes(PNG)
+    for href in (f"FILE://{secret}", f"file://{secret}", "../secret.png"):
+        svg = (
+            '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20">'
+            f'<image href="{href}" width="40" height="20"/></svg>'
+        )
+        (tmp_path / "doc" / "pic.svg").write_text(svg)
+        src = tmp_path / "doc" / "doc.md"
+        src.write_text("# T\n\n![x](pic.svg)\n")
+        out = tmp_path / "o.docx"
+        code = main([str(src), "-o", str(out)])
+        _, err = capsys.readouterr()
+        assert code == EXIT_RENDER and "SVG" in err, (href, err)
+        assert not out.exists()
+
+
 def test_fake_image_fails(tmp_path, monkeypatch, capsys):
     (tmp_path / "env.png").write_text("SECRET=1\n")
     code, out, _, err = render(tmp_path, monkeypatch, capsys, "# T\n\n![x](env.png)\n")

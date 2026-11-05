@@ -157,6 +157,8 @@ def _local_file(src: str, base: Path, what: str) -> Path:
     """A file inside base, not hidden: the same rule as render.load_image."""
     from .render import RenderError
 
+    if "\0" in unquote(src):  # resolve() raises ValueError on a NUL
+        raise RenderError(f"blocked {what}: its path has a NUL (%00)")
     path = (base / unquote(src)).resolve()
     if not path.is_relative_to(base):
         raise RenderError(f"blocked or missing {what}: {path} is outside {base}")
