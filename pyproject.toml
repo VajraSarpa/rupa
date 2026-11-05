@@ -1,7 +1,7 @@
 [project]
 name = "rupa"
 version = "0.1.6"
-description = "Render Markdown + frontmatter from stdin into styled HTML, PDF or DOCX."
+description = "Render Markdown + frontmatter into themed HTML, PDF or DOCX, with Vega-Lite charts."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

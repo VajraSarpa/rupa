@@ -5,8 +5,9 @@
 **Claude writes the content. Rupa owns the form.**
 
 Rupa is a command-line renderer and a Claude Code plugin. Claude writes plain
-Markdown; Rupa turns it into a themed HTML page, PDF or Word document, checks the PDF with
-code, and shows Claude page images only when something looks wrong. *Rūpa*
+Markdown, with charts as Vega-Lite specs; Rupa turns it into a themed HTML page,
+PDF or Word document, checks the PDF with code, and shows Claude page images
+only when something looks wrong. *Rūpa*
 is Sanskrit for "form".
 
 **Read the story:** [the case study](docs/dist/Rupa-Case-Study.pdf) covers why Rupa
