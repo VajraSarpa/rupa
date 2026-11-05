@@ -1,6 +1,6 @@
 # Rupa CLI contract
 
-What each `rupa` command reads, writes, deletes and reaches, as of `v0.1.6`.
+What each `rupa` command reads, writes, deletes and reaches, as of `v0.1.7`.
 The README's [Contract](../README.md#contract) section covers stdout and exit
 codes for the plugin; this page is for anyone who wraps or polices the
 commands, such as a pre-execution policy check.
