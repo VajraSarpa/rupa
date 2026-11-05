@@ -13,6 +13,7 @@ dependencies = [
     "weasyprint>=70",
     "pdfplumber>=0.11",
     "pypdfium2>=4",  # rasterises SVG for DOCX (already a pdfplumber dependency)
+    "linkify-it-py>=2.0",
 ]
 
 [project.optional-dependencies]

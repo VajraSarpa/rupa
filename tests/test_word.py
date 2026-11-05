@@ -161,6 +161,14 @@ def test_only_web_links_are_links(tmp_path, monkeypatch, capsys):
     assert "f" in body and "s" in body  # the text stays, without the link
 
 
+def test_bare_urls_are_links(tmp_path, monkeypatch, capsys):
+    text = "# T\n\nSee https://a.example/x, www.b.org and me@c.com. `https://code.example`\n"
+    _, out, _, _ = render(tmp_path, monkeypatch, capsys, text)
+    rels = parts(out)["word/_rels/document.xml.rels"].decode()
+    targets = re.findall(r'Target="([^"]+)" TargetMode="External"', rels)
+    assert targets == ["https://a.example/x", "http://www.b.org", "mailto:me@c.com"]
+
+
 def test_raw_html_and_control_chars_are_text(tmp_path, monkeypatch, capsys):
     text = "# T\n\n<script>alert(1)</script> and a \x01bell\x0b.\n"
     code, out, _, _ = render(tmp_path, monkeypatch, capsys, text)

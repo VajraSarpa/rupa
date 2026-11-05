@@ -43,6 +43,18 @@ def test_pdf_text_is_forced_black(tmp_path):
     assert "color: #000000 !important" in html
 
 
+def test_pdf_bare_url_is_a_link_annotation(tmp_path, monkeypatch, capsys):
+    import pdfplumber
+
+    target = tmp_path / "out.pdf"
+    doc = DOC + "\nRead https://example.com/docs and `https://example.com/code`.\n"
+    code, _, _ = run(monkeypatch, capsys, ["-o", str(target)], stdin=doc)
+    assert code == EXIT_OK
+    with pdfplumber.open(target) as pdf:
+        uris = [link.get("uri") for page in pdf.pages for link in page.hyperlinks]
+    assert uris == ["https://example.com/docs"]
+
+
 def test_unknown_extension_is_usage_error(tmp_path, monkeypatch, capsys):
     code, _, err = run(monkeypatch, capsys, ["-o", str(tmp_path / "out.odt")])
     assert code == EXIT_USAGE and "use --to" in err

@@ -212,7 +212,7 @@ Body conventions:
 - `#` is a part. In PDF each part starts a new page, so the skill keeps parts for long documents (about 8 pages or more); in a short one they leave half-empty pages.
 - `##` is a section, `###` a subsection. Sections get anchors automatically.
 - Fenced code blocks take a language tag for highlighting.
-- Tables use GitHub pipe syntax. `~~strikethrough~~`, task lists (`- [ ]`, `- [x]`) and footnotes (`[^1]`) work too; in a PDF the footnotes are collected at the end.
+- Tables use GitHub pipe syntax. `~~strikethrough~~`, task lists (`- [ ]`, `- [x]`) and footnotes (`[^1]`) work too; in a PDF the footnotes are collected at the end. Bare `https://`, `http://`, `www.` and email addresses become links in HTML and PDF, except inside code; no other scheme is linked.
 - Raw HTML is escaped and shown as text.
 - Images must be relative paths next to the Markdown file, or `data:image` URIs. A URL, an absolute path or a `data:image` URI of any other type is bad input (exit code 3); a missing file, a hidden one, one outside the Markdown file's folder, or one that doesn't decode as a PNG, JPEG, GIF, WebP or SVG image fails the render (exit code 4). HTML output embeds each image as a data URI, so the file can be sent on its own.
 

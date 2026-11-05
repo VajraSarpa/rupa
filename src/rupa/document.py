@@ -127,9 +127,13 @@ def _highlight(code: str, lang: str, _attrs: str) -> str:
 
 def _build_parser() -> MarkdownIt:
     # html=False: raw HTML in the input is escaped, never passed through.
-    md = MarkdownIt("commonmark", {"html": False, "highlight": _highlight}).enable(
-        ["table", "strikethrough"]
-    )
+    md = MarkdownIt(
+        "commonmark", {"html": False, "highlight": _highlight, "linkify": True}
+    ).enable(["table", "strikethrough", "linkify"])
+    # Bare URLs become links (never inside code), but only web and mail ones:
+    # drop linkify-it's ftp: and protocol-relative // schemas.
+    md.linkify.add("ftp:", None)
+    md.linkify.add("//", None)
     md.use(front_matter_plugin)
     md.use(tasklists_plugin)
     md.use(footnote_plugin)
@@ -161,6 +165,7 @@ def _build_parser() -> MarkdownIt:
     return md
 
 
+_LINKIFY_HREF = re.compile(r"(https?://|mailto:)", re.IGNORECASE)
 _SCHEME = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*:")
 
 # The data:image types render.load_image can decode.
@@ -244,6 +249,8 @@ def parse(text: str, *, html: bool = True) -> Document:
                 _check_image(str(child.attrs.get("src", "")))
             elif child.type == "link_open":
                 href = str(child.attrs.get("href", ""))
+                if child.markup == "linkify" and not _LINKIFY_HREF.match(href):
+                    raise InputError(f"link '{clip(href)}' is not http(s) or mailto")
                 # Only images may carry the data:image URLs let through above.
                 if href.lower().startswith("data:") and not validateLink(href):
                     raise InputError(f"link '{clip(href)}' cannot be a data: URL")

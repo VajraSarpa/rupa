@@ -10,7 +10,7 @@ skill makes Claude use it instead of hand-writing markup.
 
 ```bash
 uv sync                                   # needs Pango for WeasyPrint (see README)
-uv run pytest -q                          # 274 tests
+uv run pytest -q                          # 290 tests
 uv run pytest tests/test_verify.py::test_stranded_heading_fails   # one test
 uvx ruff check src tests                  # CI runs this too
 uvx ruff format --check src tests         # and this
@@ -80,9 +80,11 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
   stands alone and WeasyPrint never swaps a bad image for its alt text. A
   missing, refused or undecodable file fails the render (exit 4) rather than
   vanishing or leaking into the page.
-- **Markdown:** CommonMark plus tables, strikethrough, task lists and
-  footnotes (endnotes in PDF). Verify can't see unconverted syntax, so a
-  feature Claude writes naturally should be enabled here, not banned.
+- **Markdown:** CommonMark plus tables, strikethrough, task lists,
+  footnotes (endnotes in PDF) and linkify (bare http(s), `www.` and email
+  become links; never in code; linkify's `ftp:` and `//` are dropped).
+  Verify can't see unconverted syntax, so a feature Claude writes naturally
+  should be enabled here, not banned.
 - **`verify.py`** reads the PDF with pdfplumber into `PageInfo`/`Line`
   records, classifies pages (cover / prose / table / code), runs the checks
   in `ALL_CHECKS` against a wants dict (`DEFAULT_WANTS`, overridable by a
