@@ -10,7 +10,7 @@ skill makes Claude use it instead of hand-writing markup.
 
 ```bash
 uv sync                                   # needs Pango for WeasyPrint (see README)
-uv run pytest -q                          # 348 tests (33 xfail: bugs from docs/fuzz-2026-10.md)
+uv run pytest -q                          # 349 tests
 uv run pytest tests/test_verify.py::test_stranded_heading_fails   # one test
 RUPA_FUZZ_EXAMPLES=1000 uv run pytest tests/test_fuzz.py -q   # deep fuzz run
 uvx ruff check src tests                  # CI runs this too

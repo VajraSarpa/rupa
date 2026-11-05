@@ -5,10 +5,9 @@ property) so the suite stays fast. For a deep run:
 
     RUPA_FUZZ_EXAMPLES=1000 uv run pytest tests/test_fuzz.py -q
 
-Every bug these found is pinned as a plain test at the bottom, marked
-xfail(strict=True); docs/fuzz-2026-10.md explains each one. The strategies
-steer around those known bugs (see `_known_bug`) so a property only fails
-on something new.
+Every bug these found is pinned as a test_bugNN_* test at the bottom;
+docs/fuzz-2026-10.md explains each one and the fix. A new bug goes there
+as xfail(strict=True) until it's fixed.
 """
 
 from __future__ import annotations
@@ -119,20 +118,6 @@ def no_network(monkeypatch):
     return attempts, opened
 
 
-_LONG_DIGITS = re.compile(r"[0-9a-fA-F_]{1000,}")
-_SURROGATE_ESCAPE = re.compile(r"\\(u0*|U0*)[dD][89a-fA-F][0-9a-fA-F]{2}")
-
-
-def _known_bug(text: str) -> bool:
-    """Inputs that hit a bug already pinned below; keep properties on new ground."""
-    return bool(
-        _LONG_DIGITS.search(text)  # bug 1: int-to-str digit limit
-        or _SURROGATE_ESCAPE.search(text)  # bug 2: YAML escapes a lone surrogate
-        or "%00" in text  # bug 3: NUL in an image path
-        or "\ufeff" in text  # bug 17: BOM hides the frontmatter (not a crash)
-    )
-
-
 # ---------------------------------------------------------------- strategies
 
 # fmt: off
@@ -148,13 +133,9 @@ MD_FRAGMENTS = [
     "(", ")", "!", "{{ title }}", "{% raw %}",
 ]
 # fmt: on
-markdown = (
-    st.lists(
-        st.one_of(st.sampled_from(MD_FRAGMENTS), st.text(max_size=30)), max_size=40
-    )
-    .map("".join)
-    .filter(lambda s: not _known_bug(s))
-)
+markdown = st.lists(
+    st.one_of(st.sampled_from(MD_FRAGMENTS), st.text(max_size=30)), max_size=40
+).map("".join)
 
 yaml_scalars = st.one_of(
     st.none(),
@@ -201,9 +182,7 @@ def frontmatter(draw) -> str:
     return f"---\n{body}\n---\n"
 
 
-documents = (
-    st.tuples(frontmatter(), markdown).map("".join).filter(lambda s: not _known_bug(s))
-)
+documents = st.tuples(frontmatter(), markdown).map("".join)
 
 
 # ---------------------------------------------------------------- CLI contract
@@ -236,7 +215,6 @@ def test_cli_never_crashes_on_markdown_and_frontmatter_pdf(
 
 @given(raw=st.binary(max_size=300))
 def test_cli_never_crashes_on_arbitrary_bytes(tmp_path, raw):
-    assume(not _known_bug(raw.decode("utf-8", "replace")))
     code, stdout, stderr = run_cli(["-o", str(tmp_path / "o.html")], raw)
     assert_contract(code, stdout, stderr)
 
@@ -259,7 +237,7 @@ def test_cli_arguments_never_crash(tmp_path, monkeypatch, argv):
     # Every path lands in tmp_path; refs is a maintainer command that rebuilds
     # PNGs, so keep it away from the real reference pages.
     assume("refs" not in argv)
-    assume(not any("\n" in a or "\r" in a or "\x00" in a for a in argv))  # bug 11
+    assume(not any("\x00" in a for a in argv))  # no real argv can hold a NUL
     monkeypatch.chdir(tmp_path)
     code, stdout, stderr = run_cli(argv, b"# Hi\n")
     assert code in CONTRACT_CODES, (argv, stderr[-600:])
@@ -415,13 +393,6 @@ def _svg_uri(href: str) -> str:
     return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
 
 
-def _svg_known_bug(href: str, root: Path) -> bool:
-    """Bugs 4 and 5: WeasyPrint fetches an SVG's own <image> through a fetcher
-    that matches 'file:' case-sensitively and skips the hidden/extension rules."""
-    low = href.lower()
-    return low.startswith("file:") or href.startswith(("/", str(root)))
-
-
 def _embedded_sizes_pdf(data: bytes) -> set[tuple[int, int]]:
     with pdfplumber.open(io.BytesIO(data)) as pdf:
         return {
@@ -443,9 +414,7 @@ def _embedded_sizes_html(html: str) -> set[tuple[int, int]]:
 def _containment(sandbox, no_network, src, fmt, svg):
     root = sandbox
     if svg:
-        assume(not _svg_known_bug(src, root))
         src = _svg_uri(src)
-    assume("%00" not in src)  # bug 3
     md = root / "doc" / "in.md"
     md.write_text(f"# T\n\n![x]({src})\n\n[link]({src})\n", encoding="utf-8")
     out = root / f"o.{fmt}"
@@ -722,13 +691,10 @@ wants_files = st.fixed_dictionaries(
 
 @settings(max_examples=PDF_EXAMPLES)
 @given(
-    wants=st.one_of(
-        wants_files, st.text(max_size=80).filter(lambda s: not _known_bug(s))
-    ),
+    wants=st.one_of(wants_files, st.text(max_size=80)),
     json_mode=st.booleans(),
 )
 def test_verify_never_crashes_on_wants_files(tmp_path, rupa_pdf, wants, json_mode):
-    assume(not re.search(r"\d{4}-\d\d-\d\d", wants))  # bug 8: impossible dates
     path = tmp_path / "wants.yaml"
     path.write_text(wants, encoding="utf-8")
     argv = ["--wants", str(path)] + (["--json"] if json_mode else [])
@@ -816,7 +782,6 @@ def _xfail(n: int, reason: str):
     return pytest.mark.xfail(strict=True, reason=f"bug {n}: {reason}")
 
 
-@_xfail(1, "str()/repr() of a >4300-digit frontmatter int raises ValueError")
 @pytest.mark.parametrize(
     "line, want",
     [
@@ -833,21 +798,18 @@ def test_bug01_huge_frontmatter_int_crashes(tmp_path, line, want):
     assert code == want, err[-300:]
 
 
-@_xfail(1, "--json status line json.dumps a >4300-digit 'pages' budget")
 def test_bug01_huge_pages_budget_crashes_json_status(tmp_path):
     doc = f"---\npages: {HEX}\n---\n# x\n".encode()
     code, out, err = run_cli(["-o", str(tmp_path / "o.pdf"), "--json"], doc)
     assert code == 0 and json.loads(out)["ok"], err[-300:]
 
 
-@_xfail(2, "a YAML \\uD800 escape puts a lone surrogate in the title; encode crashes")
 def test_bug02_surrogate_in_frontmatter_crashes_html(tmp_path):
     doc = b'---\ntitle: "\\uD800"\n---\n# x\n'
     code, _out, err = run_cli(["-o", str(tmp_path / "o.html")], doc)
     assert code == 3 and err.count("\n") == 1, err[-300:]
 
 
-@_xfail(3, "Path.resolve() raises ValueError on a NUL from %00 in an image path")
 @pytest.mark.parametrize("ext", ["html", "pdf"])
 def test_bug03_nul_in_image_path_crashes(tmp_path, ext):
     code, _out, err = run_cli(
@@ -856,7 +818,6 @@ def test_bug03_nul_in_image_path_crashes(tmp_path, ext):
     assert code in (3, 4) and err.count("\n") == 1, err[-300:]
 
 
-@_xfail(4, "ContainedFetcher checks url.startswith('file:') case-sensitively")
 def test_bug04_svg_image_with_uppercase_file_url_escapes_the_folder(sandbox):
     out_png = sandbox / "out.png"
     md = sandbox / "doc" / "bug4.md"
@@ -866,7 +827,6 @@ def test_bug04_svg_image_with_uppercase_file_url_escapes_the_folder(sandbox):
     assert code == 4 or OUTSIDE not in _embedded_sizes_pdf(pdf.read_bytes())
 
 
-@_xfail(5, "the fetcher lets an SVG's <image> read hidden and non-image files")
 @pytest.mark.parametrize(
     "rel, size", [(".h/in.png", HIDDEN), ("secret.dat", WRONG_EXT)]
 )
@@ -884,7 +844,6 @@ def _wants_run(tmp_path, rupa_pdf, body: bytes):
     return _verify(tmp_path, rupa_pdf, "--wants", str(path))
 
 
-@_xfail(6, "load_wants doesn't catch UnicodeDecodeError")
 def test_bug06_non_utf8_wants_crashes(tmp_path, rupa_pdf):
     code, _, err = _wants_run(
         tmp_path, rupa_pdf, "theme: d\xe9fault\n".encode("latin-1")
@@ -892,7 +851,6 @@ def test_bug06_non_utf8_wants_crashes(tmp_path, rupa_pdf):
     assert code == 3 and err.count("\n") == 1, err[-300:]
 
 
-@_xfail(7, "load_wants doesn't catch RecursionError from deeply nested YAML")
 def test_bug07_deeply_nested_wants_crashes(tmp_path, rupa_pdf):
     code, _, err = _wants_run(
         tmp_path, rupa_pdf, b"rubric: " + b"[" * 5000 + b"]" * 5000
@@ -900,13 +858,11 @@ def test_bug07_deeply_nested_wants_crashes(tmp_path, rupa_pdf):
     assert code == 3 and err.count("\n") == 1, err[-300:]
 
 
-@_xfail(8, "load_wants doesn't catch ValueError from an impossible YAML date")
 def test_bug08_impossible_date_in_wants_crashes(tmp_path, rupa_pdf):
     code, _, err = _wants_run(tmp_path, rupa_pdf, b"theme: 2026-02-30\n")
     assert code == 3 and err.count("\n") == 1, err[-300:]
 
 
-@_xfail(9, "wants ints over 4300 digits crash str()/repr() in checks and messages")
 @pytest.mark.parametrize(
     "line, want", [(f"max_pages: {HEX}", 0), (f"text_color: {HEX}", 3)]
 )
@@ -915,7 +871,6 @@ def test_bug09_huge_int_in_wants_crashes(tmp_path, rupa_pdf, line, want):
     assert code == want, err[-300:]
 
 
-@_xfail(10, "wants error messages quote values unclipped (contract: 80 chars)")
 @pytest.mark.parametrize(
     "line", ["text_color: '" + "x" * 500 + "'", "checks: ['" + "x" * 500 + "']"]
 )
@@ -924,13 +879,11 @@ def test_bug10_wants_errors_quote_values_unclipped(tmp_path, rupa_pdf, line):
     assert code == 3 and len(err) < 200, len(err)
 
 
-@_xfail(11, "the status line prints the path raw, so a newline in it splits stdout")
 def test_bug11_newline_in_output_path_splits_status_line(tmp_path):
     code, out, _ = run_cli(["-o", str(tmp_path / "a\nb.html")], b"# x\n")
     assert code == 0 and out.count("\n") == 1, out
 
 
-@_xfail(11, "verify's summary prints the sheet folder raw, too")
 def test_bug11_newline_in_pdf_path_splits_verify_line(tmp_path, rupa_pdf):
     pdf = tmp_path / "a\nb.pdf"
     pdf.write_bytes(rupa_pdf)
@@ -938,7 +891,6 @@ def test_bug11_newline_in_pdf_path_splits_verify_line(tmp_path, rupa_pdf):
     assert code in (0, 5) and out.count("\n") == 1, out
 
 
-@_xfail(12, "argparse prints a three-line usage block before the error")
 @pytest.mark.parametrize(
     "argv",
     [[], ["-o", "x.pdf", "--pages", "abc"], ["verify"], ["-o", "x.pdf", "--nope"]],
@@ -949,14 +901,12 @@ def test_bug12_usage_errors_are_one_line(tmp_path, monkeypatch, argv):
     assert code == 2 and err.count("\n") == 1, err
 
 
-@_xfail(12, "with --json a usage error prints no JSON object")
 def test_bug12_usage_error_with_json_prints_json(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     code, out, _ = run_cli(["-o", "x.pdf", "--pages", "abc", "--json"], b"# x\n")
     assert code == 2 and json.loads(out)["ok"] is False
 
 
-@_xfail(13, "pdfminer's logging warnings reach stderr through logging.lastResort")
 def test_bug13_pdfminer_warnings_add_stderr_lines(tmp_path):
     # Run as a subprocess: pytest's own log handler would swallow the warning.
     pdf = tmp_path / "box.pdf"
@@ -972,20 +922,17 @@ def test_bug13_pdfminer_warnings_add_stderr_lines(tmp_path):
     assert proc.stderr.count("\n") <= 1, proc.stderr
 
 
-@_xfail(14, "_to_rgb assumes numeric colour components; a Pattern fill is a name")
 def test_bug14_pattern_filled_text_is_not_an_unreadable_pdf(tmp_path):
     code, _out, err = _verify(tmp_path, pattern_pdf())
     assert code in (0, 5), err  # a text-color failure, not 'cannot read PDF'
 
 
-@_xfail(15, "PDFPasswordIncorrect has an empty message, so the error ends in ': '")
 def test_bug15_password_pdf_error_says_why(tmp_path):
     code, _, err = _verify(tmp_path, encrypted_pdf(b"secret"))
     reason = err.split("in.pdf", 1)[1]  # the tmp path names this test
     assert code == 3 and "password" in reason.lower(), err
 
 
-@_xfail(16, "load_image matches 'data:' and ';base64' case-sensitively")
 @pytest.mark.parametrize("prefix", ["DATA:image/png;base64,", "data:image/png;BASE64,"])
 def test_bug16_uppercase_data_uri_is_refused(tmp_path, prefix):
     buf = io.BytesIO()
@@ -995,7 +942,6 @@ def test_bug16_uppercase_data_uri_is_refused(tmp_path, prefix):
     assert code == 0, err
 
 
-@_xfail(17, "a UTF-8 BOM before '---' hides the frontmatter; it renders as body")
 def test_bug17_bom_hides_frontmatter(tmp_path):
     out = tmp_path / "o.html"
     doc = "\ufeff---\ntitle: Bom Title\n---\n\nBody.\n".encode()
@@ -1003,7 +949,6 @@ def test_bug17_bom_hides_frontmatter(tmp_path):
     assert code == 0 and "<title>Bom Title</title>" in out.read_text()
 
 
-@_xfail(18, "an empty image src skips load_image; the PDF shows the alt text")
 @pytest.mark.parametrize("ext", ["html", "pdf"])
 def test_bug18_empty_image_src_vanishes(tmp_path, ext):
     code, _, err = run_cli(

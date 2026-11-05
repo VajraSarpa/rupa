@@ -1,6 +1,6 @@
 [project]
 name = "rupa"
-version = "0.1.6"
+version = "0.1.7"
 description = "Render Markdown + frontmatter into themed HTML, PDF or DOCX, with Vega-Lite charts."
 readme = "README.md"
 requires-python = ">=3.11"

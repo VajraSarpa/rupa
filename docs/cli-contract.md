@@ -1,6 +1,6 @@
 # Rupa CLI contract
 
-What each `rupa` command reads, writes, deletes and reaches, as of `v0.1.6`.
+What each `rupa` command reads, writes, deletes and reaches, as of `v0.1.7`.
 The README's [Contract](../README.md#contract) section covers stdout and exit
 codes for the plugin; this page is for anyone who wraps or polices the
 commands, such as a pre-execution policy check.
@@ -54,13 +54,21 @@ external templates or remote images; its only hyperlinks are `http`,
 `https`, `mailto` and links to its own headings, and its only fields are
 the footer's page numbers. An image must be a relative path inside the input's
 folder (not hidden, an image extension, bytes that decode) or a `data:image`
-URI; anything else fails the run (exit 3 or 4).
+URI; anything else fails the run (exit 3 or 4). An SVG image may link only
+to its own `#ids` and to `data:` URIs (since `v0.1.7`); an SVG that names
+any other file or URL fails the run (exit 4).
 
 ## Exit codes
 
 `0` ok, `2` usage, `3` bad input (including a missing PDF to verify or an
 unwritable verify folder), `4` render failure, `5` verify checks failed or a
 PDF still over its page budget. A crash is exit `1`.
+
+A usage error (a missing `-o`, a bad `--pages` value, an unknown flag) is
+one `rupa: error: …` line on stderr, or one `{"ok": false, "error": …}`
+object on stdout when `--json` is anywhere in the arguments. Up to `v0.1.6`
+it was argparse's usage block plus the error line, and `--json` was
+ignored. `--help` and `--version` print as before.
 
 ## Stability
 
