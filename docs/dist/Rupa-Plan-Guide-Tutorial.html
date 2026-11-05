@@ -1474,7 +1474,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="n">rupa</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"rupa.cli:main"</span>
 
 <span class="k">[dependency-groups]</span>
-<span class="n">dev</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"pytest&gt;=8"</span><span class="p">,</span><span class="w"> </span><span class="s2">"vl-convert-python&gt;=1.9"</span><span class="p">]</span>
+<span class="n">dev</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"hypothesis&gt;=6.170.14"</span><span class="p">,</span><span class="w"> </span><span class="s2">"pytest&gt;=8"</span><span class="p">,</span><span class="w"> </span><span class="s2">"vl-convert-python&gt;=1.9"</span><span class="p">]</span>
 
 <span class="k">[build-system]</span>
 <span class="n">requires</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"hatchling"</span><span class="p">]</span>
@@ -1486,6 +1486,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="k">[tool.pytest.ini_options]</span>
 <span class="n">pythonpath</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"src"</span><span class="p">]</span>
 <span class="n">testpaths</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"tests"</span><span class="p">]</span>
+<span class="n">markers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"fuzz: property and fuzz tests (tests/test_fuzz.py); RUPA_FUZZ_EXAMPLES sets the depth"</span><span class="p">]</span>
 
 <span class="k">[tool.ruff]</span>
 <span class="n">line-length</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">88</span>
@@ -1518,6 +1519,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">unquote</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">markdown_it</span><span class="w"> </span><span class="kn">import</span> <span class="n">MarkdownIt</span>
@@ -1535,6 +1537,10 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="n">CHART_LANGS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"vega-lite"</span><span class="p">,</span> <span class="s2">"vegalite"</span><span class="p">)</span>
 <span class="n">ALLOWED_META</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"title"</span><span class="p">,</span> <span class="s2">"subtitle"</span><span class="p">,</span> <span class="s2">"author"</span><span class="p">,</span> <span class="s2">"date"</span><span class="p">,</span> <span class="s2">"theme"</span><span class="p">,</span> <span class="s2">"toc"</span><span class="p">,</span> <span class="s2">"pages"</span><span class="p">}</span>
 <span class="n">TEXT_META</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="s2">"subtitle"</span><span class="p">,</span> <span class="s2">"author"</span><span class="p">,</span> <span class="s2">"date"</span><span class="p">)</span>
+<span class="c1"># A page budget no document comes near. YAML reads 0xFFF... ints of any</span>
+<span class="c1"># size, and Python refuses to print one past 4,300 digits, so bigger</span>
+<span class="c1"># budgets are capped here; a cap this high never changes a render.</span>
+<span class="n">MAX_PAGES</span> <span class="o">=</span> <span class="mi">100_000</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">InputError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
@@ -1545,6 +1551,35 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="w">    </span><span class="sd">"""A value short enough to quote in a one-line error message."""</span>
     <span class="n">text</span> <span class="o">=</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">text</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">limit</span> <span class="k">else</span> <span class="n">text</span><span class="p">[:</span> <span class="n">limit</span> <span class="o">-</span> <span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"..."</span>
+
+
+<span class="n">_CONTROL</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[\x00-\x1f\x7f]"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">one_line</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A path or name for a status line: control characters escaped, so a</span>
+<span class="sd">    newline in a file name can't split the one line stdout promises."""</span>
+    <span class="k">return</span> <span class="n">_CONTROL</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="nb">repr</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">())[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">show</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""repr() for an error message, clipped; never raises.</span>
+
+<span class="sd">    repr() of an int past 4,300 digits (or a list holding one) raises</span>
+<span class="sd">    ValueError, and YAML reads such ints from a few kilobytes of hex.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">clip</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"a very large </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">as_text</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""str() that also works for an int past Python's 4,300-digit limit."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">hex</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>  <span class="c1"># only ints raise here; YAML read it as hex or octal</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">yaml_problem</span><span class="p">(</span><span class="n">exc</span><span class="p">:</span> <span class="ne">Exception</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -1580,23 +1615,34 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
             <span class="k">continue</span>
         <span class="c1"># A bare 2026 or 2026-10-17 in YAML is a number or a date, not a str.</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">date</span><span class="p">)):</span>
-            <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"frontmatter '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">' must be text, got </span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">value</span><span class="p">))</span><span class="si">}</span><span class="s2">"</span>
-            <span class="p">)</span>
-        <span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"frontmatter '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">' must be text, got </span><span class="si">{</span><span class="n">show</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">as_text</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
     <span class="k">if</span> <span class="s2">"theme"</span> <span class="ow">in</span> <span class="n">meta</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="s2">"theme"</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"frontmatter 'theme' must be a theme name, got </span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="s1">'theme'</span><span class="p">]))</span><span class="si">}</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"frontmatter 'theme' must be a theme name, got </span><span class="si">{</span><span class="n">show</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="s1">'theme'</span><span class="p">])</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="o">*</span><span class="n">TEXT_META</span><span class="p">,</span> <span class="s2">"theme"</span><span class="p">):</span>
+        <span class="c1"># A YAML "\uD800" escape gives a lone surrogate, which no output</span>
+        <span class="c1"># format can encode.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">UnicodeEncodeError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"frontmatter '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">' has a character that isn't valid"</span>
+                    <span class="sa">f</span><span class="s2">" Unicode (</span><span class="si">{</span><span class="n">show</span><span class="p">(</span><span class="n">exc</span><span class="o">.</span><span class="n">object</span><span class="p">[</span><span class="n">exc</span><span class="o">.</span><span class="n">start</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">exc</span><span class="o">.</span><span class="n">end</span><span class="p">])</span><span class="si">}</span><span class="s2">)"</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
     <span class="k">if</span> <span class="s2">"toc"</span> <span class="ow">in</span> <span class="n">meta</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="s2">"toc"</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"frontmatter 'toc' must be true or false, got </span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="s1">'toc'</span><span class="p">]))</span><span class="si">}</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"frontmatter 'toc' must be true or false, got </span><span class="si">{</span><span class="n">show</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="s1">'toc'</span><span class="p">])</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
     <span class="n">pages</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"pages"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">pages</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
         <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pages</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pages</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="n">pages</span> <span class="o">&lt;</span> <span class="mi">1</span>
     <span class="p">):</span>
         <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span><span class="s2">"frontmatter 'pages' must be a whole number &gt;= 1"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pages</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">meta</span><span class="p">[</span><span class="s2">"pages"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">pages</span><span class="p">,</span> <span class="n">MAX_PAGES</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">meta</span>
 
 
@@ -1692,6 +1738,10 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="sd">    A remote image in the HTML would be fetched by the reader's browser, which</span>
 <span class="sd">    leaks that the page was opened and anything put in the URL.</span>
 <span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">src</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+        <span class="c1"># markdown-it keeps ![alt](&lt;&gt;) as an image with no source, which</span>
+        <span class="c1"># would show only its alt text, or nothing.</span>
+        <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span><span class="s2">"an image has an empty source"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">src</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"data:image/"</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">data_image_type</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">DATA_IMAGE_TYPES</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span>
@@ -1703,6 +1753,8 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
         <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"image '</span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="n">src</span><span class="p">)</span><span class="si">}</span><span class="s2">' must be a relative path or a data:image URI"</span>
         <span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"</span><span class="se">\0</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">unquote</span><span class="p">(</span><span class="n">src</span><span class="p">):</span>  <span class="c1"># %00: no file name holds one</span>
+        <span class="k">raise</span> <span class="n">InputError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"image '</span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="n">src</span><span class="p">)</span><span class="si">}</span><span class="s2">' has a NUL (%00) in its path"</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_plain_text</span><span class="p">(</span><span class="n">inline</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -2175,6 +2227,10 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="n">IMAGE_SUFFIXES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">".png"</span><span class="p">,</span> <span class="s2">".jpg"</span><span class="p">,</span> <span class="s2">".jpeg"</span><span class="p">,</span> <span class="s2">".gif"</span><span class="p">,</span> <span class="s2">".webp"</span><span class="p">,</span> <span class="s2">".svg"</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_data_uri</span><span class="p">(</span><span class="n">src</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">src</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"data:"</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_decoded_mime</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">svg</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The image's MIME type, once its bytes are known to decode as an image.</span>
 
@@ -2190,6 +2246,14 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
             <span class="k">raise</span> <span class="n">RenderError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"image </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> is not valid SVG: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
         <span class="k">if</span> <span class="n">root</span><span class="o">.</span><span class="n">tag</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"svg"</span><span class="p">,</span> <span class="s2">"{http://www.w3.org/2000/svg}svg"</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">RenderError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"image </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> is not an SVG image"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">root</span><span class="o">.</span><span class="n">iter</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"href"</span><span class="p">,</span> <span class="s2">"{http://www.w3.org/1999/xlink}href"</span><span class="p">):</span>
+                <span class="n">ref</span> <span class="o">=</span> <span class="n">el</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">ref</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ref</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"#"</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_is_data_uri</span><span class="p">(</span><span class="n">ref</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="n">RenderError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"image </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> links to '</span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span><span class="si">}</span><span class="s2">'; an SVG may use"</span>
+                        <span class="s2">" only #ids and data: URIs"</span>
+                    <span class="p">)</span>
         <span class="k">return</span> <span class="s2">"image/svg+xml"</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
@@ -2226,12 +2290,12 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="sd">    refused or undecodable raises RenderError, so the render fails instead</span>
 <span class="sd">    of leaving a broken image or embedding a file that isn't one.</span>
 <span class="sd">    """</span>
-    <span class="k">if</span> <span class="n">src</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"data:"</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">_is_data_uri</span><span class="p">(</span><span class="n">src</span><span class="p">):</span>  <span class="c1"># the scheme and ;base64 are case-insensitive</span>
         <span class="n">header</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">payload</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">header</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">";base64"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">header</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">";base64"</span><span class="p">)</span>
                 <span class="k">else</span> <span class="n">unquote_to_bytes</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
@@ -2240,6 +2304,8 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
         <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">_decoded_mime</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">"data URI"</span><span class="p">,</span> <span class="n">svg</span><span class="o">=</span><span class="n">svg</span><span class="p">)</span>
 
     <span class="n">base</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">base_dir</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="k">if</span> <span class="s2">"</span><span class="se">\0</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">unquote</span><span class="p">(</span><span class="n">src</span><span class="p">):</span>  <span class="c1"># resolve() raises ValueError on a NUL</span>
+        <span class="k">raise</span> <span class="n">RenderError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"blocked resource: '</span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="n">src</span><span class="p">)</span><span class="si">}</span><span class="s2">' has a NUL in its path"</span><span class="p">)</span>
     <span class="n">path</span> <span class="o">=</span> <span class="p">(</span><span class="n">base</span> <span class="o">/</span> <span class="n">unquote</span><span class="p">(</span><span class="n">src</span><span class="p">))</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_relative_to</span><span class="p">(</span><span class="n">base</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">RenderError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"blocked or missing resource: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> is outside </span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -2331,11 +2397,14 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">contained_fetcher</span><span class="p">(</span><span class="n">base</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""A WeasyPrint URL fetcher for files under base, Rupa's fonts and data: URIs.</span>
+<span class="w">    </span><span class="sd">"""A WeasyPrint URL fetcher for data: URIs and Rupa's bundled fonts only.</span>
 
-<span class="sd">    Anything else, or a missing file, fails the render instead of fetching</span>
-<span class="sd">    from the network or vanishing. Images arrive already checked and inlined,</span>
-<span class="sd">    since WeasyPrint swaps an image it can't decode for its alt text.</span>
+<span class="sd">    Images arrive already checked by load_image and inlined, since WeasyPrint</span>
+<span class="sd">    swaps an image it can't decode for its alt text, so nothing else needs a</span>
+<span class="sd">    file. That also stops an SVG's own &lt;image href="file:..."&gt; (any case)</span>
+<span class="sd">    from reading a file load_image would refuse. Anything else, or a missing</span>
+<span class="sd">    font, fails the render instead of fetching from the network or vanishing.</span>
+<span class="sd">    `base` names the document's folder in the error.</span>
 <span class="sd">    """</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">weasyprint</span><span class="w"> </span><span class="kn">import</span> <span class="n">URLFetcher</span>
@@ -2344,10 +2413,15 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 
     <span class="k">class</span><span class="w"> </span><span class="nc">ContainedFetcher</span><span class="p">(</span><span class="n">URLFetcher</span><span class="p">):</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">fetch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"file:"</span><span class="p">):</span>
+            <span class="n">scheme</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">scheme</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">scheme</span> <span class="o">==</span> <span class="s2">"file"</span><span class="p">:</span>
                 <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">unquote</span><span class="p">(</span><span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">path</span><span class="p">))</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">is_relative_to</span><span class="p">(</span><span class="n">base</span><span class="p">)</span> <span class="ow">or</span> <span class="n">path</span><span class="o">.</span><span class="n">parent</span> <span class="o">==</span> <span class="n">FONT_DIR</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> is outside </span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">parent</span> <span class="o">!=</span> <span class="n">FONT_DIR</span> <span class="ow">or</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">!=</span> <span class="s2">".ttf"</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">))</span><span class="si">}</span><span class="s2"> is not an image Rupa inlined from </span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">scheme</span> <span class="o">!=</span> <span class="s2">"data"</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="si">}</span><span class="s2"> is not a local resource"</span><span class="p">)</span>
             <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ContainedFetcher</span><span class="p">(</span><span class="n">allowed_protocols</span><span class="o">=</span><span class="p">{</span><span class="s2">"file"</span><span class="p">,</span> <span class="s2">"data"</span><span class="p">},</span> <span class="n">fail_on_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -2709,7 +2783,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">__version__</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.document</span><span class="w"> </span><span class="kn">import</span> <span class="n">InputError</span><span class="p">,</span> <span class="n">parse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.document</span><span class="w"> </span><span class="kn">import</span> <span class="n">InputError</span><span class="p">,</span> <span class="n">one_line</span><span class="p">,</span> <span class="n">parse</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.render</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PROSE_WORDS_PER_LINE</span><span class="p">,</span>
     <span class="n">THEMES</span><span class="p">,</span>
@@ -2725,11 +2799,31 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="n">REPLACEABLE</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="sa">f</span><span class="s2">".</span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">FORMATS</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_render_parser</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_Parser</span><span class="p">(</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""argparse, but a usage error is one line on stderr (or one JSON object</span>
+<span class="sd">    with --json) and exit 2, like every other Rupa error. --help is as usual."""</span>
+
+    <span class="n">json_out</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># set from argv before parsing: parse_args can't tell us</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="n">_err</span><span class="p">(</span>
+            <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">(</span><span class="n">json</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">json_out</span><span class="p">),</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2"> (see </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prog</span><span class="si">}</span><span class="s2"> --help)"</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_USAGE</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_parser</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_Parser</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">_Parser</span><span class="p">(</span><span class="n">allow_abbrev</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># contract: flags spelled in full</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">json_out</span> <span class="o">=</span> <span class="s2">"--json"</span> <span class="ow">in</span> <span class="n">argv</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_render_parser</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">())</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">_parser</span><span class="p">(</span>
+        <span class="n">argv</span><span class="p">,</span>
         <span class="n">prog</span><span class="o">=</span><span class="s2">"rupa"</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="s2">"Render Markdown to HTML, PDF or DOCX."</span><span class="p">,</span>
-        <span class="n">allow_abbrev</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># contract: flags are spelled in full</span>
         <span class="n">epilog</span><span class="o">=</span><span class="s2">"To render a file named verify or refs, write ./verify or ./refs."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -2768,7 +2862,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">render_main</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-    <span class="n">args</span> <span class="o">=</span> <span class="n">_render_parser</span><span class="p">()</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">_render_parser</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
     <span class="n">fmt</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">to</span> <span class="ow">or</span> <span class="n">out</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">fmt</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">FORMATS</span><span class="p">:</span>
@@ -2791,7 +2885,8 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
             <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">input</span> <span class="o">==</span> <span class="s2">"-"</span>
             <span class="k">else</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">input</span><span class="p">)</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">()</span>
         <span class="p">)</span>
-        <span class="n">text</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="c1"># utf-8-sig drops a leading BOM, which would hide the frontmatter.</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8-sig"</span><span class="p">)</span>
         <span class="c1"># DOCX is built from the tokens, so it skips the HTML render.</span>
         <span class="n">doc</span> <span class="o">=</span> <span class="n">parse</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">html</span><span class="o">=</span><span class="n">fmt</span> <span class="o">!=</span> <span class="s2">"docx"</span><span class="p">)</span>
     <span class="k">except</span> <span class="p">(</span><span class="n">InputError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">,</span> <span class="ne">UnicodeDecodeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
@@ -2837,7 +2932,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
         <span class="n">extra</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">", </span><span class="si">{</span><span class="n">pages</span><span class="si">}</span><span class="s2"> page</span><span class="si">{</span><span class="s1">'s'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">pages</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">''</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">pages</span> <span class="k">else</span> <span class="s2">""</span>
         <span class="k">if</span> <span class="n">fit</span> <span class="ow">and</span> <span class="n">fit</span><span class="o">.</span><span class="n">steps</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">over</span><span class="p">:</span>
             <span class="n">extra</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">", fit to </span><span class="si">{</span><span class="n">budget</span><span class="si">}</span><span class="s2"> with </span><span class="si">{</span><span class="s1">' + '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">steps</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
-        <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"rupa: wrote </span><span class="si">{</span><span class="n">out</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">fmt</span><span class="si">}{</span><span class="n">extra</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> bytes)"</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"rupa: wrote </span><span class="si">{</span><span class="n">one_line</span><span class="p">(</span><span class="n">out</span><span class="p">)</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">fmt</span><span class="si">}{</span><span class="n">extra</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> bytes)"</span>
         <span class="k">if</span> <span class="n">over</span><span class="p">:</span>
             <span class="n">line</span> <span class="o">+=</span> <span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"; over the </span><span class="si">{</span><span class="n">budget</span><span class="si">}</span><span class="s2">-page budget at the tightest type:"</span>
@@ -2859,9 +2954,7 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
         <span class="n">verify</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">p</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
-        <span class="n">prog</span><span class="o">=</span><span class="s2">"rupa verify"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Check a rendered PDF."</span><span class="p">,</span> <span class="n">allow_abbrev</span><span class="o">=</span><span class="kc">False</span>
-    <span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">_parser</span><span class="p">(</span><span class="n">argv</span><span class="p">,</span> <span class="n">prog</span><span class="o">=</span><span class="s2">"rupa verify"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Check a rendered PDF."</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"pdf"</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--wants"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"wants.yaml (default: built-in rules)"</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -2914,10 +3007,8 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
 <span class="k">def</span><span class="w"> </span><span class="nf">refs_main</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">.verify</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_references</span>
 
-    <span class="n">p</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
-        <span class="n">prog</span><span class="o">=</span><span class="s2">"rupa refs"</span><span class="p">,</span>
-        <span class="n">description</span><span class="o">=</span><span class="s2">"Rebuild a theme's reference pages."</span><span class="p">,</span>
-        <span class="n">allow_abbrev</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">_parser</span><span class="p">(</span>
+        <span class="n">argv</span><span class="p">,</span> <span class="n">prog</span><span class="o">=</span><span class="s2">"rupa refs"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Rebuild a theme's reference pages."</span>
     <span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--theme"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"default"</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -2952,7 +3043,10 @@ mkdir<span class="w"> </span>-p<span class="w"> </span>src/rupa/themes<span clas
             <span class="n">_err</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"cannot write to </span><span class="si">{</span><span class="n">out</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="o">.</span><span class="n">strerror</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">EXIT_INPUT</span>
     <span class="n">kinds</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=p</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">picked</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"rupa: wrote references for '</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">theme</span><span class="si">}</span><span class="s2">' to </span><span class="si">{</span><span class="n">out</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">kinds</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"rupa: wrote references for '</span><span class="si">{</span><span class="n">one_line</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">theme</span><span class="p">)</span><span class="si">}</span><span class="s2">'"</span>
+        <span class="sa">f</span><span class="s2">" to </span><span class="si">{</span><span class="n">one_line</span><span class="p">(</span><span class="n">out</span><span class="p">)</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">kinds</span><span class="si">}</span><span class="s2">)"</span>
+    <span class="p">)</span>
     <span class="k">return</span> <span class="n">EXIT_OK</span>
 
 
@@ -3779,6 +3873,7 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">importlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">resources</span>
@@ -3786,7 +3881,12 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.document</span><span class="w"> </span><span class="kn">import</span> <span class="n">clip</span><span class="p">,</span> <span class="n">yaml_problem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.document</span><span class="w"> </span><span class="kn">import</span> <span class="n">MAX_PAGES</span><span class="p">,</span> <span class="n">clip</span><span class="p">,</span> <span class="n">one_line</span><span class="p">,</span> <span class="n">show</span><span class="p">,</span> <span class="n">yaml_problem</span>
+
+<span class="c1"># pdfminer and pdfplumber log warnings about odd PDFs. With no handler</span>
+<span class="c1"># configured, Python prints them to stderr, which must stay one line.</span>
+<span class="k">for</span> <span class="n">_name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"pdfminer"</span><span class="p">,</span> <span class="s2">"pdfplumber"</span><span class="p">):</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">_name</span><span class="p">)</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">NullHandler</span><span class="p">())</span>
 
 <span class="n">PT_PER_IN</span> <span class="o">=</span> <span class="mi">72</span>
 <span class="n">PAGE_SIZES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"letter"</span><span class="p">:</span> <span class="p">(</span><span class="mi">612</span><span class="p">,</span> <span class="mi">792</span><span class="p">),</span> <span class="s2">"a4"</span><span class="p">:</span> <span class="p">(</span><span class="mi">595</span><span class="p">,</span> <span class="mi">842</span><span class="p">)}</span>
@@ -3853,7 +3953,11 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
         <span class="n">given</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">))</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"cannot read wants file: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
-    <span class="k">except</span> <span class="n">yaml</span><span class="o">.</span><span class="n">YAMLError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+    <span class="k">except</span> <span class="ne">UnicodeDecodeError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"wants file is not UTF-8: </span><span class="si">{</span><span class="n">exc</span><span class="o">.</span><span class="n">reason</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+    <span class="c1"># An impossible date (2026-02-30) raises ValueError, and deeply nested</span>
+    <span class="c1"># YAML RecursionError; both are bad input, not a crash.</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">YAMLError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">OverflowError</span><span class="p">,</span> <span class="ne">RecursionError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"bad wants file: </span><span class="si">{</span><span class="n">yaml_problem</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">given</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="s2">"wants file must be a YAML mapping"</span><span class="p">)</span>
@@ -3900,11 +4004,12 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
         <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"page_size must be one of </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">PAGE_SIZES</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_int</span><span class="p">(</span><span class="n">wants</span><span class="p">[</span><span class="s2">"max_pages"</span><span class="p">])</span> <span class="ow">or</span> <span class="n">wants</span><span class="p">[</span><span class="s2">"max_pages"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="s2">"max_pages must be a whole number of at least 1"</span><span class="p">)</span>
+    <span class="n">wants</span><span class="p">[</span><span class="s2">"max_pages"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">wants</span><span class="p">[</span><span class="s2">"max_pages"</span><span class="p">],</span> <span class="n">MAX_PAGES</span><span class="p">)</span>  <span class="c1"># see MAX_PAGES</span>
     <span class="n">color</span> <span class="o">=</span> <span class="n">wants</span><span class="p">[</span><span class="s2">"text_color"</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">color</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span>
         <span class="nb">isinstance</span><span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">"#[0-9a-fA-F]</span><span class="si">{6}</span><span class="s2">"</span><span class="p">,</span> <span class="n">color</span><span class="p">)</span>
     <span class="p">):</span>
-        <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"text_color must be #RRGGBB, got </span><span class="si">{</span><span class="n">color</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"text_color must be #RRGGBB, got </span><span class="si">{</span><span class="n">show</span><span class="p">(</span><span class="n">color</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"sparse_fill"</span><span class="p">,</span> <span class="s2">"near_empty_fill"</span><span class="p">,</span> <span class="s2">"figure_gap_fill"</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_fraction</span><span class="p">(</span><span class="n">wants</span><span class="p">[</span><span class="n">key</span><span class="p">]):</span>
             <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> must be a number from 0 to 1"</span><span class="p">)</span>
@@ -3912,7 +4017,7 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
         <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="s2">"checks must be a list of check names"</span><span class="p">)</span>
     <span class="n">bad</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">wants</span><span class="p">[</span><span class="s2">"checks"</span><span class="p">])</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">ALL_CHECKS</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">bad</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown checks: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">bad</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown checks: </span><span class="si">{</span><span class="n">clip</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">bad</span><span class="p">))</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vision</span><span class="p">[</span><span class="s2">"sample"</span><span class="p">],</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">vision</span><span class="p">[</span><span class="s2">"sample"</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">SAMPLE_MODES</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"vision.sample must be one of </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">SAMPLE_MODES</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_int</span><span class="p">(</span><span class="n">vision</span><span class="p">[</span><span class="s2">"max_sheets"</span><span class="p">])</span> <span class="ow">or</span> <span class="n">vision</span><span class="p">[</span><span class="s2">"max_sheets"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -3986,7 +4091,7 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
 <span class="k">def</span><span class="w"> </span><span class="nf">_hex_to_rgb</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
     <span class="n">v</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">"#"</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">6</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"text_color must be #RRGGBB, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">WantsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"text_color must be #RRGGBB, got </span><span class="si">{</span><span class="n">show</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">],</span> <span class="mi">16</span><span class="p">)</span> <span class="o">/</span> <span class="mi">255</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
 
 
@@ -3995,6 +4100,9 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
     <span class="k">if</span> <span class="n">color</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="n">c</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">color</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="k">else</span> <span class="p">(</span><span class="n">color</span><span class="p">,)</span>
+    <span class="c1"># A pattern fill comes through as its name, not as numbers.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">c</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
@@ -4024,7 +4132,13 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
     <span class="k">try</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_read_pages</span><span class="p">(</span><span class="n">pdfplumber</span><span class="p">,</span> <span class="n">pdf_path</span><span class="p">,</span> <span class="n">want</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># pdfminer raises many types on a damaged file</span>
-        <span class="k">raise</span> <span class="n">PdfError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"cannot read PDF </span><span class="si">{</span><span class="n">pdf_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+        <span class="c1"># Some pdfminer errors have no message (PDFPasswordIncorrect).</span>
+        <span class="c1"># pdfplumber wraps them in PdfminerException(original).</span>
+        <span class="n">inner</span> <span class="o">=</span> <span class="n">exc</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">exc</span><span class="o">.</span><span class="n">args</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="ne">Exception</span><span class="p">)</span> <span class="k">else</span> <span class="n">exc</span>
+        <span class="n">why</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">inner</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">inner</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="k">if</span> <span class="s2">"password"</span> <span class="ow">in</span> <span class="nb">type</span><span class="p">(</span><span class="n">inner</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">why</span> <span class="o">=</span> <span class="s2">"it is password-protected"</span>
+        <span class="k">raise</span> <span class="n">PdfError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"cannot read PDF </span><span class="si">{</span><span class="n">pdf_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">why</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_read_pages</span><span class="p">(</span><span class="n">pdfplumber</span><span class="p">,</span> <span class="n">pdf_path</span><span class="p">,</span> <span class="n">want</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">PageInfo</span><span class="p">]:</span>
@@ -4389,7 +4503,7 @@ claude<span class="w"> </span>--plugin-dir<span class="w"> </span>./plugin
             <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sheets</span><span class="p">)</span>
             <span class="n">line</span> <span class="o">+=</span> <span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"; </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> sheet</span><span class="si">{</span><span class="s1">'s'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">''</span><span class="si">}</span><span class="s2"> for visual review"</span>
-                <span class="sa">f</span><span class="s2">" in </span><span class="si">{</span><span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">manifest</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="si">}</span><span class="s2">/"</span>
+                <span class="sa">f</span><span class="s2">" in </span><span class="si">{</span><span class="n">one_line</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">manifest</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="si">}</span><span class="s2">/"</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">line</span>
 
