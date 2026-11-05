@@ -1,6 +1,6 @@
 {
   "name": "rupa",
-  "description": "Rupa: Markdown in, themed and verified HTML or PDF out.",
+  "description": "Rupa: Markdown in, themed HTML, verified PDF or DOCX out.",
   "owner": {
     "name": "Vajra Sarpa",
     "url": "https://vajrasarpa.com"
@@ -9,7 +9,7 @@
     {
       "name": "rupa",
       "source": "./plugin",
-      "description": "Write Markdown, let Rupa render the HTML or PDF. Keeps markup out of Claude's output tokens."
+      "description": "Write Markdown, let Rupa render the HTML, PDF or Word document. Keeps markup out of Claude's output tokens."
     }
   ]
 }

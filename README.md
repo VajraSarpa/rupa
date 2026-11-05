@@ -5,7 +5,7 @@
 **Claude writes the content. Rupa owns the form.**
 
 Rupa is a command-line renderer and a Claude Code plugin. Claude writes plain
-Markdown; Rupa turns it into a themed HTML page or PDF, checks the PDF with
+Markdown; Rupa turns it into a themed HTML page, PDF or Word document, checks the PDF with
 code, and shows Claude page images only when something looks wrong. *Rūpa*
 is Sanskrit for "form".
 
@@ -69,7 +69,7 @@ the one to quote. Method, both judges and every run:
 
 1. **Claude writes Markdown** with a little frontmatter: title, subtitle,
    author, date, theme, contents and an optional page budget.
-2. **`rupa` renders it** through a theme into HTML or PDF, offline. Given a
+2. **`rupa` renders it** through a theme into HTML, PDF or DOCX, offline. Given a
    page budget, it tightens type and spacing to fit, and if that isn't
    enough, it says how many lines to cut.
 3. **`rupa verify` checks the PDF** with nine code checks and writes
@@ -121,15 +121,42 @@ and fenced code with syntax highlighting. Raw HTML is escaped, and images
 must be PNG, JPEG, GIF, WebP or SVG files next to the Markdown (HTML output
 embeds them).
 
+## Word documents
+
+```bash
+rupa report.md -o report.docx
+# rupa: wrote report.docx (docx, 6,500 bytes)
+```
+
+The DOCX is real Word structure, not a picture of a page: Title and Heading
+styles (so Word's navigation pane and its own contents field work), numbered
+and bulleted lists, tables with a repeating header row, footnotes as Word
+footnotes, a linked contents list and page numbers in the footer. Text is
+black in every theme; the theme sets the fonts and the colour of rules.
+
+It is built offline from the same parsed Markdown, with no template and no
+extra dependency, and the same input always gives the same bytes: no
+creation date, user name or machine name goes into the file. Images pass
+the same checks as HTML and PDF. SVG and WebP become PNG, so no SVG (which
+can name other files or URLs) reaches Word. Links are kept only for `http`,
+`https`, `mailto` and the document's own headings; any other link keeps its
+text and loses the link. There are no macros, embedded objects, external
+templates or remote images.
+
+The theme fonts (Inter, Hanken Grotesk, JetBrains Mono) aren't embedded, to
+keep files small; where they aren't installed, Word substitutes Arial and
+Courier New. `cyan-dark` gives the same DOCX as `cyan`, since Word doesn't
+print page colours.
+
 ## Themes
 
 ![The same cover in the default, cyan and cyan-dark themes](docs/img/themes.png)
 
-| Theme | On screen (HTML) | PDF |
-|---|---|---|
-| `default` | Slate on white, light or dark with the system | Black on white |
-| `cyan` | Deep navy, blueprint grid, one cyan accent | Black on white, cyan rules and pills |
-| `cyan-dark` | Same as `cyan` | Navy pages, light ink |
+| Theme | On screen (HTML) | PDF | DOCX |
+|---|---|---|---|
+| `default` | Slate on white, light or dark with the system | Black on white | Black on white, Inter, teal rules |
+| `cyan` | Deep navy, blueprint grid, one cyan accent | Black on white, cyan rules and pills | Black on white, Hanken Grotesk, cyan rules |
+| `cyan-dark` | Same as `cyan` | Navy pages, light ink | Same as `cyan` |
 
 A different look is always a theme change, never styling in the Markdown.
 PDFs use bundled fonts (Inter, Hanken Grotesk, JetBrains Mono; SIL OFL 1.1),
@@ -148,7 +175,9 @@ lists every rule and its default.
 
 - **Claude Code only, for now.** Rupa is a local CLI plus a Claude Code
   plugin; it doesn't run in the Claude chat app.
-- **HTML and PDF only.** No slides or DOCX yet.
+- **HTML, PDF and DOCX only.** No slides yet. `rupa verify` checks PDFs
+  only; a DOCX is laid out by Word, so Rupa can't measure its pages, and
+  `pages:` doesn't apply to it.
 - **Looks come from themes.** A new look means writing a theme in CSS.
 - **Markdown limits.** No callouts; footnotes become endnotes in PDFs; bare
   URLs aren't clickable.
@@ -201,7 +230,8 @@ and deletes, and which flags never change, is in
 [docs/cli-contract.md](docs/cli-contract.md).
 
 - **Input:** Markdown with optional YAML frontmatter, from a file or stdin.
-- **`-o PATH`:** the output file; the format comes from the extension.
+- **`-o PATH`:** the output file; the format comes from the extension
+  (`.html`, `.pdf` or `.docx`) or `--to`.
 - **`pages: N` or `--pages N`:** a PDF page budget.
 - **stdout:** one status line (or one JSON object with `--json`), never the
   document.
@@ -233,7 +263,7 @@ and deletes, and which flags never change, is in
 
 ```bash
 uv sync
-uv run pytest -q                   # 208 tests
+uv run pytest -q                   # 227 tests
 uvx ruff check src tests
 uv run rupa refs --theme <name>    # after any theme change; commit the PNGs
 uv run python docs/build.py        # re-render the guide with Rupa

@@ -938,7 +938,7 @@ wheels = [
 
 [[package]]
 name = "rupa"
-version = "0.1.4"
+version = "0.1.5"
 source = { editable = "." }
 dependencies = [
     { name = "jinja2" },
@@ -946,6 +946,7 @@ dependencies = [
     { name = "mdit-py-plugins" },
     { name = "pdfplumber" },
     { name = "pygments" },
+    { name = "pypdfium2" },
     { name = "pyyaml" },
     { name = "weasyprint" },
 ]
@@ -962,6 +963,7 @@ requires-dist = [
     { name = "mdit-py-plugins", specifier = ">=0.4" },
     { name = "pdfplumber", specifier = ">=0.11" },
     { name = "pygments", specifier = ">=2.17" },
+    { name = "pypdfium2", specifier = ">=4" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "weasyprint", specifier = ">=70" },
 ]

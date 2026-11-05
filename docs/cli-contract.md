@@ -1,6 +1,6 @@
 # Rupa CLI contract
 
-What each `rupa` command reads, writes, deletes and reaches, as of `v0.1.4`.
+What each `rupa` command reads, writes, deletes and reaches, as of `v0.1.5`.
 The README's [Contract](../README.md#contract) section covers stdout and exit
 codes for the plugin; this page is for anyone who wraps or polices the
 commands, such as a pre-execution policy check.
@@ -20,9 +20,11 @@ stops it. Successful runs write no log.
 
 ### Flags
 
-- `rupa`: `-o/--output` (required), `--to {html,pdf}`, `--theme`, `--pages N`,
-  `--force`, `--json`, `--version`. Without `--to` the format comes from
-  `OUT`'s extension, so `OUT` must end in `.html` or `.pdf`.
+- `rupa`: `-o/--output` (required), `--to {html,pdf,docx}`, `--theme`,
+  `--pages N`, `--force`, `--json`, `--version`. Without `--to` the format
+  comes from `OUT`'s extension, so `OUT` must end in `.html`, `.pdf` or
+  `.docx`. `--pages` applies to PDF only; HTML and DOCX ignore it, and their
+  `--json` status has `"pages": null`.
 - `rupa verify`: `--wants FILE`, `--theme`, `--out DIR`,
   `--sample {per-type,flagged,all,none}`, `--json`.
 - `rupa refs`: `--theme`, `--out DIR`.
@@ -30,9 +32,9 @@ stops it. Successful runs write no log.
 ## Risky surfaces
 
 - **`rupa -o OUT` replaces `OUT` without asking** when it already exists as
-  `.html` or `.pdf`.
+  `.html`, `.pdf` or (since `v0.1.5`) `.docx`.
 - **`rupa --to FMT -o OUT` can name any path.** If `OUT` exists and isn't
-  `.html` or `.pdf`, Rupa refuses (exit 2) unless `--force` is given, and
+  `.html`, `.pdf` or `.docx`, Rupa refuses (exit 2) unless `--force` is given, and
   then it replaces that file. `--to html --force -o notes.txt` overwrites
   `notes.txt`.
 - **`rupa verify --out DIR` writes into a folder the caller chooses.** It
@@ -45,7 +47,10 @@ stops it. Successful runs write no log.
   `--out` (exit 2).
 
 Rupa never fetches from the network, never runs a subprocess, and never
-passes raw HTML through. An image must be a relative path inside the input's
+passes raw HTML through. A DOCX holds no macros, embedded objects,
+external templates or remote images; its only hyperlinks are `http`,
+`https`, `mailto` and links to its own headings, and its only fields are
+the footer's page numbers. An image must be a relative path inside the input's
 folder (not hidden, an image extension, bytes that decode) or a `data:image`
 URI; anything else fails the run (exit 3 or 4).
 
@@ -63,8 +68,9 @@ PDF still over its page budget. A crash is exit `1`.
   `--forc` or `--outp` is a usage error (exit 2), so a policy check that
   matches `--force` or `--out` sees every spelling Rupa accepts. Up to
   `v0.1.3`, argparse's prefix matching accepted any unambiguous abbreviation.
-- **New output formats are additive.** Slides, the next planned format, will
-  arrive as a new `--to` value (for example `--to slides`) or a new
+- **New output formats are additive.** DOCX arrived in `v0.1.5` as
+  `--to docx` and the `.docx` extension, changing nothing an existing flag or
+  value does. Slides, the next planned format, will arrive as a new `--to` value (for example `--to slides`) or a new
   subcommand, never by changing what an existing flag or value does.
 - A change to anything on this page is listed in the release notes, and any
   policy descriptor that covers Rupa (such as HOL Guard's `command.rupa`,

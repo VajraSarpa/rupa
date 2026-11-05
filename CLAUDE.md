@@ -3,14 +3,14 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 Rupa is a CLI that renders Markdown (plus optional YAML frontmatter) into a
-themed HTML page or PDF, checks the PDF, and ships a Claude Code plugin whose
+themed HTML page, PDF or DOCX, checks the PDF, and ships a Claude Code plugin whose
 skill makes Claude use it instead of hand-writing markup.
 
 ## Commands
 
 ```bash
 uv sync                                   # needs Pango for WeasyPrint (see README)
-uv run pytest -q                          # 208 tests
+uv run pytest -q                          # 227 tests
 uv run pytest tests/test_verify.py::test_stranded_heading_fails   # one test
 uvx ruff check src tests                  # CI runs this too
 uvx ruff format --check src tests         # and this
@@ -46,6 +46,16 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
   `<name>.print.css` layer. Themes must be listed in `THEMES`, with their
   allowed PDF text colours in `THEME_TEXT_COLORS`. Every render records
   `rupa-theme:<name>` in the keywords metadata.
+- **`word.py`** builds DOCX straight from `Document.tokens` (`parse(text,
+  html=False)` skips the HTML render): WordprocessingML strings, zipped with
+  fixed timestamps so output is byte-for-byte reproducible. No template, no
+  python-docx. Every theme needs a `WORD_THEMES` entry (fonts, rule colours;
+  text stays #000000). Images go through `render.load_image`; SVG is
+  rasterised to PNG via WeasyPrint's contained fetcher and pypdfium2, WebP
+  is converted to PNG. Hyperlinks only for http/https/mailto and `#heading`.
+  Element order inside `pPr`/`rPr`/`tblPr` follows the OOXML schema; Word
+  rejects files LibreOffice accepts, so keep it. `tests/test_word.py` opens
+  the result in LibreOffice when `soffice` is installed (CI's `docx` job).
 - **Images:** `document.py` rejects any image that isn't a relative path or a
   `data:image` URI (exit 3), so neither HTML nor PDF ever fetches from the
   network. A data URI must be PNG, JPEG, GIF, WebP or SVG (`DATA_IMAGE_TYPES`;

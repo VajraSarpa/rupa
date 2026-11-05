@@ -1,6 +1,6 @@
 # Rupa plugin evals
 
-Six cases for `claude plugin eval`. Each case runs with the plugin and again
+Seven cases for `claude plugin eval`. Each case runs with the plugin and again
 without it (the no-plugin baseline), three times per arm by default.
 
 | Case | Tag | Checks |
@@ -8,6 +8,7 @@ without it (the no-plugin baseline), three times per arm by default.
 | `pdf-report` | outcome | Skill fires, `report.pdf` made by `rupa`, then `rupa verify`; no hand-written HTML/CSS; reply reports the result (judge) |
 | `html-page` | outcome | Skill fires, `dns.html` made by `rupa`, no `.html`/`.css` written by hand |
 | `wide-table-fix-loop` | outcome | Hard layout still ends in a PDF whose last verify passes, in at most three renders (two fix rounds) |
+| `docx-memo` | outcome | Skill fires, `memo.docx` made by `rupa`, no hand-written DOCX code (python-docx, pandoc) |
 | `natural-handout` | trigger | "Printable handout" with no format named still fires the skill |
 | `no-trigger-pdf-question` | trigger | A question about PDFs does not fire the skill |
 | `no-trigger-code` | trigger | An ordinary coding request does not fire the skill |

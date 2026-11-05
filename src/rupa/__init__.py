@@ -1,3 +1,3 @@
-"""Rupa: a renderer layer. Content in on stdin, styled HTML or PDF out."""
+"""Rupa: a renderer layer. Content in on stdin, styled HTML, PDF or DOCX out."""
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
