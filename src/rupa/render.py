@@ -237,15 +237,40 @@ def load_image(src: str, base_dir: str | Path) -> tuple[bytes, str]:
     return data, _decoded_mime(data, path.name, svg=path.suffix.lower() == ".svg")
 
 
-def embed_images(body: str, base_dir: str | Path) -> str:
+def load_chart(
+    src: str, base_dir: str | Path, charts=(), theme="default", target="html"
+) -> tuple[bytes, str] | None:
+    """A chart the page names, drawn as SVG; None if src isn't a chart.
+
+    rupa-chart:N is the Nth ```vega-lite block (placed by document.parse);
+    a .vl.json path is a spec file next to the Markdown.
+    """
+    if src.startswith("rupa-chart:"):
+        spec = charts[int(src.split(":", 1)[1])]
+    elif src.lower().endswith(".vl.json"):
+        from .charts import load_chart_file
+
+        spec = load_chart_file(src, base_dir)
+    else:
+        return None
+    from .charts import to_svg
+
+    return to_svg(spec, theme, target, base_dir), "image/svg+xml"
+
+
+def embed_images(
+    body: str, base_dir: str | Path, charts=(), theme="default", target="html"
+) -> str:
     """Inline every image as a data: URI, so the page needs no other file.
 
     Each one goes through load_image first: only real images, only from
-    inside base_dir.
+    inside base_dir. Charts are drawn here, as SVG.
     """
 
     def inline(m: re.Match) -> str:
-        data, mime = load_image(html_lib.unescape(m.group(2)), base_dir)
+        src = html_lib.unescape(m.group(2))
+        chart = load_chart(src, base_dir, charts, theme, target)
+        data, mime = chart or load_image(src, base_dir)
         uri = f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"
         return m.group(1) + uri + m.group(3)
 
@@ -274,7 +299,11 @@ def to_html(
         title=doc.title,
         meta=doc.meta,
         toc=toc,
-        body=embed_images(doc.body_html, base_dir) if base_dir else doc.body_html,
+        body=(
+            embed_images(doc.body_html, base_dir or ".", doc.charts, theme, target)
+            if base_dir or doc.charts
+            else doc.body_html
+        ),
         css=_theme_css(theme, target) + extra_css,
         target=target,
         theme=theme,

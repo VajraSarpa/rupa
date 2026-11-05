@@ -10,7 +10,7 @@ skill makes Claude use it instead of hand-writing markup.
 
 ```bash
 uv sync                                   # needs Pango for WeasyPrint (see README)
-uv run pytest -q                          # 227 tests
+uv run pytest -q                          # 274 tests
 uv run pytest tests/test_verify.py::test_stranded_heading_fails   # one test
 uvx ruff check src tests                  # CI runs this too
 uvx ruff format --check src tests         # and this
@@ -56,6 +56,19 @@ The pipeline is `document.py` → `render.py` → (PDF) → `verify.py`, wired b
   Element order inside `pPr`/`rPr`/`tblPr` follows the OOXML schema; Word
   rejects files LibreOffice accepts, so keep it. `tests/test_word.py` opens
   the result in LibreOffice when `soffice` is installed (CI's `docx` job).
+- **`charts.py`** draws Vega-Lite charts with vl-convert (the optional
+  `charts` extra; in the dev group so tests run). A ```` ```vega-lite ````
+  fence is checked in `parse` (`check_spec`, exit 3), stored in
+  `Document.charts`, and rendered as `<p class="chart"><img
+  src="rupa-chart:N">`, which `render.embed_images` fills with SVG; `word.py`
+  draws it as PNG. An image link to `*.vl.json` is checked at render (exit
+  4). Three layers keep charts offline: every `url`/`href` key refused except
+  a data url to a local .csv/.tsv/.json (which `fill_data` inlines through
+  the image rules), `allowed_base_urls=[]`, and an output check that the SVG
+  holds no `href` or non-`#` `url()`. vl-convert holds the GIL, so there's no
+  timeout; `MAX_ROWS` and friends bound the work. Colours per theme and
+  target are in `chart_config`; PDF chart text must stay inside
+  `THEME_TEXT_COLORS`.
 - **Images:** `document.py` rejects any image that isn't a relative path or a
   `data:image` URI (exit 3), so neither HTML nor PDF ever fetches from the
   network. A data URI must be PNG, JPEG, GIF, WebP or SVG (`DATA_IMAGE_TYPES`;

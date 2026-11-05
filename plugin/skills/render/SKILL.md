@@ -22,6 +22,13 @@ description: Use when the user wants an HTML page, PDF or Word document (.docx).
    Fenced code blocks take a language tag. Images are relative paths to
    PNG, JPEG, GIF, WebP or SVG files next to the Markdown file (or
    `data:image` URIs), never URLs.
+   For a chart, write a `vega-lite` fenced block holding a Vega-Lite JSON
+   spec (a `.vl.json` file saved by Altair can be linked as an image
+   instead). Never write matplotlib or other plotting code. Put the data in
+   the spec (`"values"`, at most 5,000 rows) or in a `.csv`/`.json` file
+   next to the Markdown (`"data": {"url": "sales.csv"}`); no other `url` or
+   `href` is allowed. Give each chart a `description`. Leave `width`, colours
+   and fonts out: the theme sets them.
    A PDF table fits about 11 short columns (Rupa sets 9 or more in smaller
    type). For more, or for long cell text, write two tables that each
    repeat the first column.

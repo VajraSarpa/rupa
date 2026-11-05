@@ -285,8 +285,9 @@ def _fit_emu(w_in: float, h_in: float) -> tuple[int, int]:
 
 
 class _Writer:
-    def __init__(self, doc: Document, theme: WordTheme, base: Path):
+    def __init__(self, doc: Document, theme: WordTheme, base: Path, theme_name: str):
         self.doc, self.theme, self.base = doc, theme, base
+        self.theme_name = theme_name
         self.bookmarks = _bookmark_names([h.anchor for h in doc.headings])
         self._bm_id = 0
         self._pic_id = 0
@@ -418,6 +419,11 @@ class _Writer:
 
     def _image(self, tok, rels: _Rels) -> str:
         src = str(tok.attrs.get("src", ""))
+        if src.lower().endswith(".vl.json"):
+            from .charts import load_chart_file
+
+            spec = load_chart_file(src, self.base)
+            return self._chart_run(spec, _plain(tok.children) or tok.content, rels)
         data, mime = load_image(src, self.base)  # the shared image guard
         if mime == "image/svg+xml":
             data, w_px, h_px = _svg_to_png(data, self.base)
@@ -425,6 +431,25 @@ class _Writer:
         else:
             ext, w_in, h_in, data = _raster_info(data)
             size = (w_in, h_in)
+        return self._drawing(data, ext, size, _plain(tok.children) or tok.content, rels)
+
+    def _chart_run(self, spec: dict, alt: str, rels: _Rels) -> str:
+        from .charts import to_png
+
+        data, w_px, h_px = to_png(spec, self.theme_name, self.base)
+        return self._drawing(data, "png", (w_px / 96, h_px / 96), alt, rels)
+
+    def _chart(self, index: int, rels: _Rels) -> str:
+        from .charts import alt_text
+
+        spec = self.doc.charts[index]
+        run = self._chart_run(spec, alt_text(spec), rels)
+        ppr = self._ppr(None)
+        if self.lists:
+            self.lists[-1]["pending"] = False
+        return f"<w:p>{ppr}{run}</w:p>"
+
+    def _drawing(self, data: bytes, ext: str, size, alt: str, rels: _Rels) -> str:
         key = hashlib.sha256(data).hexdigest()
         if key not in self._media_by_hash:
             path = f"media/image{len(self.media) + 1}.{ext}"
@@ -434,7 +459,7 @@ class _Writer:
         rid = rels.add(REL_IMAGE, path)
         self._pic_id += 1
         n = self._pic_id
-        alt = attr(_plain(tok.children) or tok.content)
+        alt = attr(alt)
         return (
             '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">'
             f'<wp:extent cx="{cx}" cy="{cy}"/>'
@@ -612,6 +637,8 @@ class _Writer:
                 self.quote += 1
             elif typ == "blockquote_close":
                 self.quote -= 1
+            elif typ == "fence" and "chart" in t.meta:
+                out.append(self._chart(t.meta["chart"], rels))
             elif typ in ("fence", "code_block"):
                 out.append(self._code(t.content))
             elif typ == "hr":
@@ -1046,7 +1073,7 @@ def to_docx(
     if toc_on is None:
         toc_on = doc.meta.get("toc", True)
 
-    writer = _Writer(doc, th, base)
+    writer = _Writer(doc, th, base, theme)
     doc_rels = _Rels(
         [
             (f"{REL}/styles", "styles.xml"),

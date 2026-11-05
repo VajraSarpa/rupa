@@ -22,6 +22,8 @@ from pygments.formatters import HtmlFormatter
 from pygments.lexers import TextLexer, get_lexer_by_name
 from pygments.util import ClassNotFound
 
+# Fenced blocks drawn as charts rather than shown as code.
+CHART_LANGS = ("vega-lite", "vegalite")
 ALLOWED_META = {"title", "subtitle", "author", "date", "theme", "toc", "pages"}
 TEXT_META = ("title", "subtitle", "author", "date")
 
@@ -104,6 +106,9 @@ class Document:
     # The body as markdown-it block tokens (no frontmatter, no repeated
     # title), for targets that don't go through HTML, such as DOCX.
     tokens: list = field(default_factory=list, repr=False)
+    # Checked Vega-Lite specs from ```vega-lite blocks; each such fence token
+    # carries meta["chart"], its index here.
+    charts: list[dict] = field(default_factory=list, repr=False)
 
     @property
     def title(self) -> str:
@@ -129,6 +134,24 @@ def _build_parser() -> MarkdownIt:
     md.use(tasklists_plugin)
     md.use(footnote_plugin)
     md.use(anchors_plugin, min_level=1, max_level=3)
+
+    # A chart block becomes an image placeholder that render.embed_images
+    # fills with the drawn chart. The rupa-chart: scheme can't come from the
+    # Markdown itself: _check_image refuses any image URL with a scheme.
+    code_fence = md.renderer.rules["fence"]
+
+    def fence(_self, tokens, idx, options, env):
+        tok = tokens[idx]
+        if "chart" in tok.meta:
+            from html import escape
+
+            from .charts import alt_text
+
+            alt = escape(alt_text(env["charts"][tok.meta["chart"]]))
+            return f'<p class="chart"><img src="rupa-chart:{tok.meta["chart"]}" alt="{alt}"></p>\n'
+        return code_fence(tokens, idx, options, env)
+
+    md.add_render_rule("fence", fence)
     # markdown-it drops a link or image whose URL it distrusts and leaves the
     # Markdown source in the page. Let every data:image URL through so
     # _check_image can refuse the ones Rupa can't render, with exit 3.
@@ -226,6 +249,14 @@ def parse(text: str, *, html: bool = True) -> Document:
                     raise InputError(f"link '{clip(href)}' cannot be a data: URL")
 
     doc = Document(meta=meta, body_html="", headings=headings)
+    for tok in tokens:
+        if tok.type == "fence" and tok.info.strip().lower() in CHART_LANGS:
+            from .charts import MAX_CHARTS, parse_block
+
+            if len(doc.charts) >= MAX_CHARTS:
+                raise InputError(f"more than {MAX_CHARTS} charts in one document")
+            tok.meta["chart"] = len(doc.charts)
+            doc.charts.append(parse_block(tok.content))
     # The cover already shows the title, so a leading H1 that repeats it is
     # dropped from the body. Any other leading H1 is a real part and stays.
     first = next((i for i, t in enumerate(tokens) if t.type != "front_matter"), None)
@@ -240,7 +271,7 @@ def parse(text: str, *, html: bool = True) -> Document:
     doc.tokens = [t for t in tokens if t.type != "front_matter"]
     if not html:
         return doc
-    body = md.renderer.render(tokens, md.options, {})
+    body = md.renderer.render(tokens, md.options, {"charts": doc.charts})
     # Fenced code gets Pygments spans; mark the block for theme CSS.
     doc.body_html = re.sub(r"<pre><code", '<pre class="hl"><code', body)
     return doc
