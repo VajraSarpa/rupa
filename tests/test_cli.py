@@ -44,7 +44,7 @@ def test_pdf_text_is_forced_black(tmp_path):
 
 
 def test_unknown_extension_is_usage_error(tmp_path, monkeypatch, capsys):
-    code, _, err = run(monkeypatch, capsys, ["-o", str(tmp_path / "out.docx")])
+    code, _, err = run(monkeypatch, capsys, ["-o", str(tmp_path / "out.odt")])
     assert code == EXIT_USAGE and "use --to" in err
 
 

@@ -101,6 +101,9 @@ class Document:
     meta: dict
     body_html: str
     headings: list[Heading] = field(default_factory=list)
+    # The body as markdown-it block tokens (no frontmatter, no repeated
+    # title), for targets that don't go through HTML, such as DOCX.
+    tokens: list = field(default_factory=list, repr=False)
 
     @property
     def title(self) -> str:
@@ -176,7 +179,9 @@ def _plain_text(inline) -> str:
     return "".join(parts).strip()
 
 
-def parse(text: str) -> Document:
+def parse(text: str, *, html: bool = True) -> Document:
+    """Parse Markdown into a Document. html=False skips rendering body_html
+    (and Pygments), for targets that read doc.tokens instead."""
     if not text.strip():
         raise InputError("empty input: nothing to render")
 
@@ -232,6 +237,9 @@ def parse(text: str) -> Document:
     ):
         del tokens[first : first + 3]
 
+    doc.tokens = [t for t in tokens if t.type != "front_matter"]
+    if not html:
+        return doc
     body = md.renderer.render(tokens, md.options, {})
     # Fenced code gets Pygments spans; mark the block for theme CSS.
     doc.body_html = re.sub(r"<pre><code", '<pre class="hl"><code', body)

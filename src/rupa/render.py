@@ -281,6 +281,29 @@ def to_html(
     )
 
 
+def contained_fetcher(base: Path):
+    """A WeasyPrint URL fetcher for files under base, Rupa's fonts and data: URIs.
+
+    Anything else, or a missing file, fails the render instead of fetching
+    from the network or vanishing. Images arrive already checked and inlined,
+    since WeasyPrint swaps an image it can't decode for its alt text.
+    """
+    try:
+        from weasyprint import URLFetcher
+    except ImportError as exc:  # pragma: no cover - depends on system libs
+        raise RenderError("PDF needs WeasyPrint and its system libraries") from exc
+
+    class ContainedFetcher(URLFetcher):
+        def fetch(self, url, headers=None):
+            if url.startswith("file:"):
+                path = Path(unquote(urlparse(url).path)).resolve()
+                if not (path.is_relative_to(base) or path.parent == FONT_DIR):
+                    raise ValueError(f"{path} is outside {base}")
+            return super().fetch(url, headers)
+
+    return ContainedFetcher(allowed_protocols={"file", "data"}, fail_on_errors=True)
+
+
 def to_pdf(
     doc: Document,
     theme: str = "default",
@@ -294,26 +317,13 @@ def to_pdf(
     directory), and only files inside it can be read.
     """
     try:
-        from weasyprint import HTML, URLFetcher
+        from weasyprint import HTML
         from weasyprint.urls import FatalURLFetchingError
     except ImportError as exc:  # pragma: no cover - depends on system libs
         raise RenderError("PDF needs WeasyPrint and its system libraries") from exc
 
     base = Path(base_dir or ".").resolve()
-
-    class ContainedFetcher(URLFetcher):
-        def fetch(self, url, headers=None):
-            if url.startswith("file:"):
-                path = Path(unquote(urlparse(url).path)).resolve()
-                if not (path.is_relative_to(base) or path.parent == FONT_DIR):
-                    raise ValueError(f"{path} is outside {base}")
-            return super().fetch(url, headers)
-
-    # Files under base, Rupa's own fonts, and data: URIs only. Anything else,
-    # or a missing file, fails the render instead of fetching from the
-    # network or vanishing. Images arrive already checked and inlined, since
-    # WeasyPrint swaps an image it can't decode for its alt text.
-    fetcher = ContainedFetcher(allowed_protocols={"file", "data"}, fail_on_errors=True)
+    fetcher = contained_fetcher(base)
     html = to_html(
         doc, theme, target="pdf", extra_css=extra_css, toc_on=toc_on, base_dir=base
     )

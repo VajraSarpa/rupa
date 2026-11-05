@@ -1,6 +1,6 @@
 """rupa CLI.
 
-  rupa [INPUT] -o OUT            render Markdown to HTML or PDF
+  rupa [INPUT] -o OUT            render Markdown to HTML, PDF or DOCX
   rupa verify PDF [--wants F]    check a rendered PDF, write review sheets
   rupa refs [--theme T]          rebuild a theme's reference pages
 
@@ -42,20 +42,24 @@ from .render import (
 )
 
 EXIT_OK, EXIT_USAGE, EXIT_INPUT, EXIT_RENDER, EXIT_CHECKS = 0, 2, 3, 4, 5
-FORMATS = ("html", "pdf")
+FORMATS = ("html", "pdf", "docx")
+# Outputs Rupa replaces without --force; anything else needs it.
+REPLACEABLE = tuple(f".{f}" for f in FORMATS)
 
 
 def _render_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="rupa",
-        description="Render Markdown to HTML or PDF.",
+        description="Render Markdown to HTML, PDF or DOCX.",
         allow_abbrev=False,  # contract: flags are spelled in full
         epilog="To render a file named verify or refs, write ./verify or ./refs.",
     )
     p.add_argument(
         "input", nargs="?", default="-", help="Markdown file, or - for stdin (default)"
     )
-    p.add_argument("-o", "--output", required=True, help="output path, e.g. out.pdf")
+    p.add_argument(
+        "-o", "--output", required=True, help="output path, e.g. out.pdf or out.docx"
+    )
     p.add_argument(
         "--to", choices=FORMATS, help="force format instead of using the extension"
     )
@@ -70,7 +74,7 @@ def _render_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--force",
         action="store_true",
-        help="with --to, replace an existing output that isn't .html or .pdf",
+        help="with --to, replace an existing output that isn't .html, .pdf or .docx",
     )
     p.add_argument("--json", action="store_true", help="print a JSON status object")
     p.add_argument("--version", action="version", version=f"rupa {__version__}")
@@ -92,9 +96,13 @@ def render_main(argv: list[str]) -> int:
     if fmt not in FORMATS:
         _err(args, f"cannot infer format from '{out.name}'; use --to")
         return EXIT_USAGE
-    # --to lets -o name any file, so only an .html or .pdf is replaced unasked.
-    if out.exists() and out.suffix.lower() not in (".html", ".pdf") and not args.force:
-        _err(args, f"{out} exists and isn't .html or .pdf; use --force to replace it")
+    # --to lets -o name any file, so only a .html, .pdf or .docx is replaced
+    # unasked.
+    if out.exists() and out.suffix.lower() not in REPLACEABLE and not args.force:
+        _err(
+            args,
+            f"{out} exists and isn't .html, .pdf or .docx; use --force to replace it",
+        )
         return EXIT_USAGE
 
     try:
@@ -106,7 +114,8 @@ def render_main(argv: list[str]) -> int:
             else Path(args.input).read_bytes()
         )
         text = raw.decode("utf-8")
-        doc = parse(text)
+        # DOCX is built from the tokens, so it skips the HTML render.
+        doc = parse(text, html=fmt != "docx")
     except (InputError, OSError, UnicodeDecodeError) as exc:
         _err(args, str(exc))
         return EXIT_INPUT
@@ -121,6 +130,10 @@ def render_main(argv: list[str]) -> int:
         base = Path(args.input).parent if args.input != "-" else Path.cwd()
         if fmt == "html":
             data = to_html(doc, theme, base_dir=base).encode("utf-8")
+        elif fmt == "docx":
+            from .word import to_docx  # only DOCX runs pay for the import
+
+            data = to_docx(doc, theme, base_dir=base)
         else:
             fit = fit_pdf(doc, theme, base_dir=base, budget=budget)
             data, pages = fit.data, fit.pages

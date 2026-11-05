@@ -1,6 +1,6 @@
 ---
 name: render
-description: Use when the user wants an HTML page or PDF document. Write Markdown, render it with the rupa CLI, then verify the PDF. Never hand-write HTML, CSS, or PDF code.
+description: Use when the user wants an HTML page, PDF or Word document (.docx). Write Markdown, render it with the rupa CLI, then verify the PDF. Never hand-write HTML, CSS, PDF or DOCX code.
 ---
 
 # Rendering with Rupa
@@ -30,6 +30,9 @@ description: Use when the user wants an HTML page or PDF document. Write Markdow
    ```bash
    rupa draft.md -o out/report.pdf
    ```
+
+   For a Word document use `-o out/report.docx`. `pages` does not apply to
+   DOCX, and there is nothing to verify: report the status line and stop.
 
 4. Read only the one-line status. Do not open or print the output file.
 5. On a non-zero exit, fix the Markdown: `3` bad input and `4` render

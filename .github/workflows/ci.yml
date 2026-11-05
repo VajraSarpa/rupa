@@ -29,3 +29,21 @@ jobs:
         run: |
           printf -- '---\ntitle: CI\n---\n\n## ok\n' | uv run rupa -o out/ci.pdf
           uv run rupa verify out/ci.pdf
+          printf -- '---\ntitle: CI\n---\n\n## ok\n' | uv run rupa -o out/ci.docx
+          python3 -c "import zipfile,sys; z=zipfile.ZipFile('out/ci.docx'); sys.exit(z.testzip() is not None)"
+  # The DOCX tests open each file in LibreOffice, a stricter reader than a
+  # zip check; it's a heavy install, so it gets its own job.
+  docx:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: System libraries for WeasyPrint, and LibreOffice
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 libreoffice-writer-nogui
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - name: DOCX tests, with the LibreOffice open check required
+        run: |
+          uv run pytest -q tests/test_word.py -rs | tee pytest.log
+          ! grep -q "SKIPPED.*LibreOffice" pytest.log
